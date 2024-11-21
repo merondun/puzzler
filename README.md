@@ -1,6 +1,10 @@
-# Puzzler
+![Puzzler](/examples/figs/logo.png)
 
-Nextflow pipeline for achieving workable assemblies from HiFi and HiC data using hifiasm, purge_dups, HapHiC, and BUSCO, designed for SciNet resources.
+Simple nextflow pipeline for assembly genomes from Hifi and HiC data. 
+
+> What's it for?!
+
+Genome assembly, primarily designed for SLURM sources on SciNet architecture. 
 
 ## Installation
 

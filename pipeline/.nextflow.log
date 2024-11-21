@@ -1,0 +1,94 @@
+Nov-21 12:35:09.886 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf --sample HART001 -resume
+Nov-21 12:35:10.002 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 24.10.1
+Nov-21 12:35:10.034 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/justin.merondun/.nextflow/plugins; core-plugins: nf-amazon@2.9.1,nf-azure@1.10.2,nf-cloudcache@0.4.2,nf-codecommit@0.2.2,nf-console@1.1.4,nf-google@1.15.2,nf-tower@1.9.3,nf-wave@1.7.3
+Nov-21 12:35:10.062 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Nov-21 12:35:10.064 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Nov-21 12:35:10.067 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Nov-21 12:35:10.079 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Nov-21 12:35:10.099 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-21 12:35:10.101 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-21 12:35:10.123 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/justin.merondun/.nextflow/secrets/store.json
+Nov-21 12:35:10.126 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@6c8a68c1] - activable => nextflow.secret.LocalSecretsProvider@6c8a68c1
+Nov-21 12:35:10.137 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Nov-21 12:35:10.565 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Nov-21 12:35:10.608 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [gigantic_waddington] DSL2 - revision: 5c0ff4ea4a
+Nov-21 12:35:10.609 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Nov-21 12:35:10.610 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Nov-21 12:35:10.726 [main] DEBUG nextflow.Session - Session UUID: 40b638af-1e93-4337-9536-a797f3732d17
+Nov-21 12:35:10.726 [main] DEBUG nextflow.Session - Run name: gigantic_waddington
+Nov-21 12:35:10.727 [main] DEBUG nextflow.Session - Executor pool size: 64
+Nov-21 12:35:10.743 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Nov-21 12:35:10.749 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=192; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+Nov-21 12:35:10.830 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 24.10.1 build 5930
+  Created: 18-11-2024 12:21 UTC (06:21 CDT)
+  System: Linux 5.14.0-427.44.1.el9_4.x86_64
+  Runtime: Groovy 4.0.23 on OpenJDK 64-Bit Server VM 22.0.1-internal-adhoc.conda.src
+  Encoding: UTF-8 (UTF-8)
+  Process: 745668@ceres19-compute-75.ceres.scinet.usda.gov [10.1.10.81]
+  CPUs: 64 - Mem: 376 GB (309.2 GB) - Swap: 4 GB (4 GB)
+Nov-21 12:35:10.889 [main] DEBUG nextflow.Session - Work-dir: /project/coffea_pangenome/Artocarpus/tmp_nf [nfs]
+Nov-21 12:35:10.890 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/justin.merondun/puzzler/pipeline/bin
+Nov-21 12:35:10.904 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Nov-21 12:35:10.923 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+Nov-21 12:35:10.946 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Nov-21 12:35:10.967 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 65; maxThreads: 1000
+Nov-21 12:35:11.156 [main] DEBUG nextflow.Session - Session start
+Nov-21 12:35:11.401 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Nov-21 12:35:11.876 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Nov-21 12:35:11.876 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Nov-21 12:35:11.881 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Nov-21 12:35:11.890 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=64; memory=376 GB; capacity=64; pollInterval=100ms; dumpInterval=5m
+Nov-21 12:35:11.893 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Nov-21 12:35:11.958 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Nov-21 12:35:11.958 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Nov-21 12:35:11.968 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Nov-21 12:35:11.968 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Nov-21 12:35:11.977 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Nov-21 12:35:11.977 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Nov-21 12:35:11.982 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: RAGTAG, HAP_HIC, PURGE_DUPS, HIFIASM
+Nov-21 12:35:11.982 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Nov-21 12:35:11.990 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HIFIASM
+Nov-21 12:35:11.990 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PURGE_DUPS
+Nov-21 12:35:11.990 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HAP_HIC
+Nov-21 12:35:11.991 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RAGTAG
+Nov-21 12:35:11.991 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_f26069ec578b6253: /home/justin.merondun/puzzler/pipeline/./modules/hifiasm.nf
+  Script_c9d17577139d7bb8: /home/justin.merondun/puzzler/pipeline/./modules/hap_hic.nf
+  Script_d362616490ef5ecb: /home/justin.merondun/puzzler/pipeline/main.nf
+  Script_84879009b9881d8c: /home/justin.merondun/puzzler/pipeline/./modules/purge_dups.nf
+  Script_584a1f427f11d7e2: /home/justin.merondun/puzzler/pipeline/./modules/ragtag.nf
+Nov-21 12:35:11.991 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Nov-21 12:35:11.991 [main] DEBUG nextflow.Session - Session await
+Nov-21 12:35:12.235 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Nov-21 12:35:12.238 [Task submitter] INFO  nextflow.Session - [04/0c8c28] Submitted process > HIFIASM (1)
+Nov-21 12:40:12.037 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 12:45:12.113 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 12:50:12.175 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 12:55:12.221 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:00:12.278 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:05:12.296 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:10:12.353 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:15:12.422 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:20:12.492 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:25:12.523 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:30:12.586 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:35:12.590 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:40:12.650 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:45:12.750 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]
+Nov-21 13:50:12.789 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: HIFIASM (1); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/04/0c8c288215ca8f426787b099f2dd8a]

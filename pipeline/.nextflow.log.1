@@ -1,0 +1,44 @@
+Nov-21 12:24:04.267 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf --sample HART001 -resume
+Nov-21 12:24:04.373 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 24.10.1
+Nov-21 12:24:04.447 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/justin.merondun/.nextflow/plugins; core-plugins: nf-amazon@2.9.1,nf-azure@1.10.2,nf-cloudcache@0.4.2,nf-codecommit@0.2.2,nf-console@1.1.4,nf-google@1.15.2,nf-tower@1.9.3,nf-wave@1.7.3
+Nov-21 12:24:04.484 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Nov-21 12:24:04.485 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Nov-21 12:24:04.488 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Nov-21 12:24:04.508 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Nov-21 12:24:04.533 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-21 12:24:04.536 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-21 12:24:04.566 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/justin.merondun/.nextflow/secrets/store.json
+Nov-21 12:24:04.571 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@66d57c1b] - activable => nextflow.secret.LocalSecretsProvider@66d57c1b
+Nov-21 12:24:04.583 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Nov-21 12:24:05.045 [main] DEBUG nextflow.config.ConfigBuilder - In the following config snippet the attribute `workDir` is empty:
+  manifest {
+  	description='Puzzler Genome Assembly Pipeline'
+  	version='1.0.0'
+  }
+  executor.name='local'
+  params {
+  	sample='HART001'
+  	workDir='/project/coffea_pangenome/Artocarpus/tmp_nf'
+  	wd='/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies'
+  	reference='/project/coffea_pangenome/Artocarpus/WholeGenomeAlignments/fastas/ASM2540343.fa'
+  	samples="/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/samples.csv"
+  }
+
+Nov-21 12:24:05.048 [main] ERROR nextflow.cli.Launcher - Unknown config attribute `workDir` -- check config file: /home/justin.merondun/puzzler/pipeline/nextflow.config
+nextflow.exception.ConfigParseException: Unknown config attribute `workDir` -- check config file: /home/justin.merondun/puzzler/pipeline/nextflow.config
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.validate(ConfigBuilder.groovy:465)
+	at nextflow.config.ConfigBuilder.validate(ConfigBuilder.groovy:452)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.merge0(ConfigBuilder.groovy:426)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.buildConfig0(ConfigBuilder.groovy:375)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.buildGivenFiles(ConfigBuilder.groovy:320)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.buildConfigObject(ConfigBuilder.groovy:818)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.config.ConfigBuilder.build(ConfigBuilder.groovy:831)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:332)
+	at nextflow.cli.Launcher.run(Launcher.groovy:503)
+	at nextflow.cli.Launcher.main(Launcher.groovy:658)

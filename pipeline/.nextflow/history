@@ -1,0 +1,7 @@
+2024-11-20 12:15:15	3.3s	soggy_mcclintock	ERR	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -resume
+2024-11-20 12:16:06	40m 55s	mad_morse	ERR	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -resume
+2024-11-20 12:23:54	-	zen_nobel	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
+2024-11-20 12:29:03	7.8s	chaotic_lalande	ERR	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
+2024-11-20 12:52:58	-	ridiculous_bernard	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
+2024-11-20 13:01:46	-	ecstatic_mclean	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
+2024-11-21 12:35:10	-	gigantic_waddington	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
