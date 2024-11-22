@@ -16,7 +16,7 @@ process HAP_HIC {
         bwa mem -5SP -t ${task.cpus} ${purged_assembly} ${hic_r1} ${hic_r2} | \\
             samblaster | samtools view - -@ ${task.cpus} -S -h -b -F 3340 -o HiC.bam
         
-        /project/coffea_pangenome/Software/Merondun/HapHiC/utils/filter_bam \\
+        filter_bam \\
             HiC.bam 1 --nm 3 --threads ${task.cpus} | \\
             samtools view - -b -@ ${task.cpus} -o HiC.filtered.bam
         

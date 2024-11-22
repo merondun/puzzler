@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: continuumio/miniconda3
+
+%files
+    /project/coffea_pangenome/Software/Merondun/HapHiC /opt/HapHiC
+    environment.yml /opt/environment.yml
+
+%post
+    conda env create -f /opt/environment.yml
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> $APPTAINER_ENVIRONMENT
+    echo "conda activate puzzler" >> $APPTAINER_ENVIRONMENT
+
+    # Add HapHiC to PATH
+    echo "export PATH=/opt/HapHiC:/opt/HapHiC/utils:/opt/HapHiC/scripts:/opt/conda/envs/puzzler/bin:$PATH" >> $APPTAINER_ENVIRONMENT
+    
+    # Install ps utility
+    apt-get update && apt-get install -y procps
+
+%environment
+    export PATH=/bin:$PATH
+
+%runscript
+    exec /bin/bash "$@"

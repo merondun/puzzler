@@ -9,7 +9,6 @@ process PURGE_DUPS {
     
     output:
         tuple val(sample), path("purged.fa"), emit: purged_assembly
-        path "purged/*", emit: busco_results
     
     script:
         """
@@ -19,7 +18,5 @@ process PURGE_DUPS {
         minimap2 -t ${task.cpus} -xasm5 -DP asm.split asm.split | pigz -c > asm.split.self.paf.gz
         purge_dups -M1000 -E1000 asm.split.self.paf.gz > dups.bed
         get_seqs dups.bed ${sample}.hic.p_ctg.fa
-        
-        busco -i purged.fa -l embryophyta_odb10 -m genome -c ${task.cpus} -f --out_path . --out purged
         """
 }

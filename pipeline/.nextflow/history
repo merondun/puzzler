@@ -18,4 +18,8 @@
 2024-11-21 18:44:50	3.7s	happy_lagrange	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
 2024-11-21 18:45:55	3.7s	spontaneous_brown	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
 2024-11-21 18:47:42	4s	gloomy_ardinghelli	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
-2024-11-21 18:49:54	-	lethal_mirzakhani	-	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:49:54	3h 18m 43s	lethal_mirzakhani	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-22 12:01:01	13m 23s	berserk_boyd	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-22 14:58:14	-	furious_einstein	-	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume -with-apptainer /home/justin.merondun/apptainer/puzzler.sif
+2024-11-22 15:34:06	1m 13s	big_planck	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume -with-apptainer /home/justin.merondun/apptainer/puzzler.sif
+2024-11-22 15:42:07	-	festering_newton	-	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume -with-apptainer /home/justin.merondun/apptainer/puzzler.sif
