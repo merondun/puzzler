@@ -5,3 +5,17 @@
 2024-11-20 12:52:58	-	ridiculous_bernard	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
 2024-11-20 13:01:46	-	ecstatic_mclean	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
 2024-11-21 12:35:10	-	gigantic_waddington	-	5c0ff4ea4aa4de0c0e412d1a9af9933e	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf --sample HART001 -resume
+2024-11-21 18:17:04	38.1s	marvelous_stallman	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:24:32	27.7s	cheesy_hamilton	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:29:14	3.5s	mad_aryabhata	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:30:31	3.7s	prickly_plateau	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:33:45	4s	clever_raman	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:35:38	3.9s	deadly_lalande	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:37:01	3.7s	desperate_descartes	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:39:08	3.1s	stoic_allen	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:39:53	38.1s	special_bhabha	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:42:19	4s	evil_laplace	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:44:50	3.7s	happy_lagrange	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:45:55	3.7s	spontaneous_brown	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:47:42	4s	gloomy_ardinghelli	ERR	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
+2024-11-21 18:49:54	-	lethal_mirzakhani	-	6d115e298e125b0cf4123f2e403ddf69	40b638af-1e93-4337-9536-a797f3732d17	nextflow run main.nf -profile slurm -resume
