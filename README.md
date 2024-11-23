@@ -29,16 +29,16 @@ The Nextflow DSL2 workflow follows these steps:
 
 ## tl;dr
 
-* 1. Clone this repo and save the `.sif` container somewhere. 
+**1.** Clone this repo and save the `.sif` container somewhere. 
 
-* 2. Prepare a `samples.csv` indicating sample name, ploidy, and reads:
+**2.** Prepare a `samples.csv` indicating sample name, ploidy, and reads:
 
 ```
 sample,ploidy,hifi,hic_r1,hic_r2
 HART001,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiC.R2.fastq.gz
 ```
 
-* 3. Modify the `nextflow.config` file. **IMPORTANT**. 
+**3.** Modify the `nextflow.config` file. **IMPORTANT**. 
 
 :exclamation: Nextflow will submit jobs via slurm for you, so it must be aware of your HPC syntax. Modify partitions accordingly. 
 
@@ -50,7 +50,7 @@ HART001,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssembl
     reference = "/project/coffea_pangenome/Artocarpus/WholeGenomeAlignments/fastas/ASM2540343.fa" # the reference genome you want to orient your chromosomes against
     samples = "${params.wd}/samples.csv" # the samples file, as above
 ```
-* 4. Submit. You can run this in a screen job, but I generally just prefer a single core compute job so I can track easily with a slurm output log:
+**4.** Submit. You can run this in a screen job, but I generally just prefer a single core compute job so I can track easily with a slurm output log:
 
 ```
 #!/bin/bash
