@@ -1,0 +1,683 @@
+Nov-22 15:42:04.958 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile slurm -resume -with-apptainer /home/justin.merondun/apptainer/puzzler.sif
+Nov-22 15:42:05.280 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 24.10.1
+Nov-22 15:42:05.341 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/justin.merondun/.nextflow/plugins; core-plugins: nf-amazon@2.9.1,nf-azure@1.10.2,nf-cloudcache@0.4.2,nf-codecommit@0.2.2,nf-console@1.1.4,nf-google@1.15.2,nf-tower@1.9.3,nf-wave@1.7.3
+Nov-22 15:42:05.392 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Nov-22 15:42:05.393 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Nov-22 15:42:05.400 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Nov-22 15:42:05.435 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Nov-22 15:42:05.510 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-22 15:42:05.516 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/justin.merondun/puzzler/pipeline/nextflow.config
+Nov-22 15:42:05.579 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/justin.merondun/.nextflow/secrets/store.json
+Nov-22 15:42:05.584 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@3088660d] - activable => nextflow.secret.LocalSecretsProvider@3088660d
+Nov-22 15:42:05.604 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `slurm`
+Nov-22 15:42:06.690 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [slurm]
+Nov-22 15:42:06.725 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Apptainer container as requested by command-line option `-with-apptainer null`
+Nov-22 15:42:06.756 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Nov-22 15:42:06.777 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [festering_newton] DSL2 - revision: 6d115e298e
+Nov-22 15:42:06.781 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Nov-22 15:42:06.781 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Nov-22 15:42:06.893 [main] DEBUG nextflow.Session - Session UUID: 40b638af-1e93-4337-9536-a797f3732d17
+Nov-22 15:42:06.893 [main] DEBUG nextflow.Session - Run name: festering_newton
+Nov-22 15:42:06.900 [main] DEBUG nextflow.Session - Executor pool size: 2
+Nov-22 15:42:06.917 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Nov-22 15:42:06.924 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+Nov-22 15:42:06.968 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 24.10.1 build 5930
+  Created: 18-11-2024 12:21 UTC (06:21 CDT)
+  System: Linux 5.14.0-427.40.1.el9_4.x86_64
+  Runtime: Groovy 4.0.23 on OpenJDK 64-Bit Server VM 22.0.1-internal-adhoc.conda.src
+  Encoding: UTF-8 (UTF-8)
+  Process: 2368644@ceres20-compute-69.ceres.scinet.usda.gov [10.1.10.63]
+  CPUs: 2 - Mem: 376 GB (43.7 GB) - Swap: 4 GB (3.8 GB)
+Nov-22 15:42:07.095 [main] DEBUG nextflow.Session - Work-dir: /project/coffea_pangenome/Artocarpus/tmp_nf [nfs]
+Nov-22 15:42:07.096 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/justin.merondun/puzzler/pipeline/bin
+Nov-22 15:42:07.111 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Nov-22 15:42:07.122 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+Nov-22 15:42:07.171 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Nov-22 15:42:07.184 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 3; maxThreads: 1000
+Nov-22 15:42:07.439 [main] DEBUG nextflow.Session - Session start
+Nov-22 15:42:07.888 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Nov-22 15:42:08.782 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:hifiasm` matches labels `hifiasm` for process with name HIFIASM
+Nov-22 15:42:08.803 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: slurm
+Nov-22 15:42:08.804 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'slurm'
+Nov-22 15:42:08.818 [main] DEBUG nextflow.executor.Executor - [warm up] executor > slurm
+Nov-22 15:42:08.827 [main] DEBUG n.processor.TaskPollingMonitor - Creating task monitor for executor 'slurm' > capacity: 2; pollInterval: 5s; dumpInterval: 5m 
+Nov-22 15:42:08.830 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: slurm)
+Nov-22 15:42:08.838 [main] DEBUG n.processor.TaskPollingMonitor - Creating submit rate limit of 30 submissions per 1 seconds
+Nov-22 15:42:08.855 [main] DEBUG n.executor.AbstractGridExecutor - Creating executor 'slurm' > queue-stat-interval: 1m
+Nov-22 15:42:08.961 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:purge_dups` matches labels `purge_dups` for process with name PURGE_DUPS
+Nov-22 15:42:08.963 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: slurm
+Nov-22 15:42:08.964 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'slurm'
+Nov-22 15:42:08.982 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:hap_hic` matches labels `hap_hic` for process with name HAP_HIC
+Nov-22 15:42:08.990 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: slurm
+Nov-22 15:42:08.991 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'slurm'
+Nov-22 15:42:09.003 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:ragtag` matches labels `ragtag` for process with name RAGTAG
+Nov-22 15:42:09.007 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: slurm
+Nov-22 15:42:09.007 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'slurm'
+Nov-22 15:42:09.018 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: RAGTAG, HAP_HIC, HIFIASM, PURGE_DUPS
+Nov-22 15:42:09.018 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Nov-22 15:42:09.028 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HIFIASM
+Nov-22 15:42:09.029 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PURGE_DUPS
+Nov-22 15:42:09.031 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HAP_HIC
+Nov-22 15:42:09.031 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RAGTAG
+Nov-22 15:42:09.033 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_b541eb52085093e1: /home/justin.merondun/puzzler/pipeline/./modules/purge_dups.nf
+  Script_0ed2cf0b18682a62: /home/justin.merondun/puzzler/pipeline/main.nf
+  Script_3bff0d01369d40c0: /home/justin.merondun/puzzler/pipeline/./modules/ragtag.nf
+  Script_eae0a0b3aa5a3e5d: /home/justin.merondun/puzzler/pipeline/./modules/hifiasm.nf
+  Script_92cb1634a33ea188: /home/justin.merondun/puzzler/pipeline/./modules/hap_hic.nf
+Nov-22 15:42:09.034 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Nov-22 15:42:09.034 [main] DEBUG nextflow.Session - Session await
+Nov-22 15:42:09.425 [Task submitter] DEBUG nextflow.executor.GridTaskHandler - [SLURM] submitted process HIFIASM (HART001) > jobId: 13656482; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8
+Nov-22 15:42:09.426 [Task submitter] INFO  nextflow.Session - [2e/c2ad65] Submitted process > HIFIASM (HART001)
+Nov-22 15:47:13.896 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 15:52:13.915 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 15:57:13.931 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:02:13.952 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:07:13.975 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:12:13.994 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:17:14.022 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:22:14.042 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:27:14.071 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:32:14.093 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:37:14.117 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:42:14.137 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:47:14.159 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:52:14.178 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 16:57:14.206 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:02:14.221 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:07:14.240 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:12:14.262 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:17:14.287 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:22:14.310 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:27:14.338 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:32:14.353 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:37:14.377 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:42:14.393 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:47:14.413 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:52:14.429 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 17:57:14.440 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:02:14.453 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:07:14.468 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:12:14.482 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:17:14.502 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:22:14.520 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:27:14.535 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:32:14.549 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:37:14.569 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:42:14.590 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:47:14.603 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:52:14.618 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 18:57:14.632 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:02:14.641 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:07:14.653 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:12:14.670 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:17:14.684 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:22:14.705 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:27:14.725 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:32:14.737 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:37:14.760 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:42:14.770 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:47:14.793 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:52:14.823 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 19:57:14.853 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:02:14.867 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:07:14.887 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:12:14.905 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:17:14.934 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:22:14.950 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:27:14.971 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:32:14.983 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:37:15.000 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:42:15.011 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:47:15.031 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:52:15.046 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 20:57:15.064 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:02:15.077 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:07:15.098 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:12:15.114 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:17:15.128 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:22:15.141 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:27:15.157 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:32:15.172 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:37:15.187 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:42:15.199 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:47:15.224 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:52:15.234 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 21:57:15.252 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:02:15.262 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:07:15.283 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:12:15.292 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:17:15.309 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:22:15.319 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:27:15.342 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:32:15.354 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:37:15.370 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:42:15.383 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:47:15.399 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:52:15.406 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 22:57:15.425 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:02:15.434 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:07:15.454 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:12:15.464 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:17:15.489 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:22:15.508 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:27:15.528 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:32:15.543 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:37:15.564 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:42:15.580 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:47:15.597 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:52:15.605 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-22 23:57:15.623 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:02:15.637 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:07:15.657 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:12:15.668 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:17:15.683 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:22:15.695 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:27:15.716 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:32:15.728 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:37:15.746 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:42:15.759 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:47:15.776 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:52:15.786 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 00:57:15.809 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:02:15.820 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:07:15.836 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:12:15.843 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:17:15.863 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:22:15.872 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:27:15.895 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:32:15.907 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:37:15.924 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:42:15.933 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:47:15.948 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:52:15.959 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 01:57:15.976 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:02:15.987 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:07:16.004 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:12:16.011 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:17:16.028 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:22:16.038 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:27:16.052 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:32:16.067 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:37:16.078 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: -; ]
+Nov-23 02:39:01.096 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[jobId: 13656482; id: 1; name: HIFIASM (HART001); status: COMPLETED; exit: 0; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/2e/c2ad65177935a40c6b63789e8f1cf8 started: 1732311798953; exited: 2024-11-23T08:38:49.631369334Z; ]
+Nov-23 02:39:01.099 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+Nov-23 02:39:01.177 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[10000]; allowCoreThreadTimeout=false
+Nov-23 02:39:01.286 [Task submitter] DEBUG nextflow.executor.GridTaskHandler - [SLURM] submitted process PURGE_DUPS (HART001) > jobId: 13657946; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/28/62392c8bc916e47ede232484a0922d
+Nov-23 02:39:01.286 [Task submitter] INFO  nextflow.Session - [28/62392c] Submitted process > PURGE_DUPS (HART001)
+Nov-23 02:42:16.089 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor slurm > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[jobId: 13657946; id: 2; name: PURGE_DUPS (HART001); status: RUNNING; exit: -; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/28/62392c8bc916e47ede232484a0922d started: 1732351211174; exited: -; ]
+Nov-23 02:45:16.113 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[jobId: 13657946; id: 2; name: PURGE_DUPS (HART001); status: COMPLETED; exit: 127; error: -; workDir: /project/coffea_pangenome/Artocarpus/tmp_nf/28/62392c8bc916e47ede232484a0922d started: 1732351211174; exited: 2024-11-23T08:44:28.677674475Z; ]
+Nov-23 02:45:16.144 [TaskFinalizer-2] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=PURGE_DUPS (HART001); work-dir=/project/coffea_pangenome/Artocarpus/tmp_nf/28/62392c8bc916e47ede232484a0922d
+  error [nextflow.exception.ProcessFailedException]: Process `PURGE_DUPS (HART001)` terminated with an error exit status (127)
+Nov-23 02:45:16.221 [TaskFinalizer-2] ERROR nextflow.processor.TaskProcessor - Error executing process > 'PURGE_DUPS (HART001)'
+
+Caused by:
+  Process `PURGE_DUPS (HART001)` terminated with an error exit status (127)
+
+
+Command executed:
+
+  gfatools gfa2fa HART001.hic.p_ctg.gfa > HART001.hic.p_ctg.fa
+  
+  split_fa HART001.hic.p_ctg.fa > asm.split
+  minimap2 -t 24 -xasm5 -DP asm.split asm.split | pigz -c > asm.split.self.paf.gz
+  purge_dups -M1000 -E1000 asm.split.self.paf.gz > dups.bed
+  get_seqs dups.bed HART001.hic.p_ctg.fa
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  [M::main] Version: 0.4-r214-dirty
+  [M::main] CMD: gfatools gfa2fa HART001.hic.p_ctg.gfa
+  [M::main] Real time: 12.703 sec; CPU: 4.424 sec
+  .command.sh: line 5: pigz: command not found
+  [M::mm_idx_gen::21.840*1.49] collected minimizers
+  [M::mm_idx_gen::22.631*2.18] sorted minimizers
+  [M::main::22.631*2.18] loaded/built the index for 2758 target sequence(s)
+  [M::mm_mapopt_update::23.620*2.13] mid_occ = 500
+  [M::mm_idx_stat] kmer size: 19; skip: 19; is_hpc: 0; #seq: 2758
+  [M::mm_idx_stat::24.370*2.09] distinct minimizers: 58157073 (32.89% are singletons); average occurrences: 2.759; average spacing: 9.986; total length: 1602242814
+
+Work dir:
+  /project/coffea_pangenome/Artocarpus/tmp_nf/28/62392c8bc916e47ede232484a0922d
+
+Container:
+  /home/justin.merondun/apptainer/puzzler.sif
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Nov-23 02:45:16.232 [TaskFinalizer-2] DEBUG nextflow.Session - Session aborted -- Cause: Process `PURGE_DUPS (HART001)` terminated with an error exit status (127)
+Nov-23 02:45:16.236 [main] DEBUG nextflow.Session - Session await > all processes finished
+Nov-23 02:45:16.262 [TaskFinalizer-2] DEBUG nextflow.Session - 
+Thread[#31,Actor Thread 5,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:410)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:233)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:336)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1069)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#1504,TaskFinalizer-2,5,main]
+  java.base@22.0.1-internal/java.lang.Thread.dumpThreads(Native Method)
+  java.base@22.0.1-internal/java.lang.Thread.getAllStackTraces(Thread.java:2488)
+  app//nextflow.util.SysHelper.dumpThreads(SysHelper.groovy:188)
+  app//nextflow.Session.abort(Session.groovy:800)
+  app//nextflow.Session.fault(Session.groovy:766)
+  app//nextflow.processor.TaskPollingMonitor.finalizeTask(TaskPollingMonitor.groovy:695)
+  app//nextflow.processor.TaskPollingMonitor.safeFinalizeTask(TaskPollingMonitor.groovy:678)
+  java.base@22.0.1-internal/java.lang.invoke.DirectMethodHandle$Holder.invokeVirtual(DirectMethodHandle$Holder)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$MH/0x000014fccf21c800.invoke(LambdaForm$MH)
+  java.base@22.0.1-internal/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:154)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+  java.base@22.0.1-internal/java.lang.reflect.Method.invoke(Method.java:580)
+  app//org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+  app//groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+  app//nextflow.processor.TaskPollingMonitor$_checkTaskStatus_lambda8.doCall(TaskPollingMonitor.groovy:668)
+  app//nextflow.processor.TaskPollingMonitor$$Lambda/0x000014fccf46e308.run(Unknown Source)
+  java.base@22.0.1-internal/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+  java.base@22.0.1-internal/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#1487,Actor Thread 7,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:410)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:233)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:336)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1069)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#11,Signal Dispatcher,9,system]
+
+Thread[#1486,PublishDir-1,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.park(LockSupport.java:371)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:519)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:4013)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3961)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1707)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#26,Task monitor,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1847)
+  app//nextflow.processor.TaskPollingMonitor$_await_closure5.doCall(TaskPollingMonitor.groovy:529)
+  app//nextflow.processor.TaskPollingMonitor$_await_closure5.call(TaskPollingMonitor.groovy)
+  app//nextflow.extension.Bolts.withLock(Bolts.groovy:337)
+  app//nextflow.extension.Bolts.withLock(Bolts.groovy)
+  app//nextflow.processor.TaskPollingMonitor.await(TaskPollingMonitor.groovy:528)
+  app//nextflow.processor.TaskPollingMonitor.pollLoop(TaskPollingMonitor.groovy:453)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$DMH/0x000014fccf1ab000.invokeVirtual(LambdaForm$DMH)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$MH/0x000014fccf33c000.invoke(LambdaForm$MH)
+  java.base@22.0.1-internal/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:153)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+  java.base@22.0.1-internal/java.lang.reflect.Method.invoke(Method.java:580)
+  app//org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+  app//groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+  app//org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+  app//nextflow.processor.TaskPollingMonitor$_start_closure2.doCall(TaskPollingMonitor.groovy:318)
+  app//nextflow.processor.TaskPollingMonitor$_start_closure2.call(TaskPollingMonitor.groovy)
+  app//groovy.lang.Closure.run(Closure.java:505)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#1501,process reaper (pid 2571209),10,InnocuousThreadGroup]
+  java.base@22.0.1-internal/java.lang.ProcessHandleImpl.waitForProcessExit0(Native Method)
+  java.base@22.0.1-internal/java.lang.ProcessHandleImpl$1.run(ProcessHandleImpl.java:163)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+  java.base@22.0.1-internal/jdk.internal.misc.InnocuousThread.run(InnocuousThread.java:186)
+
+Thread[#28,Actor Thread 3,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:410)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:233)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:336)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1069)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#1485,TaskFinalizer-1,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.park(LockSupport.java:371)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:519)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:4013)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3961)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1707)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#1505,Actor Thread 8,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:410)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedTransferQueue$DualNode.await(LinkedTransferQueue.java:452)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue$Transferer.xferLifo(SynchronousQueue.java:194)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.xfer(SynchronousQueue.java:233)
+  java.base@22.0.1-internal/java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:336)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1069)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1130)
+  java.base@22.0.1-internal/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#17,Notification Thread,9,system]
+
+Thread[#10,Finalizer,8,system]
+  java.base@22.0.1-internal/java.lang.Object.wait0(Native Method)
+  java.base@22.0.1-internal/java.lang.Object.wait(Object.java:375)
+  java.base@22.0.1-internal/java.lang.Object.wait(Object.java:348)
+  java.base@22.0.1-internal/java.lang.ref.NativeReferenceQueue.await(NativeReferenceQueue.java:48)
+  java.base@22.0.1-internal/java.lang.ref.ReferenceQueue.remove0(ReferenceQueue.java:158)
+  java.base@22.0.1-internal/java.lang.ref.NativeReferenceQueue.remove(NativeReferenceQueue.java:89)
+  java.base@22.0.1-internal/java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:173)
+
+Thread[#27,Task submitter,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.park(LockSupport.java:371)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:519)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:4013)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3961)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1707)
+  app//nextflow.processor.TaskPollingMonitor.awaitTasks(TaskPollingMonitor.groovy:388)
+  app//nextflow.processor.TaskPollingMonitor.submitLoop(TaskPollingMonitor.groovy:412)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$DMH/0x000014fccf1ab000.invokeVirtual(LambdaForm$DMH)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$MH/0x000014fccf33c000.invoke(LambdaForm$MH)
+  java.base@22.0.1-internal/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:153)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+  java.base@22.0.1-internal/java.lang.reflect.Method.invoke(Method.java:580)
+  app//org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+  app//groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethodClosure(MetaClassImpl.java:1017)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1207)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+  app//groovy.lang.Closure.call(Closure.java:433)
+  app//groovy.lang.Closure.call(Closure.java:412)
+  app//groovy.lang.Closure.run(Closure.java:505)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#9,Reference Handler,10,system]
+  java.base@22.0.1-internal/java.lang.ref.Reference.waitForReferencePendingList(Native Method)
+  java.base@22.0.1-internal/java.lang.ref.Reference.processPendingReferences(Reference.java:246)
+  java.base@22.0.1-internal/java.lang.ref.Reference$ReferenceHandler.run(Reference.java:208)
+
+Thread[#16,Common-Cleaner,8,InnocuousThreadGroup]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1847)
+  java.base@22.0.1-internal/java.lang.ref.ReferenceQueue.await(ReferenceQueue.java:71)
+  java.base@22.0.1-internal/java.lang.ref.ReferenceQueue.remove0(ReferenceQueue.java:143)
+  java.base@22.0.1-internal/java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:218)
+  java.base@22.0.1-internal/jdk.internal.ref.CleanerImpl.run(CleanerImpl.java:140)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+  java.base@22.0.1-internal/jdk.internal.misc.InnocuousThread.run(InnocuousThread.java:186)
+
+Thread[#1,main,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.park(LockSupport.java:371)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:519)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:4013)
+  java.base@22.0.1-internal/java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3961)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1707)
+  app//nextflow.util.Barrier$_awaitCompletion_closure3.doCall(Barrier.groovy:92)
+  app//nextflow.util.Barrier$_awaitCompletion_closure3.call(Barrier.groovy)
+  app//nextflow.extension.Bolts.withLock(Bolts.groovy:337)
+  app//nextflow.extension.Bolts.withLock(Bolts.groovy)
+  app//nextflow.util.Barrier.awaitCompletion(Barrier.groovy:89)
+  app//nextflow.Session.await(Session.groovy:679)
+  app//nextflow.script.ScriptRunner.await(ScriptRunner.groovy:256)
+  app//nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:144)
+  app//nextflow.cli.CmdRun.run(CmdRun.groovy:376)
+  app//nextflow.cli.Launcher.run(Launcher.groovy:503)
+  app//nextflow.cli.Launcher.main(Launcher.groovy:658)
+
+Thread[#22,Thread-1,5,main]
+  java.base@22.0.1-internal/jdk.internal.misc.Unsafe.park(Native Method)
+  java.base@22.0.1-internal/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:269)
+  java.base@22.0.1-internal/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1758)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedBlockingDeque.pollFirst(LinkedBlockingDeque.java:515)
+  java.base@22.0.1-internal/java.util.concurrent.LinkedBlockingDeque.poll(LinkedBlockingDeque.java:683)
+  app//nextflow.util.SimpleAgent.run(SimpleAgent.groovy:89)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$DMH/0x000014fccf1ab000.invokeVirtual(LambdaForm$DMH)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$MH/0x000014fccf33c000.invoke(LambdaForm$MH)
+  java.base@22.0.1-internal/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:153)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+  java.base@22.0.1-internal/java.lang.reflect.Method.invoke(Method.java:580)
+  app//org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+  app//groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethodClosure(MetaClassImpl.java:1017)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1207)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+  app//groovy.lang.Closure.call(Closure.java:433)
+  app//groovy.lang.Closure.call(Closure.java:412)
+  app//groovy.lang.Closure.run(Closure.java:505)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Thread[#23,AnsiLogObserver,5,main]
+  java.base@22.0.1-internal/java.io.FileInputStream.readBytes(Native Method)
+  java.base@22.0.1-internal/java.io.FileInputStream.read(FileInputStream.java:287)
+  java.base@22.0.1-internal/java.io.BufferedInputStream.fill(BufferedInputStream.java:291)
+  java.base@22.0.1-internal/java.io.BufferedInputStream.implRead(BufferedInputStream.java:325)
+  java.base@22.0.1-internal/java.io.BufferedInputStream.read(BufferedInputStream.java:318)
+  app//jline.internal.TerminalLineSettings.exec(TerminalLineSettings.java:191)
+  app//jline.internal.TerminalLineSettings.exec(TerminalLineSettings.java:173)
+  app//jline.internal.TerminalLineSettings.stty(TerminalLineSettings.java:168)
+  app//jline.internal.TerminalLineSettings.get(TerminalLineSettings.java:72)
+  app//jline.internal.TerminalLineSettings.getProperty(TerminalLineSettings.java:92)
+  app//jline.UnixTerminal.getWidth(UnixTerminal.java:77)
+  app//nextflow.trace.AnsiLogObserver.renderProcesses(AnsiLogObserver.groovy:257)
+  app//nextflow.trace.AnsiLogObserver.renderProgress(AnsiLogObserver.groovy:312)
+  app//nextflow.trace.AnsiLogObserver.render0(AnsiLogObserver.groovy:183)
+  java.base@22.0.1-internal/java.lang.invoke.DirectMethodHandle$Holder.invokeVirtual(DirectMethodHandle$Holder)
+  java.base@22.0.1-internal/java.lang.invoke.LambdaForm$MH/0x000014fccf37b800.invoke(LambdaForm$MH)
+  java.base@22.0.1-internal/java.lang.invoke.Invokers$Holder.invokeExact_MT(Invokers$Holder)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:154)
+  java.base@22.0.1-internal/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+  java.base@22.0.1-internal/java.lang.reflect.Method.invoke(Method.java:580)
+  app//org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+  app//groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1333)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethodClosure(MetaClassImpl.java:1017)
+  app//groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1207)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1088)
+  app//groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+  app//groovy.lang.Closure.call(Closure.java:433)
+  app//groovy.lang.Closure.call(Closure.java:412)
+  app//groovy.lang.Closure.run(Closure.java:505)
+  java.base@22.0.1-internal/java.lang.Thread.runWith(Thread.java:1583)
+  java.base@22.0.1-internal/java.lang.Thread.run(Thread.java:1570)
+
+Nov-23 02:45:16.267 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: slurm) - terminating tasks monitor poll loop
+Nov-23 02:45:16.267 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Nov-23 02:45:16.300 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=29d 3h 24m 57s; failedDuration=2h 1m 59s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=64; peakMemory=370 GB; ]
+Nov-23 02:45:16.526 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Nov-23 02:45:16.587 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

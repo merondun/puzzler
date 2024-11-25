@@ -1,4 +1,6 @@
 process HAP_HIC {
+    errorStrategy 'ignore'
+    afterScript 'echo "Sample: $sample, Exit: $exit_status" >> failed_samples.log'
     tag "${sample}"
     publishDir "${params.wd}/${sample}/HiCHiFi/03_HapHiC", mode: 'copy'
 

@@ -1,4 +1,6 @@
 process RAGTAG {
+    errorStrategy 'ignore'
+    afterScript 'echo "Sample: $sample, Exit: $exit_status" >> failed_samples.log'
     tag "${sample}"
     publishDir "${params.wd}/Primary_Assemblies", mode: 'copy'
 
