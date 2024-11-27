@@ -10,7 +10,7 @@ process HAP_HIC {
         tuple val(sample), path(purged_assembly), path(hic_r1), path(hic_r2)
     
     output:
-        tuple val(sample), path("04.build/scaffolds.fa"), emit: scaffolds
+        tuple val(sample), path("04.build/scaffolds.fa"), optional: true, emit: scaffolds
     
     script:
         """

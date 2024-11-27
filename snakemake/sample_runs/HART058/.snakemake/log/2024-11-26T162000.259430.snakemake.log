@@ -1,0 +1,28 @@
+host: ceres19-compute-37.ceres.scinet.usda.gov
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job            count
+-----------  -------
+haphic             1
+hifiasm_hic        1
+purge_dups         1
+ragtag             1
+total              4
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Nov 26 16:20:00 2024]
+localrule hifiasm_hic:
+    input: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiFi.fastq.gz, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiC.R1.fastq.gz, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiC.R2.fastq.gz
+    output: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HiCHiFi/HART058.hic.p_ctg.gfa
+    jobid: 3
+    reason: Missing output files: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HiCHiFi/HART058.hic.p_ctg.gfa
+    wildcards: sample=HART058
+    resources: tmpdir=/local/bgfs/justin.merondun/13664512
+
+Activating singularity image /project/coffea_pangenome/Software/Merondun/apptainers/puzzler.sif

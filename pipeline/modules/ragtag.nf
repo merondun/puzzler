@@ -2,7 +2,11 @@ process RAGTAG {
     errorStrategy 'ignore'
     afterScript 'echo "Sample: $sample, Exit: $exit_status" >> failed_samples.log'
     tag "${sample}"
-    publishDir "${params.wd}/Primary_Assemblies", mode: 'copy'
+
+    publishDir path: "${params.wd}/Primary_Assemblies", mode: 'copy',
+        pattern: "*.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"
+    publishDir path: "${params.wd}/${sample}/HiCHiFi/04_RagTag", mode: 'copy',
+        pattern: "ragtag_output"
 
     label 'ragtag'
 
@@ -11,7 +15,8 @@ process RAGTAG {
         path reference
     
     output:
-        tuple val(sample), path("${sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"), emit: final_assembly
+        tuple val(sample), path("${sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"), optional: true, emit: final_assembly
+        path "ragtag_output", optional: true
     
     script:
         """

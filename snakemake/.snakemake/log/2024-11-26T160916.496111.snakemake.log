@@ -1,0 +1,4 @@
+host: ceres19-compute-4.ceres.scinet.usda.gov
+Building DAG of jobs...
+MissingRuleException:
+No rule to produce Primary_Assemblies/HART046.HifiasmHiFi-HiC-PurgeDups-RagTag.fa (if you use input functions make sure that they don't raise unexpected exceptions).

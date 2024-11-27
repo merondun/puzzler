@@ -1,0 +1,183 @@
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+Starting assembly pipeline for HART053
+Ploidy: 3
+HiFi reads: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiFi.fastq.gz
+HiC reads: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R1.fastq.gz, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R2.fastq.gz
+Running HiC-enabled pipeline
+Assuming unrestricted shared filesystem usage.
+host: ceres19-compute-9.ceres.scinet.usda.gov
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job            count
+-----------  -------
+haphic             1
+hifiasm_hic        1
+purge_dups         1
+ragtag             1
+total              4
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Nov 26 16:20:05 2024]
+localrule hifiasm_hic:
+    input: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiFi.fastq.gz, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R1.fastq.gz, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R2.fastq.gz
+    output: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HiCHiFi/HART053.hic.p_ctg.gfa
+    jobid: 3
+    reason: Missing output files: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HiCHiFi/HART053.hic.p_ctg.gfa
+    wildcards: sample=HART053
+    resources: tmpdir=/local/bgfs/justin.merondun/13664511
+
+Activating singularity image /project/coffea_pangenome/Software/Merondun/apptainers/puzzler.sif
+WARNING: SINGULARITY_TMPDIR and APPTAINER_TMPDIR have different values, using the latter
+~~~~ Starting HiFiasm-HiC Assembly for HART053 ~~~~
+[M::ha_analyze_count] lowest: count[5] = 159
+[M::ha_analyze_count] highest: count[60] = 25943172
+[M::ha_hist_line]     2: ****************************************************************************************************> 248813893
+[M::ha_hist_line]     3:  7547
+[M::ha_hist_line]     4: ********************* 5528897
+[M::ha_hist_line]     5:  159
+[M::ha_hist_line]     6: ****** 1433515
+[M::ha_hist_line]     7:  45
+[M::ha_hist_line]     8: *** 671552
+[M::ha_hist_line]     9:  22
+[M::ha_hist_line]    10: ** 397233
+[M::ha_hist_line]    11:  12
+[M::ha_hist_line]    12: * 280360
+[M::ha_hist_line]    13:  10
+[M::ha_hist_line]    14: * 229508
+[M::ha_hist_line]    15:  10
+[M::ha_hist_line]    16: * 225944
+[M::ha_hist_line]    17:  5
+[M::ha_hist_line]    18: * 255658
+[M::ha_hist_line]    19:  7
+[M::ha_hist_line]    20: * 327092
+[M::ha_hist_line]    21:  8
+[M::ha_hist_line]    22: ** 461771
+[M::ha_hist_line]    23:  7
+[M::ha_hist_line]    24: ** 612491
+[M::ha_hist_line]    25:  9
+[M::ha_hist_line]    26: *** 844342
+[M::ha_hist_line]    27:  10
+[M::ha_hist_line]    28: **** 1157165
+[M::ha_hist_line]    29:  29
+[M::ha_hist_line]    30: ****** 1518236
+[M::ha_hist_line]    31:  26
+[M::ha_hist_line]    32: ******** 2062133
+[M::ha_hist_line]    33:  38
+[M::ha_hist_line]    34: *********** 2807835
+[M::ha_hist_line]    35:  47
+[M::ha_hist_line]    36: ************** 3754110
+[M::ha_hist_line]    37:  66
+[M::ha_hist_line]    38: ******************* 4937589
+[M::ha_hist_line]    39:  102
+[M::ha_hist_line]    40: ************************* 6433649
+[M::ha_hist_line]    41:  123
+[M::ha_hist_line]    42: ******************************** 8177379
+[M::ha_hist_line]    43:  141
+[M::ha_hist_line]    44: **************************************** 10429244
+[M::ha_hist_line]    45:  211
+[M::ha_hist_line]    46: ************************************************** 12949239
+[M::ha_hist_line]    47:  215
+[M::ha_hist_line]    48: ************************************************************ 15560760
+[M::ha_hist_line]    49:  254
+[M::ha_hist_line]    50: ********************************************************************** 18121015
+[M::ha_hist_line]    51:  314
+[M::ha_hist_line]    52: ******************************************************************************** 20730865
+[M::ha_hist_line]    53:  342
+[M::ha_hist_line]    54: **************************************************************************************** 22779103
+[M::ha_hist_line]    55:  358
+[M::ha_hist_line]    56: ********************************************************************************************** 24429854
+[M::ha_hist_line]    57:  403
+[M::ha_hist_line]    58: ************************************************************************************************** 25496654
+[M::ha_hist_line]    59:  402
+[M::ha_hist_line]    60: **************************************************************************************************** 25943172
+[M::ha_hist_line]  rest: ****************************************************************************************************> 629005800
+[M::ha_analyze_count] left: count[58] = 25496654
+[M::ha_analyze_count] right: count[62] = 25698702
+[M::ha_ft_gen] peak_hom: 62; peak_het: 60
+[M::ha_ct_shrink::5286.169*1.53] ==> counted 10030834 distinct minimizer k-mers
+[M::ha_ft_gen::5289.762*1.53@33.081GB] ==> filtered out 10030834 k-mers occurring 310 or more times
+[M::ha_opt_update_cov] updated max_n_chain to 310
+[M::yak_count] collected 3925552484 minimizers
+[M::ha_pt_gen::10845.463*1.38] ==> counted 51910564 distinct minimizer k-mers
+[M::ha_pt_gen] count[4095] = 0 (for sanity check)
+[M::ha_analyze_count] lowest: count[5] = 0
+[M::ha_analyze_count] highest: count[60] = 1238208
+[M::ha_hist_line]     2: ****************************************************************************************************> 13028166
+[M::ha_hist_line]     3:  0
+[M::ha_hist_line]     4: ********************************************* 553320
+[M::ha_hist_line]     5:  0
+[M::ha_hist_line]     6: ************* 164651
+[M::ha_hist_line]     7:  0
+[M::ha_hist_line]     8: ******* 81165
+[M::ha_hist_line]     9:  0
+[M::ha_hist_line]    10: **** 49882
+[M::ha_hist_line]    11:  0
+[M::ha_hist_line]    12: *** 35365
+[M::ha_hist_line]    13:  0
+[M::ha_hist_line]    14: ** 28898
+[M::ha_hist_line]    15:  0
+[M::ha_hist_line]    16: ** 26615
+[M::ha_hist_line]    17:  0
+[M::ha_hist_line]    18: ** 26556
+[M::ha_hist_line]    19:  0
+[M::ha_hist_line]    20: ** 30224
+[M::ha_hist_line]    21:  0
+[M::ha_hist_line]    22: *** 36104
+[M::ha_hist_line]    23:  0
+[M::ha_hist_line]    24: **** 43821
+[M::ha_hist_line]    25:  0
+[M::ha_hist_line]    26: **** 55370
+[M::ha_hist_line]    27:  0
+[M::ha_hist_line]    28: ****** 69824
+[M::ha_hist_line]    29:  0
+[M::ha_hist_line]    30: ******* 87835
+[M::ha_hist_line]    31:  0
+[M::ha_hist_line]    32: ********* 115224
+[M::ha_hist_line]    33:  0
+[M::ha_hist_line]    34: ************ 151409
+[M::ha_hist_line]    35:  0
+[M::ha_hist_line]    36: **************** 199098
+[M::ha_hist_line]    37:  0
+[M::ha_hist_line]    38: ********************* 256398
+[M::ha_hist_line]    39:  0
+[M::ha_hist_line]    40: *************************** 328649
+[M::ha_hist_line]    41:  0
+[M::ha_hist_line]    42: ********************************** 415088
+[M::ha_hist_line]    43:  0
+[M::ha_hist_line]    44: ****************************************** 525123
+[M::ha_hist_line]    45:  0
+[M::ha_hist_line]    46: **************************************************** 645473
+[M::ha_hist_line]    47:  0
+[M::ha_hist_line]    48: ************************************************************** 767961
+[M::ha_hist_line]    49:  0
+[M::ha_hist_line]    50: ************************************************************************ 888397
+[M::ha_hist_line]    51:  0
+[M::ha_hist_line]    52: ********************************************************************************* 1008814
+[M::ha_hist_line]    53:  0
+[M::ha_hist_line]    54: ***************************************************************************************** 1102109
+[M::ha_hist_line]    55:  0
+[M::ha_hist_line]    56: *********************************************************************************************** 1176578
+[M::ha_hist_line]    57:  0
+[M::ha_hist_line]    58: *************************************************************************************************** 1222716
+[M::ha_hist_line]    59:  0
+[M::ha_hist_line]    60: **************************************************************************************************** 1238208
+[M::ha_hist_line]  rest: ****************************************************************************************************> 27551523
+[M::ha_analyze_count] left: count[58] = 1222716
+[M::ha_analyze_count] right: count[62] = 1221856
+[M::ha_pt_gen] peak_hom: 62; peak_het: 60
+[M::ha_ct_shrink::10848.464*1.38] ==> counted 51910564 distinct minimizer k-mers
+[M::ha_pt_gen::] counting in normal mode

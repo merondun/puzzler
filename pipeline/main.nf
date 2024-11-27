@@ -20,6 +20,7 @@ workflow {
     
     HIFIASM(input_ch)
     PURGE_DUPS(HIFIASM.out.gfa)
-    HAP_HIC(PURGE_DUPS.out.purged_assembly)
+    HAP_HIC(PURGE_DUPS.out.purged_assembly
+        .join(input_ch.map { tuple(it[0], it[3], it[4]) }))
     RAGTAG(HAP_HIC.out.scaffolds, reference)
 }

@@ -1,0 +1,27 @@
+host: ceres24-compute-20.ceres.scinet.usda.gov
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job           count
+----------  -------
+hifiasm           1
+purge_dups        1
+ragtag            1
+total             3
+
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 25 18:19:53 2024]
+localrule hifiasm:
+    input: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/N15_22.HiFi.fastq.gz
+    output: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.p_ctg.gfa
+    jobid: 2
+    reason: Missing output files: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.p_ctg.gfa
+    wildcards: sample=N15_22
+    resources: tmpdir=/local/bgfs/justin.merondun/13662610
+
+Activating singularity image /project/coffea_pangenome/Software/Merondun/apptainers/puzzler.sif
