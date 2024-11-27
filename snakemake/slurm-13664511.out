@@ -181,3 +181,5 @@ WARNING: SINGULARITY_TMPDIR and APPTAINER_TMPDIR have different values, using th
 [M::ha_pt_gen] peak_hom: 62; peak_het: 60
 [M::ha_ct_shrink::10848.464*1.38] ==> counted 51910564 distinct minimizer k-mers
 [M::ha_pt_gen::] counting in normal mode
+[M::yak_count] collected 3925552484 minimizers
+[M::ha_pt_gen::16435.028*1.30] ==> indexed 3925552484 positions, counted 51910564 distinct minimizer k-mers

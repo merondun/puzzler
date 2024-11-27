@@ -25,3 +25,12 @@ localrule hifiasm:
     resources: tmpdir=/local/bgfs/justin.merondun/13662610
 
 Activating singularity image /project/coffea_pangenome/Software/Merondun/apptainers/puzzler.sif
+Waiting at most 5 seconds for missing files.
+MissingOutputException in rule hifiasm in file /home/justin.merondun/puzzler/snakemake/Snakefile, line 23:
+Job 2  completed successfully, but some output files are missing. Missing files after 5 seconds. This might be due to filesystem latency. If that is the case, consider to increase the wait time with --latency-wait:
+/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.p_ctg.gfa (missing locally, parent dir contents: N15_22.bp.hap1.p_ctg.gfa, N15_22.bp.hap1.p_ctg.lowQ.bed, N15_22.bp.hap1.p_ctg.noseq.gfa, N15_22.bp.hap2.p_ctg.gfa, N15_22.bp.hap2.p_ctg.lowQ.bed, N15_22.bp.hap2.p_ctg.noseq.gfa, N15_22.bp.p_ctg.gfa, N15_22.bp.p_ctg.lowQ.bed, N15_22.bp.p_ctg.noseq.gfa, N15_22.bp.p_utg.gfa, N15_22.bp.p_utg.lowQ.bed, N15_22.bp.p_utg.noseq.gfa, N15_22.bp.r_utg.gfa, N15_22.bp.r_utg.lowQ.bed, N15_22.bp.r_utg.noseq.gfa, N15_22.ec.bin, N15_22.ovlp.reverse.bin, N15_22.ovlp.source.bin)
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-11-25T181953.721286.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

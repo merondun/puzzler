@@ -153,3 +153,21 @@ WARNING: SINGULARITY_TMPDIR and APPTAINER_TMPDIR have different values, using th
 [M::ha_ct_shrink::9167.884*1.49] ==> counted 12217375 distinct minimizer k-mers
 [M::ha_ft_gen::9170.539*1.49@33.261GB] ==> filtered out 12217375 k-mers occurring 525 or more times
 [M::ha_opt_update_cov] updated max_n_chain to 525
+[M::yak_count] collected 6707441814 minimizers
+[M::ha_pt_gen::19873.953*1.33] ==> counted 47318823 distinct minimizer k-mers
+[M::ha_pt_gen] count[4095] = 0 (for sanity check)
+[M::ha_analyze_count] lowest: count[5] = 0
+[M::ha_analyze_count] highest: count[6] = 632623
+[M::ha_hist_line]     2:  0
+[M::ha_hist_line]     3: ****************************************************************************************************> 15370953
+[M::ha_hist_line]     4:  0
+[M::ha_hist_line]     5:  0
+[M::ha_hist_line]     6: **************************************************************************************************** 632623
+[M::ha_hist_line]  rest: ****************************************************************************************************> 31315247
+[M::ha_analyze_count] left: none
+[M::ha_analyze_count] right: none
+[M::ha_pt_gen] peak_hom: 6; peak_het: -1
+[M::ha_ct_shrink::19875.573*1.33] ==> counted 47318823 distinct minimizer k-mers
+[M::ha_pt_gen::] counting in normal mode
+[M::yak_count] collected 6707441814 minimizers
+[M::ha_pt_gen::31967.856*1.27] ==> indexed 6707441814 positions, counted 47318823 distinct minimizer k-mers

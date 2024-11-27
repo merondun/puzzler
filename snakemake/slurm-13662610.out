@@ -241,3 +241,103 @@ WARNING: SINGULARITY_TMPDIR and APPTAINER_TMPDIR have different values, using th
 [M::ha_pt_gen::] counting in normal mode
 [M::yak_count] collected 1117197592 minimizers
 [M::ha_pt_gen::89705.770*1.02] ==> indexed 1114690120 positions, counted 116898186 distinct minimizer k-mers
+[M::pec::31100.690] # bases: 38696954412; # corrected bases: 161679
+[M::ha_assemble::120889.143*1.02@49.290GB] ==> corrected reads for round 3
+[M::ha_assemble] # bases: 38696954412; # corrected bases: 161679
+[M::yak_count] collected 1117188980 minimizers
+[M::ha_pt_gen::124008.848*1.02] ==> counted 119373621 distinct minimizer k-mers
+[M::ha_pt_gen] count[4095] = 0 (for sanity check)
+[M::ha_analyze_count] lowest: count[5] = 11575249
+[M::ha_analyze_count] highest: count[6] = 12880992
+[M::ha_hist_line]     1: ******************* 2486034
+[M::ha_hist_line]     2: ************************ 3052021
+[M::ha_hist_line]     3: ******************************************** 5729346
+[M::ha_hist_line]     4: ********************************************************************* 8922329
+[M::ha_hist_line]     5: ****************************************************************************************** 11575249
+[M::ha_hist_line]     6: **************************************************************************************************** 12880992
+[M::ha_hist_line]     7: ************************************************************************************************* 12553966
+[M::ha_hist_line]     8: ************************************************************************************** 11027434
+[M::ha_hist_line]     9: ********************************************************************* 8913586
+[M::ha_hist_line]    10: ***************************************************** 6882340
+[M::ha_hist_line]    11: ***************************************** 5263740
+[M::ha_hist_line]    12: ******************************** 4109557
+[M::ha_hist_line]    13: ************************** 3354570
+[M::ha_hist_line]    14: ********************** 2865778
+[M::ha_hist_line]    15: ******************* 2504570
+[M::ha_hist_line]    16: ***************** 2232583
+[M::ha_hist_line]    17: *************** 1969664
+[M::ha_hist_line]    18: ************** 1742738
+[M::ha_hist_line]    19: ************ 1551588
+[M::ha_hist_line]    20: *********** 1388206
+[M::ha_hist_line]    21: ********** 1246718
+[M::ha_hist_line]    22: ********* 1142585
+[M::ha_hist_line]    23: ******** 1039842
+[M::ha_hist_line]    24: ******* 956384
+[M::ha_hist_line]    25: ******* 869352
+[M::ha_hist_line]    26: ****** 797817
+[M::ha_hist_line]    27: ****** 729023
+[M::ha_hist_line]    28: ***** 667703
+[M::ha_hist_line]    29: ***** 600247
+[M::ha_hist_line]    30: * 163115
+[M::ha_hist_line]  rest: * 154544
+[M::ha_analyze_count] left: none
+[M::ha_analyze_count] right: none
+[M::ha_pt_gen] peak_hom: 6; peak_het: -1
+[M::ha_ct_shrink::124014.112*1.02] ==> counted 116887587 distinct minimizer k-mers
+[M::ha_pt_gen::] counting in normal mode
+[M::yak_count] collected 1117188980 minimizers
+[M::ha_pt_gen::127131.049*1.02] ==> indexed 1114702946 positions, counted 116887587 distinct minimizer k-mers
+[M::ha_print_ovlp_stat_0] # overlaps: 38520269
+[M::ha_print_ovlp_stat_0] # strong overlaps: 19243575
+[M::ha_print_ovlp_stat_0] # weak overlaps: 19276694
+[M::ha_print_ovlp_stat_0] # exact overlaps: 36513568
+[M::ha_print_ovlp_stat_0] # inexact overlaps: 2006701
+[M::ha_print_ovlp_stat_0] # overlaps without large indels: 38138512
+[M::ha_print_ovlp_stat_0] # reverse overlaps: 26206461
+[M::ha_print_ovlp_stat_0] # running time: 6408.229
+[M::ha_assemble::133539.980*1.02@49.290GB] ==> found overlaps for the final round
+[M::ha_opt_update_cov_min] updated max_n_chain to 100
+Writing reads to disk... 
+Reads has been written.
+Writing ma_hit_ts to disk... 
+ma_hit_ts has been written.
+Writing ma_hit_ts to disk... 
+ma_hit_ts has been written.
+bin files have been written.
+[M::purge_dups] homozygous read coverage threshold: 5
+[M::purge_dups] purge duplication coverage threshold: 7
+[M::ug_ext_gfa::] # tips::4631
+Writing raw unitig GFA to disk... 
+Writing processed unitig GFA to disk... 
+[M::purge_dups] homozygous read coverage threshold: 5
+[M::purge_dups] purge duplication coverage threshold: 7
+[M::mc_solve:: # edges: 1586]
+[M::mc_solve_core_adv::0.120] ==> Partition
+[M::adjust_utg_by_primary] primary contig coverage range: [4, infinity]
+Writing /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.bp.p_ctg.gfa to disk... 
+[M::reduce_hamming_error_adv::0.798] # inserted edges: 16, # fixed bubbles: 4
+[M::adjust_utg_by_trio] primary contig coverage range: [4, infinity]
+[M::recall_arcs] # transitive arcs::484
+[M::recall_arcs] # new arcs::44458, # old arcs::29462
+[M::clean_trio_untig_graph] # adjusted arcs::0
+[M::adjust_utg_by_trio] primary contig coverage range: [4, infinity]
+[M::recall_arcs] # transitive arcs::4040
+[M::recall_arcs] # new arcs::41968, # old arcs::27072
+[M::clean_trio_untig_graph] # adjusted arcs::0
+[M::output_trio_graph_joint] dedup_base::154351509, miss_base::0
+Writing /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.bp.hap1.p_ctg.gfa to disk... 
+Writing /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.bp.hap2.p_ctg.gfa to disk... 
+Inconsistency threshold for low-quality regions in BED files: 70%
+[M::main] Version: 0.20.0-r639
+[M::main] CMD: hifiasm --n-hap 2 -s 0.9 -t 1 -o /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22 /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/N15_22.HiFi.fastq.gz
+[M::main] Real time: 133961.298 sec; CPU: 136123.934 sec; Peak RSS: 49.290 GB
+~~~~ HiFiasm Assembly Complete ~~~~
+Waiting at most 5 seconds for missing files.
+MissingOutputException in rule hifiasm in file /home/justin.merondun/puzzler/snakemake/Snakefile, line 23:
+Job 2  completed successfully, but some output files are missing. Missing files after 5 seconds. This might be due to filesystem latency. If that is the case, consider to increase the wait time with --latency-wait:
+/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.p_ctg.gfa (missing locally, parent dir contents: N15_22.bp.hap1.p_ctg.gfa, N15_22.bp.hap1.p_ctg.lowQ.bed, N15_22.bp.hap1.p_ctg.noseq.gfa, N15_22.bp.hap2.p_ctg.gfa, N15_22.bp.hap2.p_ctg.lowQ.bed, N15_22.bp.hap2.p_ctg.noseq.gfa, N15_22.bp.p_ctg.gfa, N15_22.bp.p_ctg.lowQ.bed, N15_22.bp.p_ctg.noseq.gfa, N15_22.bp.p_utg.gfa, N15_22.bp.p_utg.lowQ.bed, N15_22.bp.p_utg.noseq.gfa, N15_22.bp.r_utg.gfa, N15_22.bp.r_utg.lowQ.bed, N15_22.bp.r_utg.noseq.gfa, N15_22.ec.bin, N15_22.ovlp.reverse.bin, N15_22.ovlp.source.bin)
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-11-25T181953.721286.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
