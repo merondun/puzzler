@@ -1,7 +1,0 @@
-sample,ploidy,hifi
-N15_22,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/N15_22.HiFi.fastq.gz
-N15_23,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_23/N15_23.HiFi.fastq.gz
-HART046,3,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART046/HART046.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART046/HART046.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART046/HART046.HiC.R2.fastq.gz
-HART053,3,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R2.fastq.gz
-HART058,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART058/HART058.HiC.R2.fastq.gz
-HART032,3,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART032/HART032.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART032/HART032.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART032/HART032.HiC.R2.fastq.gz

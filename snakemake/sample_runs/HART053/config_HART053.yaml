@@ -1,9 +1,0 @@
-workdir: "/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies"
-container: "/project/coffea_pangenome/Software/Merondun/apptainers/puzzler.sif"
-reference: "/project/coffea_pangenome/Artocarpus/WholeGenomeAlignments/fastas/ASM2540343.fa"
-samples:
-    HART053:
-        hifi: "/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiFi.fastq.gz"
-        ploidy: 3
-        hic_r1: "/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R1.fastq.gz"
-        hic_r2: "/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART053/HART053.HiC.R2.fastq.gz"

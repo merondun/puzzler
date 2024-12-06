@@ -1,54 +1,42 @@
 # Snakefile
+
 def get_hap_files(wildcards):
     ploidy = config["samples"][wildcards.sample]["ploidy"]
-    prefix = "hic." if has_hic(wildcards) else ""
     return expand(
-        config["workdir"] + f"/{{sample}}/HiCHiFi/{{sample}}.{prefix}hap{{n}}.p_ctg.gfa",
+        config["workdir"] + f"/{{sample}}/HiCHiFi/{{sample}}.hic.hap{{n}}.p_ctg.gfa",
         sample=wildcards.sample,
         n=range(1, int(ploidy) + 1)
     )
 
-def has_hic(wildcards):
-    return config["samples"][wildcards.sample]["hic_r1"] != "" and \
-           config["samples"][wildcards.sample]["hic_r2"] != ""
-
 rule all:
     input:
-        expand("Primary_Assemblies/{sample}.HifiasmHiFi-HiC-PurgeDups-RagTag.fa", sample=config["samples"].keys()),
-        expand("Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt", sample=config["samples"].keys()),
-        expand("Primary_Assemblies/haplotypes/{sample}.hap{n}.purged.fa", 
-               sample=config["samples"].keys(),
-               n=lambda wildcards: range(1, int(config["samples"][wildcards.sample]["ploidy"]) + 1))
+        expand(config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa", 
+               sample=config["samples"].keys()),
+        expand(config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt", 
+               sample=config["samples"].keys()),
+        lambda wildcards: [
+            f"{config['workdir']}/Primary_Assemblies/haplotypes/{sample}.hap{n}.purged.fa"
+            for sample in config["samples"].keys()
+            for n in range(1, int(config["samples"][sample]["ploidy"]) + 1)
+        ],
+        expand(config["workdir"] + "/Primary_Assemblies/assembly_summary_{sample}.txt", 
+               sample=config["samples"].keys())
 
-rule hifiasm:
-    input:
-        hifi = lambda wildcards: config["samples"][wildcards.sample]["hifi"]
-    output:
-        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.p_ctg.gfa"
-    params:
-        ploidy = lambda wildcards: config["samples"][wildcards.sample]["ploidy"],
-        outprefix = config["workdir"] + "/{sample}/HiCHiFi/{sample}"
-    threads: 64
-    singularity: config["container"]
-    shell:
-        """
-        echo "~~~~ Starting HiFiasm Assembly for {wildcards.sample} ~~~~"
-        hifiasm --n-hap {params.ploidy} -s 0.9 -t {threads} \
-            -o {params.outprefix} {input.hifi}
-        echo "~~~~ HiFiasm Assembly Complete ~~~~"
-        """
-
+# Primary assembly
 rule hifiasm_hic:
     input:
         hifi = lambda wildcards: config["samples"][wildcards.sample]["hifi"],
         hic_r1 = lambda wildcards: config["samples"][wildcards.sample]["hic_r1"],
         hic_r2 = lambda wildcards: config["samples"][wildcards.sample]["hic_r2"]
     output:
-        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.p_ctg.gfa"
+        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.p_ctg.gfa",
+        hap_gfas = get_hap_files
     params:
         ploidy = lambda wildcards: config["samples"][wildcards.sample]["ploidy"],
         outprefix = config["workdir"] + "/{sample}/HiCHiFi/{sample}"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     shell:
         """
@@ -58,14 +46,15 @@ rule hifiasm_hic:
             -o {params.outprefix} {input.hifi}
         echo "~~~~ HiFiasm-HiC Assembly Complete ~~~~"
         """
-
+        
 rule purge_dups:
     input:
-        gfa = lambda wildcards: config["workdir"] + "/{sample}/HiCHiFi/{sample}" + 
-              (".hic.p_ctg.gfa" if has_hic(wildcards) else ".p_ctg.gfa")
+        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.p_ctg.gfa"
     output:
         purged = config["workdir"] + "/{sample}/HiCHiFi/02_PurgeDups/purged.fa"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     shell:
         """
@@ -87,6 +76,8 @@ rule haphic:
     output:
         scaffolds = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/04.build/scaffolds.fa"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     conda: "envs/haphic.yaml"
     shell:
@@ -115,12 +106,13 @@ rule haphic:
 
 rule ragtag:
     input:
-        assembly = lambda wildcards: rules.haphic.output.scaffolds if has_hic(wildcards) 
-                  else rules.purge_dups.output.purged,
+        assembly = rules.haphic.output.scaffolds,
         reference = config["reference"]
     output:
-        final = "Primary_Assemblies/{sample}.HifiasmHiFi-HiC-PurgeDups-RagTag.fa"
+        final = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     params:
         outdir = config["workdir"] + "/{sample}/HiCHiFi/04_RagTag/ragtag_output"
@@ -138,8 +130,10 @@ rule purge_dups_haplotypes:
     input:
         gfa = get_hap_files
     output:
-        purged = "Primary_Assemblies/haplotypes/{sample}.hap{n}.purged.fa"
+        purged = config["workdir"] + "/Primary_Assemblies/haplotypes/{sample}.hap{n}.purged.fa"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     shell:
         """
@@ -159,10 +153,12 @@ rule purge_dups_haplotypes:
 
 rule busco:
     input:
-        assembly = "Primary_Assemblies/{sample}.HifiasmHiFi-HiC-PurgeDups-RagTag.fa"
+        assembly = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"
     output:
-        summary = "Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt"
+        summary = config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt"
     threads: 64
+    resources:
+        mem_mb=370000  # 370GB in MB
     singularity: config["container"]
     params:
         outdir = "Primary_Assemblies/busco/{sample}",
@@ -182,4 +178,35 @@ rule busco:
             
         mv {params.label}/short_summary.specific.embryophyta_odb10.{params.label}.txt .
         echo "~~~~ BUSCO Analysis Complete ~~~~"
+        """
+
+rule summarize_assembly:
+    input:
+        final_assembly = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa",
+        pre_ragtag = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/04.build/scaffolds.fa",
+        busco = config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt"
+    output:
+        summary = config["workdir"] + "/Primary_Assemblies/assembly_summary_{sample}.txt"
+    singularity: config["container"]
+    shell:
+        """
+        # Get metrics for final assembly
+        FINAL_STATS=$(assembly_stats {input.final_assembly})
+        SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
+        SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
+        CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
+        SCAF_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
+        CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
+        GAPS=$((CTGS - SEQS))
+
+        # Get pre-RagTag scaffold N50
+        PRE_RAGTAG_N50=$(assembly_stats {input.pre_ragtag} | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
+
+        # Parse BUSCO results
+        BUSCO_COMPLETE=$(grep "C:" {input.busco} | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
+        BUSCO_SINGLE=$(grep "C:" {input.busco} | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
+
+        # Write summary
+        echo -e "Sample\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tSequences\tContigs\tGaps\tScafN50\tContigN50\tScafN50PreRagTag" > {output.summary}
+        echo -e "{wildcards.sample}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$SCAF_N50\t$CONT_N50\t$PRE_RAGTAG_N50" >> {output.summary}
         """

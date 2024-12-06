@@ -25,6 +25,8 @@ A singularity / apptainer `.sif` container can be pulled from `singularity pull 
 
 There is also a definition file for the build in `/apptainer/`. It requires many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC), and [ragtag v.2.1.0](https://github.com/malonge/RagTag).
 
+As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and BUSCO5, and you are good to go. 
+
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
 
