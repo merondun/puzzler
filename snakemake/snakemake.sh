@@ -7,7 +7,6 @@
 
 module load miniconda
 source activate snakemake
-module load busco5
 module load apptainer
 
 cat << "EOF"
@@ -107,7 +106,7 @@ EOF
 echo "Starting assembly pipeline for ${SAMPLE}"
 echo "Ploidy: ${PLOIDY}"
 echo "Number of chromosomes: ${CHROMOSOMES}"
-echo "Orienting chromosomes to:: ${REFERENCE}"
+echo "Orienting chromosomes to: ${REFERENCE}"
 echo "HiFi reads: ${HIFI}"
 echo "HiC reads: ${HIC_R1}, ${HIC_R2}"
 

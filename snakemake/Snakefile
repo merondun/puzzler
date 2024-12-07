@@ -1,13 +1,30 @@
 # Snakefile
 
+def get_haps_for_sample(sample):
+    return list(range(1, config["samples"][sample]["ploidy"] + 1))
+
 rule all:
     input:
-        expand(config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa", 
-               sample=config["samples"].keys()),
-        expand(config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt", 
-               sample=config["samples"].keys()),
-        expand(config["workdir"] + "/Primary_Assemblies/assembly_summary_{sample}.txt", 
-               sample=config["samples"].keys())
+        expand(
+            config["workdir"] + "/{sample}/HiCHiFi/02_PurgeDups/hap{hap}/purged.fa",
+            sample=list(config["samples"].keys()),
+            hap=get_haps_for_sample(list(config["samples"].keys())[0])
+        ),
+        expand(
+            config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/hap{hap}.purged.haphic.fa",
+            sample=list(config["samples"].keys()),
+            hap=get_haps_for_sample(list(config["samples"].keys())[0])
+        ),
+        expand(
+            config["workdir"] + "/{sample}/HiCHiFi/04_PurgeDups/hap{hap}/purged.fa",
+            sample=list(config["samples"].keys()),
+            hap=get_haps_for_sample(list(config["samples"].keys())[0])
+        ),
+        expand(
+            config["workdir"] + "/Haplotype_Assemblies/{sample}.hap{hap}.purged.haphic.purged.ragtag.fa",
+            sample=list(config["samples"].keys()),
+            hap=get_haps_for_sample(list(config["samples"].keys())[0])
+        )
 
 # Primary assembly
 rule hifiasm_hic:
@@ -16,7 +33,9 @@ rule hifiasm_hic:
         hic_r1 = lambda wildcards: config["samples"][wildcards.sample]["hic_r1"],
         hic_r2 = lambda wildcards: config["samples"][wildcards.sample]["hic_r2"]
     output:
-        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.p_ctg.gfa",
+        hap_files = expand(config["workdir"] + "/{{sample}}/HiCHiFi/{{sample}}.hic.hap{hap}.p_ctg.gfa", 
+            hap=[i for i in range(1, config["samples"][list(config["samples"].keys())[0]]["ploidy"] + 1)]),
+        complete = touch(config["workdir"] + "/{sample}/HiCHiFi/hifiasm_complete.txt")
     params:
         ploidy = lambda wildcards: config["samples"][wildcards.sample]["ploidy"],
         outprefix = config["workdir"] + "/{sample}/HiCHiFi/{sample}"
@@ -35,144 +54,147 @@ rule hifiasm_hic:
         
 rule purge_dups:
     input:
-        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.p_ctg.gfa"
+        gfa = config["workdir"] + "/{sample}/HiCHiFi/{sample}.hic.hap{hap}.p_ctg.gfa",
+        # Make sure hifiasm_hic completed
+        hifiasm_done = config["workdir"] + "/{sample}/HiCHiFi/hifiasm_complete.txt"
     output:
-        purged = config["workdir"] + "/{sample}/HiCHiFi/02_PurgeDups/purged.fa"
+        purged = config["workdir"] + "/{sample}/HiCHiFi/02_PurgeDups/hap{hap}/purged.fa"
     threads: 64
     resources:
         mem_mb=500000  # 500GB in MB
     singularity: config["container"]
     shell:
         """
-        echo "~~~~ Starting Purge_Dups for {wildcards.sample} ~~~~"
+        echo "~~~~ Starting Purge_Dups for {wildcards.sample} haplotype {wildcards.hap} ~~~~"
+        mkdir -p $(dirname {output.purged})
         cd $(dirname {output.purged})
-        gfatools gfa2fa {input.gfa} > {wildcards.sample}.p_ctg.fa
-        split_fa {wildcards.sample}.p_ctg.fa > asm.split
+        
+        gfatools gfa2fa {input.gfa} > {wildcards.sample}.hap{wildcards.hap}.fa
+        split_fa {wildcards.sample}.hap{wildcards.hap}.fa > asm.split
         minimap2 -t {threads} -xasm5 -DP asm.split asm.split | gzip -c > asm.split.self.paf.gz
         purge_dups -M1000 -E1000 asm.split.self.paf.gz > dups.bed
-        get_seqs dups.bed {wildcards.sample}.p_ctg.fa
-        echo "~~~~ Purge_Dups Complete ~~~~"
+        get_seqs dups.bed {wildcards.sample}.hap{wildcards.hap}.fa
+        
+        echo "~~~~ Purge_Dups Complete for haplotype {wildcards.hap} ~~~~"
         """
 
-rule haphic:
+rule haphic_phase:
     input:
-        assembly = rules.purge_dups.output.purged,
+        purged_haps = expand(config["workdir"] + "/{{sample}}/HiCHiFi/02_PurgeDups/hap{hap}/purged.fa",
+                           hap=get_haps_for_sample(list(config["samples"].keys())[0])),
         hic_r1 = lambda wildcards: config["samples"][wildcards.sample]["hic_r1"],
-        hic_r2 = lambda wildcards: config["samples"][wildcards.sample]["hic_r2"]
-    params:
-        nchrs = lambda wildcards: config["samples"][wildcards.sample]["nchrs"]
+        hic_r2 = lambda wildcards: config["samples"][wildcards.sample]["hic_r2"],
+        reference = lambda wildcards: config["samples"][wildcards.sample]["reference"]
     output:
-        scaffolds = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/04.build/scaffolds.fa"
+        scaffolds = expand(config["workdir"] + "/{{sample}}/HiCHiFi/03_HapHiC/hap{hap}.purged.haphic.fa",
+                         hap=get_haps_for_sample(list(config["samples"].keys())[0])),
+        completed = touch(config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/haphic_complete.txt")
+    params:
+        nchrs = lambda wildcards: config["samples"][wildcards.sample]["nchrs"],
+        ploidy = lambda wildcards: config["samples"][wildcards.sample]["ploidy"],
+        work_dir = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC"
+    threads: 64
+    resources:
+        mem_mb=500000
+    singularity: config["container"]
+    shell:
+        """
+        echo "~~~~ Scaffolding with HapHiC {wildcards.sample} ~~~~"
+        # Create and enter working directory
+        mkdir -p {params.work_dir}
+        cd {params.work_dir}
+
+        # Merge haplotypes
+        cat ../02_PurgeDups/hap*/purged.fa > {wildcards.sample}.hic.allhap.fa
+        
+        # Index merged assembly
+        bwa index {wildcards.sample}.hic.allhap.fa
+
+        # Align Hi-C reads
+        bwa mem -5SP -t {threads} {wildcards.sample}.hic.allhap.fa {input.hic_r1} {input.hic_r2} | \
+            samblaster | samtools view - -@ {threads} -S -h -b -F 3340 -o HiC.bam
+
+        # Filter alignments
+        filter_bam HiC.bam 30 --nm 3 --threads {threads} --remove-dup | \
+            samtools view - -b -@ {threads} -o HiC.filtered.bam
+
+        # Process each haplotype
+        for HAP in $(seq 1 {params.ploidy}); do
+            mkdir -p hap${{HAP}}
+            cd hap${{HAP}}
+
+            samtools faidx ../../02_PurgeDups/hap${{HAP}}/purged.fa
+            awk '{{OFS="\t"}}{{print $1, "0",$2}}' ../../02_PurgeDups/hap${{HAP}}/purged.fa.fai > hap${{HAP}}.bed
+
+            samtools view -b -h -L hap${{HAP}}.bed ../HiC.filtered.bam > HiC.filtered.hap${{HAP}}.bam
+
+            rm -rf 01* 02* 03* 04*
+            
+            # Run HapHiC pipeline
+            haphic pipeline ../../02_PurgeDups/hap${{HAP}}/purged.fa \
+                HiC.filtered.hap${{HAP}}.bam \
+                {params.nchrs} \
+                --correct_nrounds 2 \
+                --threads {threads} \
+                --processes {threads} \
+                --max_inflation 20.0 \
+                --remove_allelic_links {params.ploidy}
+            
+            cp 04.build/scaffolds.fa ../hap${{HAP}}.purged.haphic.fa
+
+        done
+
+        echo "~~~~ Scaffolding with HapHiC {wildcards.sample} complete ~~~~"
+        """
+
+rule repurge_hic:
+    input:
+        purgehic = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/hap{hap}.purged.haphic.fa",
+        # Make sure hifiasm_hic completed
+        haphic_done = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/haphic_complete.txt"
+    output:
+        purgedhic = config["workdir"] + "/{sample}/HiCHiFi/04_PurgeDups/hap{hap}/purged.fa"
     threads: 64
     resources:
         mem_mb=500000  # 500GB in MB
     singularity: config["container"]
     shell:
         """
-        echo "~~~~ Starting HapHiC Scaffolding for {wildcards.sample} ~~~~"
-        cd $(dirname $(dirname {output.scaffolds}))
-        rm -rf 01.* 02.* 03.* 04.*
-
-        # Index reference
-        bwa index {input.assembly}
+        echo "~~~~ Starting Second Round Purge_Dups for {wildcards.sample} haplotype {wildcards.hap} ~~~~"
+        mkdir -p $(dirname {output.purgedhic})
+        cd $(dirname {output.purgedhic})
         
-        # Align Hi-C reads
-        bwa mem -5SP -t {threads} {input.assembly} {input.hic_r1} {input.hic_r2} | \
-            samblaster | samtools view - -@ {threads} -S -h -b -F 3340 -o HiC.bam
+        split_fa {input.purgehic} > asm.split
+        minimap2 -t {threads} -xasm5 -DP asm.split asm.split | gzip -c > asm.split.self.paf.gz
+        purge_dups -M1000 -E1000 asm.split.self.paf.gz > dups.bed
+        get_seqs dups.bed {input.purgehic}
         
-        # Filter alignments
-        filter_bam HiC.bam 1 --nm 3 --threads {threads} | \
-            samtools view - -b -@ {threads} -o HiC.filtered.bam
-
-        
-        # Run HapHiC pipeline
-        haphic pipeline {input.assembly} HiC.filtered.bam {params.nchrs} \
-            --RE "GATC,GANTC" --correct_nrounds 2 \
-            --threads {threads} --processes {threads} --max_inflation 20.0
-        
-        echo "~~~~ HapHiC Scaffolding Complete ~~~~"
+        echo "~~~~ Second Purge_Dups Complete for haplotype {wildcards.hap} ~~~~"
         """
 
 rule ragtag:
     input:
-        assembly = rules.haphic.output.scaffolds,
-        reference = lambda wildcards: config["samples"][wildcards.sample]["reference"],
+        purgedhic = config["workdir"] + "/{sample}/HiCHiFi/04_PurgeDups/hap{hap}/purged.fa",
+        reference = lambda wildcards: config["samples"][wildcards.sample]["reference"]
     output:
-        final = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"
+        final_assembly = config["workdir"] + "/Haplotype_Assemblies/{sample}.hap{hap}.purged.haphic.purged.ragtag.fa"
+    params:
+        work_dir = config["workdir"] + "/{sample}/HiCHiFi/05_RagTag/hap{hap}"
     threads: 64
     resources:
         mem_mb=500000  # 500GB in MB
     singularity: config["container"]
-    params:
-        outdir = config["workdir"] + "/{sample}/HiCHiFi/04_RagTag/ragtag_output"
     shell:
         """
-        echo "~~~~ Starting RagTag Scaffolding for {wildcards.sample} ~~~~"
-        mkdir -p $(dirname {params.outdir})
-        ragtag.py scaffold {input.reference} {input.assembly} \
-            -o {params.outdir} --aligner minimap2 -t {threads}
-        sed 's/_RagTag//g' {params.outdir}/ragtag.scaffold.fasta > {output.final}
-        echo "~~~~ RagTag Scaffolding Complete ~~~~"
-        """
-
-rule busco:
-    input:
-        assembly = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa"
-    output:
-        summary = config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt"
-    threads: 64
-    resources:
-        mem_mb=500000  # 500GB in MB
-    params:
-        outdir = config["workdir"] + "/Primary_Assemblies/busco/{sample}",
-        label = "{sample}"
-    shell:
-        """
-        module load busco5
-        echo "~~~~ Starting BUSCO Analysis for {wildcards.sample} ~~~~"
-        mkdir -p {params.outdir}
-        cd {params.outdir}
+        echo "~~~~ Starting RagTag Scaffolding for {wildcards.sample} haplotype {wildcards.hap} ~~~~"
+        mkdir -p {params.work_dir}
+        cd {params.work_dir}
         
-        busco -i {input.assembly} \
-            -l embryophyta_odb10 \
-            -m genome \
-            -c {threads} \
-            -o {params.label} \
-            -f
-            
-        mv {params.label}/short_summary.specific.embryophyta_odb10.{params.label}.txt .
-        echo "~~~~ BUSCO Analysis Complete ~~~~"
-        """
+        ragtag.py scaffold {input.reference} {input.purgedhic} -o hap{wildcards.hap} --aligner minimap2 -t {threads}
+        cp hap{wildcards.hap}/ragtag.scaffold.fasta hap{wildcards.hap}.purged.haphic.purged.ragtag.fa
+        
+        mkdir -p $(dirname {output.final_assembly[0]})
+        cp hap{wildcards.hap}.purged.haphic.purged.ragtag.fa $(dirname {output.final_assembly[0]})/{wildcards.sample}.hap{wildcards.hap}.purged.haphic.purged.ragtag.fa
 
-rule summarize_assembly:
-    input:
-        final_assembly = config["workdir"] + "/Primary_Assemblies/{sample}.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa",
-        pre_ragtag = config["workdir"] + "/{sample}/HiCHiFi/03_HapHiC/04.build/scaffolds.fa",
-        raw_hifiasm = config["workdir"] + "/{sample}/HiCHiFi/02_PurgeDups/{sample}.p_ctg.fa",
-        busco = config["workdir"] + "/Primary_Assemblies/busco/{sample}/short_summary.specific.embryophyta_odb10.{sample}.txt"
-    output:
-        summary = config["workdir"] + "/Primary_Assemblies/assembly_summary_{sample}.txt"
-    singularity: config["container"]
-    shell:
-        """
-        # Get metrics for final assembly
-        FINAL_STATS=$(assembly_stats {input.final_assembly})
-        SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-        SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
-        CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
-        SCAF_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
-        CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
-        GAPS=$((CTGS - SEQS))
-
-        # Get raw hifiasm and pre-RagTag scaffold N50
-        HIFIASM_N50=$(assembly_stats {input.raw_hifiasm} | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
-        PRE_RAGTAG_N50=$(assembly_stats {input.pre_ragtag} | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
-
-        # Parse BUSCO results
-        BUSCO_COMPLETE=$(grep "C:" {input.busco} | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
-        BUSCO_SINGLE=$(grep "C:" {input.busco} | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
-
-        # Write summary
-        echo -e "Sample\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tSequences\tContigs\tGaps\tScafN50\tContigN50\tScafN50PreRagTag\tScafN50Purged" > {output.summary}
-        echo -e "{wildcards.sample}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$SCAF_N50\t$CONT_N50\t$PRE_RAGTAG_N50\t$HIFIASM_N50" >> {output.summary}
+        echo "~~~~ Ragtag Scaffolding Complete for {wildcards.sample} and haplotype {wildcards.hap} ~~~~"
         """
