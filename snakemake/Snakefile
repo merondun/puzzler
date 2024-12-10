@@ -75,6 +75,9 @@ rule purge_dups:
         purge_dups -M1000 -E1000 asm.split.self.paf.gz > dups.bed
         get_seqs dups.bed {wildcards.sample}.hap{wildcards.hap}.fa
         
+        # Replace scaffold headers to indicate haplotype
+        sed -i 's/^>h1tg/>h{wildcards.hap}tg/' purged.fa
+        
         echo "~~~~ Purge_Dups Complete for haplotype {wildcards.hap} ~~~~"
         """
 
@@ -120,6 +123,7 @@ rule haphic_phase:
 
         # Process each haplotype
         for HAP in $(seq 1 {params.ploidy}); do
+            cd {params.work_dir}
             mkdir -p hap${{HAP}}
             cd hap${{HAP}}
 
@@ -193,8 +197,8 @@ rule ragtag:
         ragtag.py scaffold {input.reference} {input.purgedhic} -o hap{wildcards.hap} --aligner minimap2 -t {threads}
         cp hap{wildcards.hap}/ragtag.scaffold.fasta hap{wildcards.hap}.purged.haphic.purged.ragtag.fa
         
-        mkdir -p $(dirname {output.final_assembly[0]})
-        cp hap{wildcards.hap}.purged.haphic.purged.ragtag.fa $(dirname {output.final_assembly[0]})/{wildcards.sample}.hap{wildcards.hap}.purged.haphic.purged.ragtag.fa
+        mkdir -p $(dirname "{output.final_assembly}")
+        cp hap{wildcards.hap}.purged.haphic.purged.ragtag.fa "{output.final_assembly}"
 
         echo "~~~~ Ragtag Scaffolding Complete for {wildcards.sample} and haplotype {wildcards.hap} ~~~~"
         """

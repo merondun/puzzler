@@ -1,0 +1,67 @@
+# Snakefile
+
+rule all:
+    input:
+        expand(config["workdir"] + "busco/{id}/short_summary.specific.embryophyta_odb10.{id}.txt",
+               id=list(config["samples"].keys())),
+        expand(config["workdir"] + "summaries/assembly_summary_{id}.txt",
+               id=list(config["samples"].keys()))
+        
+rule busco:
+    input:
+        assembly = lambda wildcards: config["samples"][wildcards.id]["file"]
+    output:
+        summary = config["workdir"] + "busco/{id}/short_summary.specific.embryophyta_odb10.{id}.txt"
+    threads: 16
+    resources:
+        mem_mb=70000  # 70GB in MB
+    params:cd 
+        outdir = config["workdir"] + "busco/{id}",
+        label = "{id}"
+    shell:
+        """
+        module load busco5
+        echo "~~~~ Starting BUSCO Analysis for {wildcards.id} ~~~~"
+        mkdir -p {params.outdir}
+        cd {params.outdir}
+        
+        busco -i {input.assembly} \
+            -l embryophyta_odb10 \
+            -m genome \
+            -c {threads} \
+            -o {params.label} \
+            -f
+            
+        mv {params.label}/short_summary.specific.embryophyta_odb10.{params.label}.txt .
+        echo "~~~~ BUSCO Analysis Complete ~~~~"
+        """
+
+rule summarize_assembly:
+    input:
+        final_assembly = lambda wildcards: config["samples"][wildcards.id]["file"],
+        busco = config["workdir"] + "busco/{id}/short_summary.specific.embryophyta_odb10.{id}.txt"
+    output:
+        summary = config["workdir"] + "summaries/assembly_summary_{id}.txt"
+    params:
+        sample = lambda wildcards: config["samples"][wildcards.id]["sample"],
+        hap = lambda wildcards: config["samples"][wildcards.id]["hap"]
+    singularity: config["container"]
+    shell:
+        """
+        # Get metrics for final assembly
+        FINAL_STATS=$(assembly_stats {input.final_assembly})
+        SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
+        SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
+        CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
+        SCAF_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
+        CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
+        GAPS=$((CTGS - SEQS))
+        
+        # Parse BUSCO results
+        BUSCO_COMPLETE=$(grep "C:" {input.busco} | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
+        BUSCO_SINGLE=$(grep "C:" {input.busco} | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
+        
+        # Write summary
+        echo -e "ID\tSample\tHaplotype\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tSequences\tContigs\tGaps\tScafN50\tContigN50" > {output.summary}
+        echo -e "{wildcards.id}\t{params.sample}\t{params.hap}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$SCAF_N50\t$CONT_N50" >> {output.summary}
+        """
