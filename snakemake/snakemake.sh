@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=64
-#SBATCH --mem=370Gb
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=120Gb
 #SBATCH --partition=short
 
 module load miniconda
@@ -22,6 +22,8 @@ EOF
 
 dry_run=""
 unlock=""
+rerun_incomplete=""
+touch=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -40,6 +42,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             dry_run="--dry-run"
+            shift 1
+            ;;      
+        --rerun-incomplete)
+            dry_run="--rerun-incomplete"
+            shift 1
+            ;;        
+        --touch)
+            dry_run="--touch"
             shift 1
             ;;        
         --unlock)
@@ -115,4 +125,6 @@ snakemake -s Snakefile \
     --use-apptainer \
     ${dry_run} \
     ${unlock} \
-    --cores 64
+    ${rerun_incomplete} \
+    ${touch} \
+    --cores 32

@@ -25,6 +25,7 @@ EOF
 
 dry_run=""
 unlock=""
+touch=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -44,7 +45,11 @@ while [[ $# -gt 0 ]]; do
         --dry-run)
             dry_run="--dry-run"
             shift 1
-            ;;        
+            ;;
+        --touch)
+            dry_run="--touch"
+            shift 1
+            ;;                
         --unlock)
             unlock="--unlock"
             shift 1
@@ -107,4 +112,5 @@ snakemake -s Snakefile \
     --use-apptainer \
     ${dry_run} \
     ${unlock} \
+    ${touch} \
     --cores 16
