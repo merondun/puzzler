@@ -2,12 +2,11 @@
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=64
-#SBATCH --mem=370Gb
+#SBATCH --mem=500Gb
 #SBATCH --partition=short
 
 module load miniconda
 source activate snakemake
-module load busco5
 module load apptainer
 
 cat << "EOF"
@@ -23,6 +22,8 @@ EOF
 
 dry_run=""
 unlock=""
+rerun_incomplete=""
+touch=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -41,6 +42,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             dry_run="--dry-run"
+            shift 1
+            ;;      
+        --rerun-incomplete)
+            dry_run="--rerun-incomplete"
+            shift 1
+            ;;        
+        --touch)
+            dry_run="--touch"
             shift 1
             ;;        
         --unlock)
@@ -71,10 +80,11 @@ fi
 # Get ploidy, hifi, and HiC paths from csv for this sample
 PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $2}' samples.csv)
 CHROMOSOMES=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' samples.csv)
-HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' samples.csv)
-HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' samples.csv)
-HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' samples.csv)
-REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' samples.csv)
+HOM_COV=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' samples.csv)
+HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' samples.csv)
+HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' samples.csv)
+HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' samples.csv)
+REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' samples.csv)
 
 # Verify HiC data is present
 if [ -z "${HIC_R1}" ] || [ -z "${HIC_R2}" ]; then
@@ -99,6 +109,7 @@ samples:
         hifi: "${HIFI}"
         ploidy: ${PLOIDY}
         nchrs: ${CHROMOSOMES}
+        hom_cov: ${HOM_COV}
         reference: ${REFERENCE}
         hic_r1: "${HIC_R1}"
         hic_r2: "${HIC_R2}"
@@ -107,7 +118,8 @@ EOF
 echo "Starting assembly pipeline for ${SAMPLE}"
 echo "Ploidy: ${PLOIDY}"
 echo "Number of chromosomes: ${CHROMOSOMES}"
-echo "Orienting chromosomes to:: ${REFERENCE}"
+echo "Homozygous coverage is: ${HOM_COV}"
+echo "Orienting chromosomes to: ${REFERENCE}"
 echo "HiFi reads: ${HIFI}"
 echo "HiC reads: ${HIC_R1}, ${HIC_R2}"
 
@@ -116,4 +128,6 @@ snakemake -s Snakefile \
     --use-apptainer \
     ${dry_run} \
     ${unlock} \
+    ${rerun_incomplete} \
+    ${touch} \
     --cores 64
