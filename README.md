@@ -166,7 +166,6 @@ HART001/02_HapHiC/{HAP*PLOIDY}..fa
 # Step 3 (Assign Chromosomes - final assembly!):
 
 ```
-```
 
 <!-- TOC --><a name="contact"></a>
 ## Contact
