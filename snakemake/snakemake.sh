@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=120Gb
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=500Gb
 #SBATCH --partition=short
 
 module load miniconda
@@ -80,10 +80,11 @@ fi
 # Get ploidy, hifi, and HiC paths from csv for this sample
 PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $2}' samples.csv)
 CHROMOSOMES=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' samples.csv)
-HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' samples.csv)
-HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' samples.csv)
-HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' samples.csv)
-REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' samples.csv)
+HOM_COV=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' samples.csv)
+HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' samples.csv)
+HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' samples.csv)
+HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' samples.csv)
+REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' samples.csv)
 
 # Verify HiC data is present
 if [ -z "${HIC_R1}" ] || [ -z "${HIC_R2}" ]; then
@@ -108,6 +109,7 @@ samples:
         hifi: "${HIFI}"
         ploidy: ${PLOIDY}
         nchrs: ${CHROMOSOMES}
+        hom_cov: ${HOM_COV}
         reference: ${REFERENCE}
         hic_r1: "${HIC_R1}"
         hic_r2: "${HIC_R2}"
@@ -116,6 +118,7 @@ EOF
 echo "Starting assembly pipeline for ${SAMPLE}"
 echo "Ploidy: ${PLOIDY}"
 echo "Number of chromosomes: ${CHROMOSOMES}"
+echo "Homozygous coverage is: ${HOM_COV}"
 echo "Orienting chromosomes to: ${REFERENCE}"
 echo "HiFi reads: ${HIFI}"
 echo "HiC reads: ${HIC_R1}, ${HIC_R2}"
@@ -127,4 +130,4 @@ snakemake -s Snakefile \
     ${unlock} \
     ${rerun_incomplete} \
     ${touch} \
-    --cores 32
+    --cores 64
