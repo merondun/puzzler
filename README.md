@@ -23,7 +23,7 @@ A singularity / apptainer `.sif` container can be pulled from `singularity pull 
 
 **You will need access to BUSCO5 for the assembly statistics phase. This install is difficult to port into a container, so ensure it is available on your command line!** 
 
-There is also a definition file for the build in `/apptainer/`. It requires many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC), and [ragtag v.2.1.0](https://github.com/malonge/RagTag).
+There is also a definition file for the build in `/apptainer/`. It requires many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), and [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC).
 
 As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and BUSCO5, and you are good to go. 
 
@@ -34,10 +34,9 @@ The pipeline follows these steps:
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads, creating a number of haplotypes corresponding to inferred ploidy from flow cytometry / kmer estimation.
    - If no HiC data is provided, the script will skip steps 3 - 4! Check the slurm / screen output to ensure the script recognized HiC reads. 
-2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups), may require some manual adjustment based on contiguity. Note that this implementation **does not** purge haplotigs according to coverage. This is designed for polyploid genomes, so this only removes based on sequence content! Based on numerous sensitivities, this seems to be preferable for the species assayed at least so far. 
-3) Re-scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
-4) Final scaffolding to a known chromosome reference to ensure proper orientation and naming of chromosomes with [RagTag](https://github.com/malonge/RagTag). Note that this could dramatically improve your scaffold N50, particularly if you have a very low N50 from poor HiC data to begin with. Note that RagTag will not break any assemblies, so it won't impact inversions, etc. 
-5) Assembly statistics (BUSCO, [contiguity](https://github.com/MikeTrizna/assembly_stats)). **Note that BUSCO is set to use `embryophyta_odb10` as the database, so please modify that within the `Snakefile` is necessary. 
+2) Re-scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
+3) TODO: Assign chromosomes based on alignment with known species, NOT reference-guided. 
+4) TODO: Assembly statistics (BUSCO, [contiguity](https://github.com/MikeTrizna/assembly_stats)). **Note that BUSCO is set to use `embryophyta_odb10` as the database, so please modify that within the `Snakefile` is necessary. 
 
 ***Potential future additions***
 
@@ -49,11 +48,12 @@ The pipeline follows these steps:
 
 **1.** Clone this repo and save the `.sif` container somewhere (see above). 
 
-**2.** Prepare a `samples.csv` indicating sample name, ploidy, and reads:
+**2.** Prepare a `samples.csv` indicating sample name, ploidy, number of chromosomes, homozygous peak coverage, hifi, hicR1, hicR2, and a fasta file from a related species with chromosome IDs:
 
 ```
-sample,ploidy,hifi,hic_r1,hic_r2
-HART001,2,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/HART001/HART001.HiC.R2.fastq.gz
+sample,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
+HPSI_010,2,22,,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_010/HPSI_010.HiFi.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_010/HPSI_010.HiC.R1.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_010/HPSI_010.HiC.R2.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/snakemake/GCA_016432845.1_guava_v11.23_genomic.fa
+HPSI_019,2,22,,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_019/HPSI_019.HiFi.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_019/HPSI_019.HiC.R1.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/HPSI_019/HPSI_019.HiC.R2.fastq.gz,/project/coffea_pangenome/Guava/Assemblies/202411_Justin_Assemblies/snakemake/GCA_016432845.1_guava_v11.23_genomic.fa
 ```
 
 **3** If using snakemake (recommended):
@@ -73,26 +73,25 @@ __________ ____ _______________________.____     _____________________
                            \/        \/        \/        \/         \/ 
 =======================================================================
 Error: Missing required arguments
-Usage: sbatch ./snakemake.sh --sample <sample_name> --reference <reference_path> --wd <working_directory> --container <container_path>
-Example: sbatch ./snakemake.sh --sample HART001 --reference /path/to/close_species_reference.fasta --wd /path/to/workdir --container /path/to/container.sif
+Usage: sbatch ./snakemake.sh --sample <sample_name> --wd <working_directory> --container <container_path>
+Example: sbatch ./snakemake.sh --sample HART001 --wd /path/to/workdir --container /path/to/container.sif
 ```
 **--sample** corresponds to the first column of `samples.csv`, and will run the pipeline on that sample 
-**--reference** a closely-related species `.fa`, the assembly will have similarly oriented chromosomes
 **--wd** directory where files will be saved 
 **--container** path to the puzzler `.sif`
 
 Now you can simply submit the script using a positional argument, matching the first line of your `samples.csv`:  
 
 ```
-sbatch -J stats_HART001 snakemake.sh --sample HART001 --reference --wd /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies --container /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif
+sbatch -J stats_HART001 snakemake.sh --sample HART001 --wd /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies --container /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif
 ````
 
 The script will create a directory within the pipeline directory for `sample_runs/${SAMPLE}` where any logs, configs, and the actual Snakefile are stored. 
 
-:bomb: `snakemake.sh` understands `--dry-run`, so you can run `snakemake.sh --dry-run` on a login node and it will tell you which processes are completed, and which are yet to run:
+:bomb: `snakemake.sh` understands `--dry-run`, `--touch` and `--unlock`, so you can run `snakemake.sh --dry-run` on a login node and it will tell you which processes are completed, and which are yet to run:
 
 ```
-./snakemake.sh --sample HART001 --reference /project/coffea_pangenome/Artocarpus/WholeGenomeAlignments/fastas/ASM2540343.fa --wd /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies --container /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif
+./snakemake.sh --sample HART001 --wd /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies --container /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif
 =======================================================================
 __________ ____ _______________________.____     _____________________ 
 \______   \    |   \____    /\____    /|    |    \_   _____/\______   \
@@ -160,51 +159,13 @@ Relative to the `wd` path, you can find these output files. Note that you can al
 ```
 # Provided that you ran `snakemake.sh` HART001 as your sample
 # Step 1 (hifiasm): 
-HART001/HiCHiFi/HART001.hic.p_ctg.gfa
-# Step 2 (purge_dups): 
-HART001/HiCHiFi/02_PurgeDups/purged.fa
-# Step 3 (HapHiC):
-HART001/HiCHiFi/03_HapHiC/04.build/scaffolds.fa
-# Step 4 (RagTag - final assembly!):
-Primary_Assemblies/HART001.HifiasmHifiHiC-PurgeDups-HapHiC-RagTag.fa
-# Step 5 (purge_dups - each haplotype, diploid here):
-Primary_Assemblies/haplotypes/HART001.hap1.purged.fa
-Primary_Assemblies/haplotypes/HART001.hap2.purged.fa
-# Step 6 (BUSCO): 
-Primary_Assemblies/busco/HART001/short_summary.specific.embryophyta_odb10.HART001.txt
-# Step 7 (Statistics):
-Primary_Assemblies/assembly_summary_HART001.txt
-```
-
-
-**3b.** (Deprecated) Nextflow pipeline:
-
-Modify the `nextflow.config` file. **IMPORTANT**. 
-
-:exclamation: Nextflow will submit jobs via slurm for you, so it must be aware of your HPC syntax. Modify partitions accordingly. 
-
-:exclamation: You must modify these 4 lines in this file to full paths on your system. 
+HART001/HART001.hic.p_ctg.fa
+HART001/HART001.hic.{HAP*PLOIDY}.p_ctg.fa
+# Step 2 (HapHiC):
+HART001/02_HapHiC/{HAP*PLOIDY}..fa
+# Step 3 (Assign Chromosomes - final assembly!):
 
 ```
-    wd = "/project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies" # Where your genomes will be saved
-    workDir = "/project/coffea_pangenome/Artocarpus/tmp_nf" # tmp directory for all the nextflow intermediate steps
-    reference = "/project/coffea_pangenome/Artocarpus/WholeGenomeAlignments/fastas/ASM2540343.fa" # the reference genome you want to orient your chromosomes against
-    samples = "${params.wd}/samples.csv" # the samples file, as above
-```
-Submit. You can run this in a screen job, but I generally just prefer a single core compute job so I can track easily with a slurm output log:
-
-```
-#!/bin/bash
-#SBATCH --job-name=puzzler_NF
-#SBATCH --time=100:00:00
-#SBATCH --cpus-per-task=1
-#SBATCH --partition=long
-
-# Navigate to the nextflow directory
-cd /home/justin.merondun/puzzler/pipeline
-
-# Run, resume if previously started
-nextflow run main.nf -profile slurm -resume -with-apptainer /home/justin.merondun/apptainer/puzzler.sif
 ```
 
 <!-- TOC --><a name="contact"></a>
