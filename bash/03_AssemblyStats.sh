@@ -3,27 +3,22 @@
 #SBATCH --time=48:00:00   
 #SBATCH --nodes=1  
 #SBATCH --cpus-per-task=20
-#SBATCH --partition=short
+#SBATCH --partition=ceres
 
 module load miniconda
 source activate puzz
+module load apptainer
 
 ID=$1
 
 SAMPLE=$(echo ${ID} | sed 's/\..*//g')
-HAP=$(echo ${ID} | sed 's/.*\.//g' | sed 's/hap//g')
+IT=$(echo ${ID} | sed 's/.*\.//g')
 
-SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
-PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
-HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' ${SAMPLE_FILE})
-HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' ${SAMPLE_FILE})
-HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' ${SAMPLE_FILE})
-REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' ${SAMPLE_FILE})
 PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
 WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
-OUTDIR=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/pri/summaries
+OUTDIR=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/joint_scaffold/summaries
 
-GENOME=${WD}/pri/${ID}.*.fa
+GENOME=${WD}/joint_scaffold/${ID}.fa
 
 module load busco5
 echo "~~~~ Starting BUSCO Analysis for ${ID} ~~~~"
@@ -37,7 +32,9 @@ busco -i ${GENOME} \
     -o ${ID} \
     -f
     
-mv ${ID}/short_summary.specific.embryophyta_odb10.${ID}.txt .
+mv ${ID}/short_summary.specific.embryophyta_odb10.${ID}.txt ${OUTDIR}/${ID}.busco.txt
+cd ${OUTDIR}
+rm -rf ${OUTDIR}/busco/${ID}
 echo "~~~~ BUSCO Analysis Complete ~~~~"
 
 # Get metrics for final assembly
@@ -53,8 +50,8 @@ CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail
 GAPS=$((CTGS - SEQS))
 
 # Parse BUSCO results
-BUSCO_COMPLETE=$(grep "C:" ${OUTDIR}/busco/${ID}/short_summary.specific.embryophyta_odb10.${ID}.txt | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
-BUSCO_SINGLE=$(grep "C:" ${OUTDIR}/busco/${ID}/short_summary.specific.embryophyta_odb10.${ID}.txt | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
+BUSCO_COMPLETE=$(grep "C:" ${OUTDIR}/${ID}.busco.txt | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
+BUSCO_SINGLE=$(grep "C:" ${OUTDIR}/${ID}.busco.txt | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
 
 # What percentage of the assembly is in chrs1-28? 
 samtools faidx ${GENOME}
@@ -66,8 +63,5 @@ CHR_PROP=$(perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
 NUM_CHRS=$(cat ${ID}.chrs | wc -l)
 
 # Write summary
-echo -e "ID\tSample\tHaplotype\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tWithinChrsBP\tPropWithinChrs\tChrs\tSequences\tContigs\tGaps\tContigN50\tScafN50" > assembly_summary_${ID}.txt
-echo -e "${ID}\t${SAMPLE}\t${HAP}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$CHR_SIZE\t$CHR_PROP\t$NUM_CHRS\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50" >> assembly_summary_${ID}.txt
-
-# Also extract chromosome sizes to compare to reference jackfruit
-grep 'Chr' ${GENOME}.fai | awk -v s=${SAMPLE} -v h=${HAP} '{OFS="\t"}{print s, h, $1, $2}' > ${ID}.chrsizes.txt 
+echo -e "ID\tSample\tAssembly\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tWithinChrsBP\tPropWithinChrs\tChrs\tSequences\tContigs\tGaps\tContigN50\tScafN50" > ${ID}.summary.txt
+echo -e "${ID}\t${SAMPLE}\t${IT}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$CHR_SIZE\t$CHR_PROP\t$NUM_CHRS\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50" >> ${ID}.summary.txt

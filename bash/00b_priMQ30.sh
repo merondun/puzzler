@@ -4,7 +4,7 @@
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=32
 #SBATCH --mem=256Gb
-#SBATCH --partition=short
+#SBATCH --partition=ceres
 
 # use n=32 and mem = 112 typically 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}
@@ -21,6 +21,7 @@ fi
 t=32
 MEM=256
 SAMPLE=$1
+MQ=30
 
 WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
 SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
@@ -55,7 +56,7 @@ for IT in pri; do
 	if [ ! -s filtered.MQ${MQ}.bam ]; then
 		echo "~~~~ Mapping HiC reads to ${SAMPLE} ${IT} assembly ~~~~" 
 		# Align Hi-C reads
-		${PUZZLER} filter_bam filtered.MQ1.bam 1 --nm 3 --threads ${t} | \
+		${PUZZLER} filter_bam filtered.MQ1.bam ${MQ} --nm 3 --threads ${t} | \
 			${PUZZLER} samtools view - -b -@ ${t} -o filtered.MQ${MQ}.bam
 
 	else

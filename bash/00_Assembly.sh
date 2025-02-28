@@ -4,7 +4,7 @@
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=32
 #SBATCH --mem=256Gb
-#SBATCH --partition=short
+#SBATCH --partition=ceres
 
 # use n=32 and mem = 112 typically 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}
