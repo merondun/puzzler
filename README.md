@@ -82,8 +82,7 @@ Within: `${WD}/${SAMPLE}`
 
 `${SAMPLE}.hic.hap1.p_ctg.gfa` :arrow_right: hifiasm assembly
 
-\
-\
+<br/>
 
 The script then checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
 
@@ -91,17 +90,16 @@ Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
 ***If doesn't exist :arrow_right: then:***
 
-`all.purged.fa` :arrow_right: purge duplicates \
-`chr.divergence.txt` :arrow_right: estimate haplotype divergence (only for $IT="hap") \
-`filtered.MQ1.bam` :arrow_right: align HiC reads \
-`01_haphicMQ1/04.build/scaffolds.fa` :arrow_right: run HapHiC \
-`${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic` :arrow_right: create juicer files \
+`all.purged.fa` :arrow_right: purge duplicates <br/>
+`chr.divergence.txt` :arrow_right: estimate haplotype divergence (only for $IT="hap") <br/>
+`filtered.MQ1.bam` :arrow_right: align HiC reads <br/>
+`01_haphicMQ1/04.build/scaffolds.fa` :arrow_right: run HapHiC <br/>
+`${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic` :arrow_right: create juicer files <br/>
 
-\
 :exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
-\
-\
+
+<br/>
 
 **4. Post-manual finalization**
 
@@ -121,7 +119,6 @@ Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 `pg_renamed.filtered.bam` :arrow_right: re-align HiC to final assembly <br/>
 `${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` :arrow_right: create final contact map pdf <br/>
 
-<br/>
 <br/>
 
 :exclamation: If you then encounter this warning: 
