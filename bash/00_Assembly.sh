@@ -24,6 +24,7 @@ SAMPLE=$1
 
 WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
 SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
+PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
 PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $2}' ${SAMPLE_FILE})
 NCHRS=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
 HOM_COV=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' ${SAMPLE_FILE})
@@ -31,10 +32,21 @@ HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' ${SAMPLE_FILE})
 HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' ${SAMPLE_FILE})
 HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' ${SAMPLE_FILE})
 REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' ${SAMPLE_FILE})
-PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
+
+cat << "EOF"
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+EOF
 
 mkdir -p ${WD}/${SAMPLE} ${WD}/logs/juicer ${WD}/logs/haphic ${WD}/logs/divergence_haps
 cd ${WD}/${SAMPLE}
+
 
 ##### Generate Primary Assembly #####, add --hom-cov ${HOM_COV} \ if necessary! 
 if [ ! -s ${SAMPLE}.hic.hap1.p_ctg.gfa ]; then

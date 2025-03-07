@@ -112,6 +112,7 @@ for IT in pri hap; do
 			if [ -s 02_orienting/duplicates.txt ]; then
 				
 				echo "Multiple scaffolds corresponding to a single Chr for ${SAMPLE} ${IT}, INSPECT!" > ${WD}/logs/${SAMPLE}.${IT}.haphic-duplicates.log
+				echo -e "\e[41m~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} ${IT}, INSPECT!  ~~~~\e[0m"
 
 			else 
 
