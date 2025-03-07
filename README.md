@@ -126,14 +126,16 @@ Then, re-submit the script: `sbatch 01_PostJuicebox.sh HART001`
 ## Outputs 
 
 Relative to the `wd` path, the assemblies will be:
-```grep '>' ${WD}/joint_scaffold/HART001.pri.fa
+```
+grep '>' ${WD}/joint_scaffold/HART001.pri.fa
 >Chr01
 >Chr02
 ```
 
 and
 
-```grep '>' ${WD}/joint_scaffold/HART001.hap.fa
+```
+grep '>' ${WD}/joint_scaffold/HART001.hap.fa
 >HART001#1#Chr01
 >HART001#1#Chr02
 ...
@@ -142,9 +144,13 @@ and
 ```
 
 Within `${WD}/logs` you can find:
+
 `*.hifiasm.log`: hifiasm logs 
+
 `/contact_maps/`: final pdf contact maps
+
 `/haphic/`: haphic logs 
+
 `/juicer/`: juicer files
 
 
