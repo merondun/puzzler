@@ -116,13 +116,13 @@ Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
 ***If doesn't exist :arrow_right: then:***
 
-`map.txt` :arrow_right: align haphic scaffold fasta with other species to get scaffold ~ chr map \
-`haphic_renamed.fa` :arrow_right: rename scaffolds and ensure strands are in alignment with reference \
-`pg_renamed.filtered.bam` :arrow_right: re-align HiC to final assembly \
-`${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` :arrow_right: create final contact map pdf \
+`map.txt` :arrow_right: align haphic scaffold fasta with other species to get scaffold ~ chr map <br/>
+`haphic_renamed.fa` :arrow_right: rename scaffolds and ensure strands are in alignment with reference <br/>
+`pg_renamed.filtered.bam` :arrow_right: re-align HiC to final assembly <br/>
+`${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` :arrow_right: create final contact map pdf <br/>
 
-\
-
+<br/>
+<br/>
 
 :exclamation: If you then encounter this warning: 
 
