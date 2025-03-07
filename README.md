@@ -160,15 +160,12 @@ grep '>' ${WD}/joint_scaffold/HART001.hap.fa
 >HART001#2#Chr02
 ```
 
-Within `${WD}/logs` you can find:
+Within `${WD}/logs` you can find: <br/>
 
-`*.hifiasm.log`: hifiasm logs 
-
-`/contact_maps/`: final pdf contact maps
-
-`/haphic/`: haphic logs 
-
-`/juicer/`: juicer files
+`*.hifiasm.log`: hifiasm logs <br/>
+`/contact_maps/`: final pdf contact maps <br/>
+`/haphic/`: haphic logs <br/>
+`/juicer/`: juicer files <br/>
 
 
 <!-- TOC --><a name="contact"></a>
