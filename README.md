@@ -78,15 +78,17 @@ PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/p
 
 Within: `${WD}/${SAMPLE}`
 
-If doesn't exist -> then:
+***If doesn't exist -> then:***
 
 `${SAMPLE}.hic.hap1.p_ctg.gfa` -> hifiasm assembly
+
+
 
 The script then checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
 
 Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
-If doesn't exist -> then:
+***If doesn't exist -> then:***
 
 `all.purged.fa` -> purge duplicates 
 
@@ -108,11 +110,12 @@ The script `01_PostJuicebox.sh` then takes up provided that e.g. `HART001.pri_JB
 
 This script will identify which scaffolds correspond to which chromosomes from a related fasta, ensure there are no duplicate chromosomes identified, and rename and ensure strand-alignment. It will then re-map the HiC reads and create the final hic contact map pdf. 
 
+
 The script checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
 
 Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
-If doesn't exist -> then:
+***If doesn't exist -> then:***
 
 `map.txt` -> align haphic scaffold fasta with other species to get scaffold ~ chr map
 
