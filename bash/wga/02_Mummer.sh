@@ -11,18 +11,22 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
+#Submit as cat Pairs.list  | xargs -L 1 sbatch 02_Mummer.sh
+module load miniconda
+source activate wga
+
 #based largely on scripts from https://github.com/lurebgi/monkParakeet
 # Use a file with $SAMPLE_1 \t $SAMPLE_2 within pairs.list, submit
 target=$1  #reference
 query=$2 #target
-GENOME_DIR=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/joint_scaffold
+GENOME_DIR=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/joint_scaffold/summaries
 
 mkdir -p aln
 cd aln
 align_len=2000 # the cutoff for filtering small alignments, you may need to reduce it for species with large divergence
 
 # generating nucmer alignments
-nucmer -l 50 -b 400  -t 10 ${GENOME_DIR}/${target}.pri.fa  ../${query}.pri.fa -p ${target}-${query}
+nucmer -l 50 -b 400  -t 10 ${GENOME_DIR}/${target}.pri.chr.fa  ${GENOME_DIR}/${query}.pri.chr.fa -p ${target}-${query}
 delta-filter -1 -l 400 ${target}-${query}.delta > ${target}-${query}.delta.filt
 show-coords -H -c -l -o -r -T ${target}-${query}.delta.filt > ${target}-${query}.delta.filt.coords
 

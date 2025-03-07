@@ -14,7 +14,7 @@ source activate puzz
 module load apptainer
 
 if [ -z "$1" ]; then
-    echo "Error: sample ID positinonal argument is required."
+    echo "Error: sample ID positional argument is required."
     exit 1
 fi
 
@@ -40,7 +40,7 @@ cd ${WD}/${SAMPLE}
 if [ ! -s ${SAMPLE}.hic.hap1.p_ctg.gfa ]; then
 	${PUZZLER} hifiasm --n-hap ${PLOIDY} --hom-cov ${HOM_COV} --primary -t ${t} -o ${SAMPLE} --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI} 2> ${WD}/logs/${SAMPLE}.hifiasm.log
 else
-	echo "~~~~ Skipping hifiasm for ${SAMPLE}, already exists ~~~~"
+	echo -e "\e[42m~~~~ Skipping hifiasm for ${SAMPLE}, already exists ~~~~\e[0m"
 fi 
 
 ##### Loop through both primary assembly pipeline and haplotype-joint pipeline #####
@@ -60,12 +60,12 @@ for IT in pri hap; do
 
 				if [ ! -s hap${HAP}.purged.fa ]; then
 					
-				echo "~~~~ Starting Purge_Dups for ${SAMPLE}, Haplotype ${HAP} ~~~~"
+				echo -e "\e[43m~~~~ Starting Purge_Dups for ${SAMPLE}, Haplotype ${HAP} ~~~~\e[0m"
 
 				# Ensure fastas have proper contig haplotype names 
 				awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/${SAMPLE}.hic.hap${HAP}.p_ctg.gfa > hap${HAP}.init.fa
 				split_fa hap${HAP}.init.fa > hap${HAP}.split.fa
-				minimap2 -t ${t} -xasm5 -DP hap${HAP}.split.fa hap${HAP}.split.fa | gzip -c > hap${HAP}.split.self.paf.gz
+				minimap2 -t ${t} -xasm5 -DP hap${HAP}.split.fa hap${HAP}.split.fa 2> minimap.purge.log | gzip -c > hap${HAP}.split.self.paf.gz
 				purge_dups -M1000 -E1000 hap${HAP}.split.self.paf.gz > hap${HAP}.dups.bed
 				get_seqs hap${HAP}.dups.bed hap${HAP}.init.fa
 				# Ensure haplotype IDs are correct 
@@ -76,7 +76,7 @@ for IT in pri hap; do
 				sed "s/h1tg/h${HAP}tg/g" ${WD}/${SAMPLE}/${SAMPLE}.hic.hap${HAP}.p_ctg.gfa > hap${HAP}.gfa
 
 				else	
-					echo "~~~~ Skipping ${SAMPLE}, Haplotype ${HAP} as it already exists ~~~~"
+					echo -e "\e[42m~~~~ Skipping ${SAMPLE}, Haplotype ${HAP}, already exists ~~~~\e[0m"
 					continue
 				fi
 
@@ -87,7 +87,7 @@ for IT in pri hap; do
 
 		else 
 
-			echo "~~~~ Starting Purge_Dups for ${SAMPLE}, primary assembly ~~~~"
+			echo -e "\e[43m~~~~ Starting Purge_Dups for ${SAMPLE}, primary assembly ~~~~\e[0m"
 
 			#Ensure fastas have proper contig haplotype names 
 			awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/${SAMPLE}.hic.p_ctg.gfa > pri.init.fa
@@ -101,21 +101,21 @@ for IT in pri hap; do
 		fi
 
 	else
-		echo "~~~~ Skipping purge for ${SAMPLE} ${IT} ~~~~"
+		echo -e "\e[42m~~~~ Skipping purge for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 	fi
 
 	# It's worthwhile to examine divergence between haplotypes
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 	if [ ! -s chr.divergence.txt ] && [ "${IT}" = "hap" ]; then
 
-		echo "~~~~ Estimating Haplotype divergence for ${SAMPLE} ~~~~"
+		echo -e "\e[43m~~~~ Estimating Haplotype divergence for ${SAMPLE} ~~~~\e[0m"
 		mkdir -p 00_hapchrs 01_chrassemblies 
 		for HAP in $(seq 1 ${PLOIDY}); do 
 
 			if [ ! -s 00_hapchrs/hap${HAP}_ref.paf ] ; then
 				$PUZZLER minimap2 -x asm20 ${REFERENCE} hap${HAP}.purged.fa --secondary=no -t ${t} -o 00_hapchrs/hap${HAP}_ref.paf 2> 00_hapchrs/hap${HAP}.log
 			else
-				echo "Aligment already generated, skipping..."
+				echo -e "\e[43m~~~~ Skipping aligment for haplotypes, already exists ~~~~\e[0m]"
 			fi 
 			samtools faidx hap${HAP}.purged.fa
 			map_chromosomes --paf 00_hapchrs/hap${HAP}_ref.paf --fai hap${HAP}.purged.fa.fai --out hap${HAP}_chrmap.txt
@@ -150,7 +150,7 @@ for IT in pri hap; do
 		awk '{OFS="\t"}{print $1, $2}' 01_chrassemblies/${CHR}.fa.fai > ${WD}/logs/divergence_haps/${SAMPLE}.chrlengths.txt
 
 	else 
-		echo "~~~~ Skipping haplotype divergence estimation for ${SAMPLE} for ${IT} ~~~~"
+		echo -e "\e[42m~~~~ Skipping haplotype divergence estimation for ${SAMPLE} for ${IT}, already exists ~~~~\e[0m"
 	fi
 
 	TOTAL_CHRS=$((NCHRS * PLOIDY))
@@ -158,25 +158,25 @@ for IT in pri hap; do
 	##### ALIGN HIC #####
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 	if [ ! -s filtered.MQ1.bam ]; then
-		echo "~~~~ Mapping HiC reads to ${SAMPLE} ${IT} assembly ~~~~" 
+		echo -e "\e[43m~~~~ Mapping HiC reads to ${SAMPLE} ${IT} assembly ~~~~\e[0m" 
 		# Index reference
 		${PUZZLER} bwa index all.purged.fa 2> alignment.indexing.hic.log
 
 		# Align Hi-C reads
-		${PUZZLER} bwa mem -5SP -t ${t} all.purged.fa ${HIC_R1} ${HIC_R2} | \
+		${PUZZLER} bwa mem -5SP -t ${t} all.purged.fa ${HIC_R1} ${HIC_R2} 2> alignment.firsthic.log | \
 			${PUZZLER} samblaster | ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
 			${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} | \
-			${PUZZLER} samtools view - -b -@ ${t} -o filtered.MQ1.bam 2> alignment.hic.log
+			${PUZZLER} samtools view - -b -@ ${t} -o filtered.MQ1.bam
 
 	else
-		echo "~~~~ Skipping alignment for ${SAMPLE} ${IT} ~~~~"
+		echo -e "\e[42m~~~~ Skipping alignment for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 	fi
 
 	##### HAPHIC ##### 
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 	if [ ! -s ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/04.build/scaffolds.fa ]; then
 
-		echo "~~~~ Running HapHiC for ${SAMPLE} ${IT} ~~~~" 
+		echo -e "\e[43m~~~~ Running HapHiC for ${SAMPLE} ${IT} ~~~~\e[0m" 
 		mkdir -p ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1
 		rm -rf ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/*
 
@@ -194,7 +194,7 @@ for IT in pri hap; do
 		cp ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/01.cluster/HapHiC_cluster.log ${WD}/${SAMPLE}/02_${IT}HapHiC/haphic.MQ1.log
 
 	else 
-		echo "~~~~ Skipping HapHiC for ${SAMPLE} ${IT} ~~~~"
+		echo -e "\e[42m~~~~ Skipping HapHiC for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 	fi
 
 	##### JUICER #####
@@ -202,12 +202,12 @@ for IT in pri hap; do
 	mkdir -p 02_orienting
 	if [ ! -s ${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic ]; then
 
-		echo "~~~~ Creating .hic file for juicebox for ${SAMPLE} ${IT} ~~~~"
+		echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE} ${IT} ~~~~\e[0m"
 		# # Orient to jackfruit chromosomes 
 		if [ ! -s 02_orienting/asm_to_ref.paf ]; then
-			$PUZZLER minimap2 -x asm20 ${REFERENCE} all.purged.fa --secondary=no -t ${t} -o 02_orienting/asm_to_ref.paf
+			$PUZZLER minimap2 -x asm20 ${REFERENCE} all.purged.fa --secondary=no -t ${t} -o 02_orienting/asm_to_ref.paf 2> minimap.ref.log
 		else
-			echo "Skipping initial alignment"
+			echo -e "\e[42m~~~~ Skipping initial alignment ~~~~\e[0m]"
 		fi
 
 		$PUZZLER haphic refsort ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/04.build/scaffolds.raw.agp 02_orienting/asm_to_ref.paf > refsortMQ1.agp 2> refsortMQ1.log
@@ -236,7 +236,7 @@ for IT in pri hap; do
 		cp haphic-refsort-MQ1_JBAT.assembly ${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.assembly
 	
 	else
-		echo "~~~~ No HiC juicer files needed for ${SAMPLE} ${IT} ~~~~"
+		echo -e "\e[42 ~~~~ Skipping juicer HiC file creation for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 	fi 
 
 done # terminate IT loop

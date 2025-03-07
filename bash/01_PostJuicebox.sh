@@ -40,24 +40,24 @@ for IT in pri hap; do
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 
 	if [ ! -s ${SAMPLE}.${IT}-MQ1_JBAT.review.assembly ]; then
-		echo "~~~~ Post curation assembly file doesn't exist for ${SAMPLE} ${IT} ~~~~" 
+		echo -e "\e[43m~~~~ Post curation assembly file doesn't exist for ${SAMPLE} ${IT} ~~~~\e[0m" 
 	else
 		mkdir -p 02_orienting
 		if [ ! -s map.txt ]; then
-			echo "~~~~ Extracting final ${IT} assembly and mapping to reference for ${SAMPLE} ~~~~"
+			echo -e "\e[43m~~~~ Extracting final ${IT} assembly and mapping to reference for ${SAMPLE} ~~~~\e[0m"
 			JUICER_PATH=~/symlinks/software/HapHiC/utils
-			${JUICER_PATH}/juicer post -o haphic-refsort-post_JBAT ${SAMPLE}.${IT}-MQ1_JBAT.review.assembly haphic-refsort-MQ1_JBAT.liftover.agp all.purged.fa
+			${JUICER_PATH}/juicer post -o haphic-refsort-post_JBAT ${SAMPLE}.${IT}-MQ1_JBAT.review.assembly haphic-refsort-MQ1_JBAT.liftover.agp all.purged.fa 2> juicer.post.log
 
 			# Renaming: to reference chromosomes 
-			$PUZZLER minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o 02_orienting/asmpost_to_paf.paf
+			$PUZZLER minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o 02_orienting/asmpost_to_paf.paf 2> minimap.postjuicer.log
 			samtools faidx haphic-refsort-post_JBAT.FINAL.fa
 			map_chromosomes --paf 02_orienting/asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt
 		else
-			echo "~~~~ Skipping assembly and mapping for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[42m~~~~ Skipping assembly and mapping for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 		fi 
 
 		if [ ! -s haphic_renamed.fa ] && [ -s map.txt ]; then
-			echo "~~~~ Renaming chromosomes for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[43m~~~~ Renaming chromosomes for ${SAMPLE} ${IT} ~~~~\e[0m"
 
 			# This file has $haphic_scafID \t $ref_chr_ID \t $strand
 			awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt > 02_orienting/hap_ref_map.txt 
@@ -135,31 +135,31 @@ for IT in pri hap; do
 			fi  # exit duplicates check
 
 		else
-			echo "~~~~ Skipping renaming chromosomes for ${SAMPLE} ${IT}, already exists  ~~~~"
+			echo -e "\e[42m~~~~ Skipping renaming chromosomes for ${SAMPLE} ${IT}, already exists  ~~~~\e[0m"
 		fi # exit renaming check 
 
 		cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 		if [ ! -s pg_renamed.filtered.bam ] && [ -s pg_renamed.fa ]; then
 
-			echo "~~~~ Creating bam for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[43m~~~~ Creating bam for ${SAMPLE} ${IT} ~~~~\e[0m"
 
 			$PUZZLER bwa index pg_renamed.fa 2> alignment.indexing.finalpg.log
 			$PUZZLER samtools faidx pg_renamed.fa
 
 			# Align Hi-C reads
-			$PUZZLER bwa mem -5SP -t ${t} pg_renamed.fa ${HIC_R1} ${HIC_R2} | \
+			$PUZZLER bwa mem -5SP -t ${t} pg_renamed.fa ${HIC_R1} ${HIC_R2} 2> alignment.finalpg.log | \
 				$PUZZLER samblaster | \
 				$PUZZLER samtools view - -@ ${t} -S -h -b -F 3340 | \
 				$PUZZLER filter_bam - 1 --nm 3 --threads ${t} --remove-dup | \
-				$PUZZLER samtools view - -b -@ ${t} -o pg_renamed.filtered.bam 2> alignment.finalpg.log
+				$PUZZLER samtools view - -b -@ ${t} -o pg_renamed.filtered.bam
 
 		else
-			echo "~~~~ Bam already created for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[42m~~~~ Skipping alignment for final map ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 		fi # exit final hic mapping check 
 
 		if [ ! -f ${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf ]; then
 
-			echo "~~~~ Creating final contact map for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[43m~~~~ Creating final contact map for ${SAMPLE} ${IT} ~~~~\e[0m"
 			~/symlinks/software/HapHiC/utils/mock_agp_file.py pg_renamed.fa > pg_renamed.agp
 			$PUZZLER haphic plot --threads ${t} pg_renamed.agp pg_renamed.filtered.bam --bin_size 1000 --min_len 2
 
@@ -168,7 +168,7 @@ for IT in pri hap; do
 			$PUZZLER samtools faidx ${WD}/joint_scaffold/${SAMPLE}.${IT}.fa
 			cp contact_map.pdf ${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf
 		else
-			echo "~~~~ Final contact map already generated for ${SAMPLE} ${IT} ~~~~"
+			echo -e "\e[42m~~~~ Skipping final contact map generating for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 		fi # exit final hic plotting check 
 
 	fi # exit entire loop file assembly check 

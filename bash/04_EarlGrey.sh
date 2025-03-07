@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=48:00:00   
+#SBATCH --time=111:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=20
 #SBATCH --mem=512Gb
-#SBATCH --partition=short
+#SBATCH --partition=ceres
 
 #module load miniconda
 #source activate earlgrey
