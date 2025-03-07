@@ -46,16 +46,22 @@ The pipeline creates both a final collapsed primary assembly (pri) and haplotype
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
-**1.** Clone this repo and save the `.sif` container somewhere (see above). 
+**1. Clone** 
 
-**2.** Prepare a `samples.csv` indicating sample name, ploidy, number of chromosomes, homozygous peak coverage, reads, and a related species to use for assigning chromosome names:
+Clone this repo and save the `.sif` container somewhere (see above). 
+
+**2. Make sample map** 
+
+Prepare a `samples.csv` indicating sample name, ploidy, number of chromosomes, homozygous peak coverage, reads, and a related species to use for assigning chromosome names:
 
 ```
 sample,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
 HART001,2,28,68,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R2.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/ASM2540343.fa
 ```
 
-**3** Copy the `00_Assembly.sh` script into your wd, and modify these lines to indicate the high level assembly directory, your samples.csv file, and the puzzler `.sif` file. 
+**3. Copy basefiles** 
+
+Copy the `00_Assembly.sh` script into your wd, and modify these lines to indicate the high level assembly directory, your samples.csv file, and the puzzler `.sif` file. 
 
 ```
 WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
@@ -67,7 +73,8 @@ PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/p
 
 :exclamation: These scripts will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
 
-Under the hood steps for `00_Assembly.sh`:
+
+**Under the hood steps for `00_Assembly.sh`:**
 
 Within: `${WD}/${SAMPLE}`
 If doesn't exist -> then:
@@ -82,9 +89,10 @@ If doesn't exist -> then:
 `01_haphicMQ1/04.build/scaffolds.fa` -> run HapHiC
 `${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic` -> create juicer files 
 
-:exclamation The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+:exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
-**4** Post-manual finalization
+
+**4. Post-manual finalization**
 
 The script `01_PostJuicebox.sh` then takes up provided that e.g. `HART001.pri_JBAT.review.assembly` is within `HART001/02_priHapHiC`.
 
@@ -98,8 +106,11 @@ If doesn't exist -> then:
 `pg_renamed.filtered.bam` -> re-align HiC to final assembly
 `${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` -> create final contact map pdf 
 
-:exclamation If you then encounter this warning: 
+
+:exclamation: If you then encounter this warning: 
+
 `~~~~ Multiple scaffolds corresponding to a single Chr for HART038 pri, INSPECT!  ~~~~` 
+
 You must stop and inspect `${WD}/${SAMPLE}/02_${IT}HapHiC/02_orienting/hap_newID_map.txt` and deal with the duplicate 'Chr', because you have multiple scaffolds corresponding to a single reference chromosome. Rename them something unique (e.g. Chr1 and Chr1A) in column 2, and then re-run:
 
 ```
@@ -107,7 +118,7 @@ cd ${WD}/${SAMPLE}/02_${IT}HapHiC/
 seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k 02_orienting/hap_newID_map.txt 02_orienting/orient.fa | \
     seqkit sort --line-width 0 -n > haphic_renamed.fa
 ln -s haphic_renamed.fa pg_renamed.fa
-``````
+```
 
 Then, re-submit the script: `sbatch 01_PostJuicebox.sh HART001` 
 
