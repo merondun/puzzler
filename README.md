@@ -38,6 +38,7 @@ The pipeline creates both a final collapsed primary assembly (pri) and haplotype
 4) Manual curation with juicebox. 
 5) Assembly statistics (BUSCO, [contiguity](https://github.com/MikeTrizna/assembly_stats)). **Note that BUSCO is set to use `embryophyta_odb10` as the database, so please modify that within the `Snakefile` is necessary. 
 
+
 ***Potential future additions***
 
 6) Repeat annotation with [EarlGrey](https://github.com/TobyBaril/EarlGrey).
@@ -69,9 +70,11 @@ SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAsse
 PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
 ```
 
+
 :exclamation: `00_Assembly.sh` only requires a positional argument for sample ID which matches `samples.csv`, e.g. `sbatch 00_Assembly.sh HART001`. 
 
 :exclamation: These scripts will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
+
 
 
 **Under the hood steps for `00_Assembly.sh`:**
