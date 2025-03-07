@@ -77,17 +77,27 @@ PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/p
 **Under the hood steps for `00_Assembly.sh`:**
 
 Within: `${WD}/${SAMPLE}`
+
 If doesn't exist -> then:
+
 `${SAMPLE}.hic.hap1.p_ctg.gfa` -> hifiasm assembly
 
 The script then checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
+
 Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+
 If doesn't exist -> then:
+
 `all.purged.fa` -> purge duplicates 
+
 `chr.divergence.txt` -> estimate haplotype divergence (only for $IT="hap")
+
 `filtered.MQ1.bam` -> align HiC reads 
+
 `01_haphicMQ1/04.build/scaffolds.fa` -> run HapHiC
+
 `${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic` -> create juicer files 
+
 
 :exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
@@ -99,11 +109,17 @@ The script `01_PostJuicebox.sh` then takes up provided that e.g. `HART001.pri_JB
 This script will identify which scaffolds correspond to which chromosomes from a related fasta, ensure there are no duplicate chromosomes identified, and rename and ensure strand-alignment. It will then re-map the HiC reads and create the final hic contact map pdf. 
 
 The script checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
+
 Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+
 If doesn't exist -> then:
+
 `map.txt` -> align haphic scaffold fasta with other species to get scaffold ~ chr map
+
 `haphic_renamed.fa` -> rename scaffolds and ensure strands are in alignment with reference
+
 `pg_renamed.filtered.bam` -> re-align HiC to final assembly
+
 `${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` -> create final contact map pdf 
 
 
