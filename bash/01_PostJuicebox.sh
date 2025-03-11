@@ -33,6 +33,17 @@ REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' ${SAMPLE_FIL
 PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
 TOTAL_CHRS=$((NCHRS * PLOIDY))
 
+cat << "EOF"
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+EOF
+
 mkdir -p ${WD}/joint_scaffold ${WD}/logs/contact_maps
 
 for IT in pri hap; do 
@@ -113,7 +124,8 @@ for IT in pri hap; do
 				
 				echo "Multiple scaffolds corresponding to a single Chr for ${SAMPLE} ${IT}, INSPECT!" > ${WD}/logs/${SAMPLE}.${IT}.haphic-duplicates.log
 				echo -e "\e[41m~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} ${IT}, INSPECT!  ~~~~\e[0m"
-
+				exit 1
+				
 			else 
 
 				echo "Single scaffolds corresponding to a single Chr for ${SAMPLE} ${IT}"

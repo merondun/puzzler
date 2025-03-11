@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=24:00:00   
+#SBATCH --time=48:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=32
 #SBATCH --mem=256Gb
@@ -50,6 +50,7 @@ cd ${WD}/${SAMPLE}
 
 ##### Generate Primary Assembly #####, add --hom-cov ${HOM_COV} \ if necessary! 
 if [ ! -s ${SAMPLE}.hic.hap1.p_ctg.gfa ]; then
+	echo -e "\e[43m~~~~ Starting hifiasm assembly for ${SAMPLE} ~~~~\e[0m"
 	${PUZZLER} hifiasm --n-hap ${PLOIDY} --hom-cov ${HOM_COV} --primary -t ${t} -o ${SAMPLE} --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI} 2> ${WD}/logs/${SAMPLE}.hifiasm.log
 else
 	echo -e "\e[42m~~~~ Skipping hifiasm for ${SAMPLE}, already exists ~~~~\e[0m"
@@ -127,7 +128,7 @@ for IT in pri hap; do
 			if [ ! -s 00_hapchrs/hap${HAP}_ref.paf ] ; then
 				$PUZZLER minimap2 -x asm20 ${REFERENCE} hap${HAP}.purged.fa --secondary=no -t ${t} -o 00_hapchrs/hap${HAP}_ref.paf 2> 00_hapchrs/hap${HAP}.log
 			else
-				echo -e "\e[43m~~~~ Skipping aligment for haplotypes, already exists ~~~~\e[0m]"
+				echo -e "\e[42m~~~~ Skipping aligment for haplotypes, already exists ~~~~\e[0m]"
 			fi 
 			samtools faidx hap${HAP}.purged.fa
 			map_chromosomes --paf 00_hapchrs/hap${HAP}_ref.paf --fai hap${HAP}.purged.fa.fai --out hap${HAP}_chrmap.txt
@@ -248,7 +249,7 @@ for IT in pri hap; do
 		cp haphic-refsort-MQ1_JBAT.assembly ${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.assembly
 	
 	else
-		echo -e "\e[42 ~~~~ Skipping juicer HiC file creation for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
+		echo -e "\e[42m~~~~ Skipping juicer HiC file creation for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
 	fi 
 
 done # terminate IT loop
