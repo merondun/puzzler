@@ -25,7 +25,7 @@ A singularity / apptainer `.sif` container can be pulled from `singularity pull 
 
 There is also a definition file for the build in `/apptainer/`. It requires many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), and [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC).
 
-As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and BUSCO5, and you are good to go. 
+As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
@@ -33,7 +33,7 @@ As a last resort, you can create a conda environment from the `environment.yml` 
 The pipeline creates both a final collapsed primary assembly (pri) and haplotype-phased assembly (hap) following these steps:
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads, creating a number of haplotypes corresponding to inferred ploidy.
-2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups), may require some manual adjustment based on contiguity. Note that this implementation **does not** purge haplotigs according to coverage. This is designed for polyploid genomes, so this only removes based on sequence content! Based on numerous sensitivities, this seems to be preferable for the species assayed at least so far. 
+2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups), may require some manual adjustment based on contiguity. Note that this implementation **does not** purge haplotigs according to coverage. This is designed for polyploid genomes, so this only removes based on sequence content! Based on numerous sensitivities, this seems to be preferable for the species assayed so far. 
 3) Re-scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 4) Manual curation with juicebox. 
 5) Assembly statistics (BUSCO, [contiguity](https://github.com/MikeTrizna/assembly_stats)). **Note that BUSCO is set to use `embryophyta_odb10` as the database, so please modify that within the `Snakefile` is necessary. 
@@ -59,6 +59,8 @@ Prepare a `samples.csv` indicating sample name, ploidy, number of chromosomes, h
 sample,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
 HART001,2,28,68,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R2.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/ASM2540343.fa
 ```
+
+***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in ${WD}/logs/${SAMPLE}.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x for me. 
 
 **3. Copy basefiles** 
 
