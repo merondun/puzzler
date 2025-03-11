@@ -60,7 +60,7 @@ sample,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
 HART001,2,28,68,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R2.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/ASM2540343.fa
 ```
 
-***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in ${WD}/logs/${SAMPLE}.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x for me. 
+***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in $WD/logs/$SAMPLE.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x for me. 
 
 **3. Copy basefiles** 
 
@@ -81,17 +81,17 @@ PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/p
 
 **Under the hood steps for `00_Assembly.sh`:**
 
-Within: `${WD}/${SAMPLE}`
+Within: `$WD/$SAMPLE`
 
 ***If doesn't exist :arrow_right: then:***
 
-`${SAMPLE}.hic.hap1.p_ctg.gfa` :arrow_right: hifiasm assembly
+`$SAMPLE.hic.hap1.p_ctg.gfa` :arrow_right: hifiasm assembly
 
 <br/>
 
 The script then checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
 
-Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+Within: `$WD/$SAMPLE/02_$ITHapHiC`
 
 ***If doesn't exist :arrow_right: then:***
 
@@ -99,9 +99,9 @@ Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 `chr.divergence.txt` :arrow_right: estimate haplotype divergence (only for $IT="hap") <br/>
 `filtered.MQ1.bam` :arrow_right: align HiC reads <br/>
 `01_haphicMQ1/04.build/scaffolds.fa` :arrow_right: run HapHiC <br/>
-`${WD}/logs/juicer/${SAMPLE}.${IT}-MQ1_JBAT.hic` :arrow_right: create juicer files <br/>
+`$WD/logs/juicer/$SAMPLE.$IT-MQ1_JBAT.hic` :arrow_right: create juicer files <br/>
 
-:exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+:exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `$WD/$SAMPLE/02_$ITHapHiC`
 
 
 <br/>
@@ -115,14 +115,14 @@ This script will identify which scaffolds correspond to which chromosomes from a
 
 The script checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
 
-Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
+Within: `$WD/$SAMPLE/02_$ITHapHiC`
 
 ***If doesn't exist :arrow_right: then:***
 
 `map.txt` :arrow_right: align haphic scaffold fasta with other species to get scaffold ~ chr map <br/>
 `haphic_renamed.fa` :arrow_right: rename scaffolds and ensure strands are in alignment with reference <br/>
 `pg_renamed.filtered.bam` :arrow_right: re-align HiC to final assembly <br/>
-`${WD}/logs/contact_maps/${SAMPLE}.${IT}.pdf` :arrow_right: create final contact map pdf <br/>
+`$WD/logs/contact_maps/$SAMPLE.$IT.pdf` :arrow_right: create final contact map pdf <br/>
 
 <br/>
 
@@ -130,11 +130,11 @@ Within: `${WD}/${SAMPLE}/02_${IT}HapHiC`
 
 `~~~~ Multiple scaffolds corresponding to a single Chr for HART038 pri, INSPECT!  ~~~~` 
 
-You must stop and inspect `${WD}/${SAMPLE}/02_${IT}HapHiC/02_orienting/hap_newID_map.txt` and deal with the duplicate 'Chr', because you have multiple scaffolds corresponding to a single reference chromosome. Rename them something unique (e.g. Chr1 and Chr1A) in column 2, and then re-run:
+You must stop and inspect `$WD/$SAMPLE/02_$ITHapHiC/02_orienting/hap_newID_map.txt` and deal with the duplicate 'Chr', because you have multiple scaffolds corresponding to a single reference chromosome. Rename them something unique (e.g. Chr1 and Chr1A) in column 2, and then re-run:
 
 ```
-cd ${WD}/${SAMPLE}/02_${IT}HapHiC/
-seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k 02_orienting/hap_newID_map.txt 02_orienting/orient.fa | \
+cd $WD/$SAMPLE/02_$ITHapHiC/
+seqkit replace --line-width 0 -p "(.*)" -r "kv" -k 02_orienting/hap_newID_map.txt 02_orienting/orient.fa | \
     seqkit sort --line-width 0 -n > haphic_renamed.fa
 ln -s haphic_renamed.fa pg_renamed.fa
 ```
@@ -146,7 +146,7 @@ Then, re-submit the script: `sbatch 01_PostJuicebox.sh HART001`
 
 Relative to the `wd` path, the assemblies will be:
 ```
-grep '>' ${WD}/joint_scaffold/HART001.pri.fa
+grep '>' $WD/joint_scaffold/HART001.pri.fa
 >Chr01
 >Chr02
 ```
@@ -154,7 +154,7 @@ grep '>' ${WD}/joint_scaffold/HART001.pri.fa
 and
 
 ```
-grep '>' ${WD}/joint_scaffold/HART001.hap.fa
+grep '>' $WD/joint_scaffold/HART001.hap.fa
 >HART001#1#Chr01
 >HART001#1#Chr02
 ...
@@ -162,7 +162,7 @@ grep '>' ${WD}/joint_scaffold/HART001.hap.fa
 >HART001#2#Chr02
 ```
 
-Within `${WD}/logs` you can find: <br/>
+Within `$WD/logs` you can find: <br/>
 
 `*.hifiasm.log`: hifiasm logs <br/>
 `/contact_maps/`: final pdf contact maps <br/>
