@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --time=4:00:00   
+#SBATCH --time=48:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=32
 #SBATCH --mem=128Gb
-#SBATCH --partition=short
+#SBATCH --partition=ceres
 
 # use n=32 and mem = 64 typically 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}

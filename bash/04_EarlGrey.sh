@@ -10,18 +10,21 @@
 #source activate earlgrey
 
 SAMPLE=$1
-#WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/finalized_assemblies
 WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/joint_scaffold
-FASTA="${WD}/${SAMPLE}.pri.fa" 
 
 mkdir -p ${WD}/EarlGrey
 cd ${WD}/EarlGrey
 
-samtools faidx $FASTA
-earlGrey -d yes -e yes -t 20 -g ${FASTA} -s ${SAMPLE}.pri -o ${WD}/EarlGrey
+for IT in pri hap; do 
 
-# HAPLOTYPES
-FASTA_HAP="${WD}/${SAMPLE}.hap.fa" 
+    FASTA="${WD}/${SAMPLE}.${IT}.fa" 
+    if [ ! -s ${SAMPLE}.${IT}_EarlGrey/${SAMPLE}.${IT}_summaryFiles/${SAMPLE}.${IT}.softmasked.fasta ]; then
+        echo -e "\e[43m~~~~ Starting repeat annotation for ${SAMPLE} ${IT} ~~~~\e[0m"
+        samtools faidx $FASTA
+        earlGrey -d yes -e yes -t 20 -g ${FASTA} -s ${SAMPLE}.${IT} -o ${WD}/EarlGrey
 
-samtools faidx $FASTA_HAP
-earlGrey -d yes -e yes -t 20 -g ${FASTA_HAP} -s ${SAMPLE}.hap -o ${WD}/EarlGrey
+    else
+        echo -e "\e[42m~~~~ Skipping repeat annotation for ${SAMPLE} ${IT}, already exists ~~~~\e[0m"
+    fi 
+
+done
