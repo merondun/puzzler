@@ -3,6 +3,7 @@
 #SBATCH --time=48:00:00   
 #SBATCH --nodes=1  
 #SBATCH --cpus-per-task=20
+#SBATCH --mem=256Gb
 #SBATCH --partition=ceres
 
 module load miniconda

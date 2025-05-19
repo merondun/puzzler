@@ -79,8 +79,8 @@ for IT in pri hap; do
 				awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/${SAMPLE}.hic.hap${HAP}.p_ctg.gfa > hap${HAP}.init.fa
 				split_fa hap${HAP}.init.fa > hap${HAP}.split.fa
 				minimap2 -t ${t} -xasm5 -DP hap${HAP}.split.fa hap${HAP}.split.fa 2> minimap.purge.log | gzip -c > hap${HAP}.split.self.paf.gz
-				purge_dups -M1000 -E1000 hap${HAP}.split.self.paf.gz > hap${HAP}.dups.bed
-				get_seqs hap${HAP}.dups.bed hap${HAP}.init.fa
+				purge_dups -M1000 -E1000 hap${HAP}.split.self.paf.gz > hap${HAP}.dups.bed 2> hap${HAP}.purge.log
+				get_seqs hap${HAP}.dups.bed hap${HAP}.init.fa 2> hap${HAP}.getseqs.log
 				# Ensure haplotype IDs are correct 
 				sed "s/h1tg/h${HAP}tg/g" purged.fa > hap${HAP}.purged.fa
 				mv hap.fa hap${HAP}.hap.fa
@@ -105,9 +105,9 @@ for IT in pri hap; do
 			#Ensure fastas have proper contig haplotype names 
 			awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/${SAMPLE}.hic.p_ctg.gfa > pri.init.fa
 			split_fa pri.init.fa > pri.split.fa
-			minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa | gzip -c > pri.split.self.paf.gz
-			purge_dups -M1000 -E1000 pri.split.self.paf.gz > pri.dups.bed
-			get_seqs pri.dups.bed pri.init.fa
+			minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa 2> minimap.purge.log | gzip -c > pri.split.self.paf.gz
+			purge_dups -M1000 -E1000 pri.split.self.paf.gz > pri.dups.bed 2> pri.purge.log
+			get_seqs pri.dups.bed pri.init.fa 2> pri.getseqs.log
 			mv purged.fa all.purged.fa
 			rm *split.fa *self.paf.gz *dups.bed *init*
 

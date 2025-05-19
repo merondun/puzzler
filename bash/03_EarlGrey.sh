@@ -15,10 +15,10 @@ WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/joi
 mkdir -p ${WD}/EarlGrey
 cd ${WD}/EarlGrey
 
-for IT in pri hap; do 
+for IT in pri; do 
 
     FASTA="${WD}/${SAMPLE}.${IT}.fa" 
-    if [ ! -s ${SAMPLE}.${IT}_EarlGrey/${SAMPLE}.${IT}_summaryFiles/${SAMPLE}.${IT}.softmasked.fasta ]; then
+    if [ ! -s ${SAMPLE}.${IT}_EarlGrey/${SAMPLE}.${IT}_summaryFiles/${SAMPLE}.${IT}.softmasked.fasta ]  && [ -s ${FASTA} ]; then
         echo -e "\e[43m~~~~ Starting repeat annotation for ${SAMPLE} ${IT} ~~~~\e[0m"
         samtools faidx $FASTA
         earlGrey -d yes -e yes -t 20 -g ${FASTA} -s ${SAMPLE}.${IT} -o ${WD}/EarlGrey
