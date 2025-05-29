@@ -1,4 +1,4 @@
-![Puzzler](/examples/figs/logo.png)
+![Puzzler](/examples/figs/logo.jpg)
 
 Simple pipeline for assembling genomes from Hifi and HiC data. 
 
@@ -11,6 +11,7 @@ Genome assembly, primarily designed for SLURM sources on SciNet architecture.
 - [Installation](#installation)
 - [Workflow](#workflow)
 - [Quick Start](#quick-start)
+- [Details](#details)
 - [Outputs ](#outputs)
 - [Contact](#contact)
 
@@ -71,7 +72,7 @@ Otherwise, simply make the `/bin/puzzler_asm` and `/bin/puzzler_post` accessible
 
 :boom: *Most important!*
 
-Prepare a `samples.csv` which outlines all necessary pipeline components. An example template is found in [/examples/samples.csv](/examples/figs/logo.png)
+Prepare a `samples.csv` which outlines all necessary pipeline components. An example template is found in [/examples/samples.csv](/examples/samples.csv)
 
 ```
 sample,Container,WD,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
@@ -93,7 +94,8 @@ HART001,/project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif,
 
 ***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in $WD/logs/$SAMPLE.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x.
 
-
+<!-- TOC --><a name="details"></a>
+## Details
 
 :fire: `puzzler_asm` and `puzzler_post` are checkpoint-based, so they will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
 
@@ -109,13 +111,13 @@ This script will check for these files, and create them if they do not exist in 
 | ${WD}/${SAMPLE}/01_scaffolding                  | filtered.MQ1.bam        | Filtered re-mapped HiC reads | bwa mem         |
 | ${WD}/${SAMPLE}/01_scaffolding/haphic/04.build/ | scaffolds.fa            | HapHiC scaffolded assembly   | haphic pipeline |
 | ${WD}/logs/juicer/                              | ${SAMPLE}_JBAT.hic      | Juicebox input file          | juicer pre      |
-
+<br/>
 :mag: **Manual Curation**
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
 This will create e.g. `${SAMPLE}.pri-MQ1_JBAT.review.assembly`. Maintain that file name, and copy it to ${WD}/${SAMPLE}/01_scaffolding. 
-
+<br/>
 :one: **Script 2:** `puzzler_post`
 
 This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file. 
@@ -128,8 +130,8 @@ This script will check for these files, and create them if they do not exist in 
 | ${WD}/${SAMPLE}/01_scaffolding | haphic_renamed.filtered.bam    | Final HiC re-mapped file   | bwa mem         |
 | ${WD}/logs/contact_maps/       | ${SAMPLE}.pdf                  | Final contact map          | haphic plot     |
 
-
-:bomb: :warning: If you then encounter this warning during `puzzler_post`: 
+<br/>
+:bomb: :warning: **If you then encounter this warning during** `puzzler_post`: 
 
 `~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!  ~~~~` 
 
