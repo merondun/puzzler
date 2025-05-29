@@ -14,7 +14,11 @@ From: continuumio/miniconda3
     echo "export PATH=/opt/HapHiC:/opt/HapHiC/utils:/opt/HapHiC/scripts:/opt/conda/envs/puzzler/bin:$PATH" >> $APPTAINER_ENVIRONMENT
     
     # Install ps utility
-    apt-get update && apt-get install -y procps
+    apt-get update && apt-get install -y procps python3-pip git
+    pip install assembly_stats
+    git clone https://github.com/merondun/merothon.git /opt/merothon
+    cd /opt/merothon
+    pip install -e . 
 
 %environment
     export PATH=/bin:$PATH

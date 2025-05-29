@@ -115,13 +115,13 @@ This script will check for these files, and create them if they do not exist in 
 
 :mag: **Manual curation:** Juicebox! 
 
-<br/>
+
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
 This will create e.g. `${SAMPLE}.pri-MQ1_JBAT.review.assembly`. Maintain that file name, and copy it to ${WD}/${SAMPLE}/01_scaffolding. 
 
-<br/><br/>
+<br/>
 
 :one: **Script 2:** `puzzler_post`
 
@@ -136,6 +136,7 @@ This script will check for these files, and create them if they do not exist in 
 | ${WD}/logs/contact_maps/       | ${SAMPLE}.pdf                  | Final contact map          | haphic plot     |
 
 <br/>
+
 :bomb: :warning: **If you then encounter this warning during** `puzzler_post`: 
 
 `~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!  ~~~~` 
