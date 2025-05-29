@@ -1,4 +1,4 @@
-![Puzzler](/examples/figs/logo.jpg)
+![Puzzler](/examples/figs/logo.png)
 
 Simple pipeline for assembling genomes from Hifi and HiC data. 
 
