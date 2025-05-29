@@ -21,17 +21,20 @@ fi
 t=32
 MEM=256
 SAMPLE=$1
+# SET THIS!!! 
+SPECIES="Artocarpus"
 
-WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
-SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
-PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
+WD=/project/coffea_pangenome/${SPECIES}/Assemblies/20250101_JustinAssemblies
+SAMPLE_FILE=/project/coffea_pangenome/${SPECIES}/Assemblies/20250101_JustinAssemblies/samples.csv
 PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $2}' ${SAMPLE_FILE})
-NCHRS=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
+NUM_CHRS=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
 HOM_COV=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' ${SAMPLE_FILE})
 HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' ${SAMPLE_FILE})
 HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' ${SAMPLE_FILE})
 HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' ${SAMPLE_FILE})
 REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' ${SAMPLE_FILE})
+PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
+TOTAL_CHRS=$((NUM_CHRS * PLOIDY))
 
 cat << "EOF"
 =======================================================================
@@ -43,6 +46,8 @@ __________ ____ _______________________.____     _____________________
                            \/        \/        \/        \/         \/ 
 =======================================================================
 EOF
+
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nPLOIDY: ${PLOIDY} \nHOM_COV: ${HOM_COV}\nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nREFERENCE: ${REFERENCE}\n=======================================================================\n"
 
 mkdir -p ${WD}/${SAMPLE} ${WD}/logs/juicer ${WD}/logs/haphic ${WD}/logs/divergence_haps
 cd ${WD}/${SAMPLE}
@@ -58,7 +63,7 @@ fi
 
 ##### Loop through both primary assembly pipeline and haplotype-joint pipeline #####
 
-for IT in pri hap; do 
+for IT in pri ; do 
 
 	mkdir -p ${WD}/${SAMPLE}/02_${IT}HapHiC
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
@@ -78,9 +83,9 @@ for IT in pri hap; do
 				# Ensure fastas have proper contig haplotype names 
 				awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/${SAMPLE}.hic.hap${HAP}.p_ctg.gfa > hap${HAP}.init.fa
 				split_fa hap${HAP}.init.fa > hap${HAP}.split.fa
-				minimap2 -t ${t} -xasm5 -DP hap${HAP}.split.fa hap${HAP}.split.fa 2> minimap.purge.log | gzip -c > hap${HAP}.split.self.paf.gz
-				purge_dups -M1000 -E1000 hap${HAP}.split.self.paf.gz > hap${HAP}.dups.bed 2> hap${HAP}.purge.log
-				get_seqs hap${HAP}.dups.bed hap${HAP}.init.fa 2> hap${HAP}.getseqs.log
+				minimap2 -t ${t} -xasm5 -DP hap${HAP}.split.fa hap${HAP}.split.fa 2> ${IT}_${HAP}_minimap.purge.log | gzip -c > hap${HAP}.split.self.paf.gz
+				purge_dups -M1000 -E1000 hap${HAP}.split.self.paf.gz > hap${HAP}.dups.bed 2> ${IT}_${HAP}.purge.log
+				get_seqs hap${HAP}.dups.bed hap${HAP}.init.fa 2> ${IT}_${HAP}.getseqs.log
 				# Ensure haplotype IDs are correct 
 				sed "s/h1tg/h${HAP}tg/g" purged.fa > hap${HAP}.purged.fa
 				mv hap.fa hap${HAP}.hap.fa
@@ -166,8 +171,6 @@ for IT in pri hap; do
 		echo -e "\e[42m~~~~ Skipping haplotype divergence estimation for ${SAMPLE} for ${IT}, already exists ~~~~\e[0m"
 	fi
 
-	TOTAL_CHRS=$((NCHRS * PLOIDY))
-
 	##### ALIGN HIC #####
 	cd ${WD}/${SAMPLE}/02_${IT}HapHiC
 	if [ ! -s filtered.MQ1.bam ]; then
@@ -196,12 +199,12 @@ for IT in pri hap; do
 		cd ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1
 
 		if [ "${IT}" = "hap" ]; then
-			NUM_CHRS=${TOTAL_CHRS}
+			NCHRS=${TOTAL_CHRS}
 		else
-			NUM_CHRS=${NCHRS}
+			NCHRS=${NUM_CHRS}
 		fi
 
-		${PUZZLER} haphic pipeline ../all.purged.fa ../filtered.MQ1.bam ${NUM_CHRS} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ${WD}/logs/haphic/${SAMPLE}.${IT}.haphic.MQ1.log
+		${PUZZLER} haphic pipeline ../all.purged.fa ../filtered.MQ1.bam ${NCHRS} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ${WD}/logs/haphic/${SAMPLE}.${IT}.haphic.MQ1.log
 
 		cp ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/04.build/scaffolds.fa ${WD}/${SAMPLE}/02_${IT}HapHiC/haphic.MQ1.fa
 		cp ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/01.cluster/HapHiC_cluster.log ${WD}/${SAMPLE}/02_${IT}HapHiC/haphic.MQ1.log

@@ -2,21 +2,21 @@
 
 #SBATCH --time=14-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=16
 #SBATCH --mem=72Gb
 #SBATCH --partition=ceres
 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}
 
 module load miniconda
-source activate panphase
+source activate puzz
 
 if [ -z "$1" ]; then
     echo "Error: sample ID positional argument is required."
     exit 1
 fi
 
-t=16
+t=24
 MEM=72
 SAMPLE=$1
 
@@ -56,16 +56,17 @@ for CHR in Chr01; do
         # Call SNP variants 
         MIN_ALT_COUNT=$(( (PLOIDY + 1 ) / 2 ))
         MIN_ALT_FRAC=$( awk -v p=${PLOIDY} 'BEGIN { printf "%.2f", 1 / (p + 1) }' )
-        if [ ! -s vcfs/${CHR}_${SAMPLE}.SNP.vcf.gz ]; then
+        if [ ! -s vcfs/${CHR}_${SAMPLE}.SNP.gvcf.gz ]; then
                 echo -e "\e[43m~~~~ Starting SNPs for ${SAMPLE} ${CHR} ~~~~\e[0m"
-                freebayes-parallel <(fasta_generate_regions.py ${GENOME}.fai 100000 | grep ${CHR}) ${t} \ --report-monomorphic --ploidy ${PLOIDY} --min-alternate-count ${MIN_ALT_COUNT} --min-alternate-fraction ${MIN_ALT_FRAC} -f ${GENOME} ${WD}/bams/${SAMPLE}.hifi.sorted.bam | bgzip -c > vcfs/${CHR}_${SAMPLE}.SNP.vcf.gz
-                tabix vcfs/${CHR}_${SAMPLE}.SNP.vcf.gz
+                freebayes-parallel <(fasta_generate_regions.py ${GENOME}.fai 100000 | grep ${CHR}) ${t} --report-monomorphic --ploidy ${PLOIDY} --skip-coverage 30 --min-coverage 5 --min-alternate-count ${MIN_ALT_COUNT} --min-alternate-fraction ${MIN_ALT_FRAC} -f ${GENOME} ${WD}/bams/${SAMPLE}.hifi.sorted.bam > vcfs/${CHR}_${SAMPLE}.SNP.gvcf
+                bcftools view --exclude-types indels vcfs/${CHR}_${SAMPLE}.SNP.gvcf -Oz -o vcfs/${CHR}_${SAMPLE}.SNP.gvcf.gz
+                tabix vcfs/${CHR}_${SAMPLE}.SNP.gvcf.gz
         else
                 echo -e "\e[42m~~~~ Skipping SNPs for ${SAMPLE} ${CHR} ~~~~\e[0m"
         fi 
 
         # Phase with whatshap polyphase
-        if [ ! -s ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.vcf.gz ]; then
+        if [ ! -s ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.gvcf.gz ]; then
                 echo -e "\e[43m~~~~ Phasing ${SAMPLE} ${CHR} ~~~~\e[0m"
                 whatshap polyphase -t ${t} \
                         --ploidy $PLOIDY \
@@ -73,10 +74,10 @@ for CHR in Chr01; do
                         --ignore-read-groups \
                         --reference ${GENOME} \
                         --chromosome ${CHR} \
-                        -o ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.vcf.gz \
-                        ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.vcf.gz bams/${SAMPLE}.hifi.sorted.bam
-               bcftools reheader -s <(echo "${SAMPLE}") -o ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.vcf.gz ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.vcf.gz
-               bcftools index ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.vcf.gz
+                        -o ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.gvcf.gz \
+                        ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.gvcf.gz bams/${SAMPLE}.hifi.sorted.bam
+               bcftools reheader -s <(echo "${SAMPLE}") -o ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.gvcf.gz ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.gvcf.gz
+               bcftools index ${WD}/vcfs/${CHR}_${SAMPLE}.SNP.phased.named.gvcf.gz
 
         else
                 echo -e "\e[42m~~~~ Skipping phasing for ${SAMPLE} ${CHR} ~~~~\e[0m"

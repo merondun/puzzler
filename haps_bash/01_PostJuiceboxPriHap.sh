@@ -19,19 +19,22 @@ source activate puzz
 module load apptainer
 
 t=32
+MEM=128
 SAMPLE=$1
+# SET THIS!!! 
+SPECIES="Artocarpus"
 
-WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
-SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
+WD=/project/coffea_pangenome/${SPECIES}/Assemblies/20250101_JustinAssemblies
+SAMPLE_FILE=/project/coffea_pangenome/${SPECIES}/Assemblies/20250101_JustinAssemblies/samples.csv
 PLOIDY=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $2}' ${SAMPLE_FILE})
-NCHRS=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
+NUM_CHRS=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $3}' ${SAMPLE_FILE})
 HOM_COV=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $4}' ${SAMPLE_FILE})
 HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' ${SAMPLE_FILE})
 HIC_R1=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $6}' ${SAMPLE_FILE})
 HIC_R2=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $7}' ${SAMPLE_FILE})
 REFERENCE=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $8}' ${SAMPLE_FILE})
 PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
-TOTAL_CHRS=$((NCHRS * PLOIDY))
+TOTAL_CHRS=$((NUM_CHRS * PLOIDY))
 
 cat << "EOF"
 =======================================================================
@@ -43,6 +46,8 @@ __________ ____ _______________________.____     _____________________
                            \/        \/        \/        \/         \/ 
 =======================================================================
 EOF
+
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nPLOIDY: ${PLOIDY} \nHOM_COV: ${HOM_COV}\nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nREFERENCE: ${REFERENCE}\n=======================================================================\n"
 
 mkdir -p ${WD}/joint_scaffold ${WD}/logs/contact_maps
 

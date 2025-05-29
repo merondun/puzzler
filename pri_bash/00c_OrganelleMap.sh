@@ -14,7 +14,7 @@ fi
 t=8
 MEM=60
 SAMPLE=$1
-SPECIES="Guava"
+SPECIES="Artocarpus"
 
 SAMPLE_FILE=/project/coffea_pangenome/${SPECIES}/Assemblies/20250101_JustinAssemblies/samples.csv
 HIFI=$(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $5}' ${SAMPLE_FILE})

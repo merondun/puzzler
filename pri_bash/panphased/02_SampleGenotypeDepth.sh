@@ -20,19 +20,19 @@ WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/pan
 
 cd ${WD}
 
-# # Merge all the samples for each chromosome 
-# for CHR in Chr01 Chr02 Chr03 Chr04; do 
-# 	bcftools merge vcfs/${CHR}_*named.vcf.gz -Oz -o vcfs/${CHR}.full.vcf.gz
-# done 
+# Merge all the samples for each chromosome 
+for CHR in Chr01 Chr02 Chr03 Chr04; do 
+	bcftools merge vcfs/${CHR}_*named.vcf.gz -Oz -o vcfs/${CHR}.full.vcf.gz
+done 
 
-# # Merge all the chromosomes.. 
-# bcftools concat vcfs/*.full.vcf.gz | \
-# 	bcftools view --min-alleles 2 --max-alleles 2 --types snps | \
-#     bcftools annotate -x INFO,^FORMAT/GT,^FORMAT/PS -Oz -o vcfs/full.snps.vcf.gz
-# bcftools index vcfs/full.snps.vcf.gz
+# Merge all the chromosomes.. 
+bcftools concat vcfs/*.full.vcf.gz | \
+	bcftools view --min-alleles 2 --max-alleles 2 --types snps | \
+    bcftools annotate -x INFO,^FORMAT/GT,^FORMAT/PS -Oz -o vcfs/full.snps.vcf.gz
+bcftools index vcfs/full.snps.vcf.gz
 
-# # Create a backup merged file
-# cp vcfs/full.snps.vcf.gz vcfs/full.snps.vcf.gz.bak
+# Create a backup merged file
+cp vcfs/full.snps.vcf.gz vcfs/full.snps.vcf.gz.bak
 
 # Output bed of SNP pos for mosdepth
 bcftools query -f '%CHROM\t%POS0\t%POS\n' vcfs/full.snps.vcf.gz > vcfs/full.snps.bed

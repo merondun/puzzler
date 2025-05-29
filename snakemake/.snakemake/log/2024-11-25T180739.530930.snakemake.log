@@ -1,8 +1,0 @@
-host: ceres19-compute-62.ceres.scinet.usda.gov
-Building DAG of jobs...
-MissingInputException in rule hifiasm in file /home/justin.merondun/puzzler/snakemake/Snakefile, line 11:
-Missing input files for rule hifiasm:
-    output: /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.p_ctg.gfa, /project/coffea_pangenome/Artocarpus/Assemblies/20241115_JustinAssemblies/N15_22/HiCHiFi/N15_22.hic.p_ctg.gfa
-    wildcards: sample=N15_22
-    affected files:
-        
