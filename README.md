@@ -1,6 +1,6 @@
 ![Puzzler](/examples/figs/logo.png)
 
-Simple pipeline for assembling genomes from Hifi and HiC data, stable release using bash scripts. Currently recommended to `ln -s` scripts as they are still in progress. Final versions will be wrapped into commands and ported with e.g. conda. 
+Simple pipeline for assembling genomes from Hifi and HiC data. 
 
 > What's it for?!
 
@@ -19,148 +19,165 @@ Genome assembly, primarily designed for SLURM sources on SciNet architecture.
 <!-- TOC --><a name="installation"></a>
 ## Installation
 
-A singularity / apptainer `.sif` container can be pulled from `singularity pull --arch amd64 library://merondun/default/puzzler:latest` 
+Currently, only a containerized release is supported. This includes all software necessary. 
 
-**You will need access to BUSCO5 for the assembly statistics phase. This install is difficult to port into a container, so ensure it is available on your command line!** 
+This singularity / apptainer `.sif` container can be pulled from `singularity pull --arch amd64 library://merondun/default/puzzler:latest` 
 
-There is also a definition file for the build in `/apptainer/`. It requires many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), and [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC).
+The (large, ~4Gb) container contains many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), and [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC). It contains a lot of useful assembly and phasing tools, as I also use this for tools in development and as a 'stable' back-up for software compatability. 
 
 As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
 
-The pipeline creates both a final collapsed primary assembly (pri) and haplotype-phased assembly (hap) following these steps:
+The pipeline creates a primary genome assembly using both HiFi and HiC data. The workflow is: 
 
-1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads, creating a number of haplotypes corresponding to inferred ploidy.
-2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups), may require some manual adjustment based on contiguity. Note that this implementation **does not** purge haplotigs according to coverage. This is designed for polyploid genomes, so this only removes based on sequence content! Based on numerous sensitivities, this seems to be preferable for the species assayed so far. 
-3) Re-scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
-4) Manual curation with juicebox. 
-5) Assembly statistics (BUSCO, [contiguity](https://github.com/MikeTrizna/assembly_stats)). **Note that BUSCO is set to use `embryophyta_odb10` as the database, so please modify that within the `Snakefile` is necessary. 
+:pushpin: **SCRIPT 1: `puzzler_asm`**
 
+1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
+2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups), may require some manual adjustment based on contiguity, although if you provided accurate homozygous coverage peak information to hifiasm (`$HOM_COV`), I have found I never need to tweak this, especially for diploids and autopolyploids. Note that this implementation **does not** purge haplotigs according to coverage. I have designed this with polyploid assembly in mind, so this only removes based on sequence content! Based on numerous sensitivities, this seems to be preferable for the species assayed so far. 
+3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
+4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`). 
 
-***Potential future additions***
+:mag: **Manual Curation in Juicebox** 
 
-6) Repeat annotation with [EarlGrey](https://github.com/TobyBaril/EarlGrey).
-7) Gene annotation using any available intraspecific RNAseq data using [BRAKER](https://github.com/Gaius-Augustus/BRAKER) and the soft-masked genome.
+:pushpin: **SCRIPT 2: `puzzler_post`**
+
+5) Finalizing assembly, assign chromosome names based on a related reference. 
+6) Re-map HiC for final assembly check. 
 
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
 **1. Clone** 
 
-Clone this repo and save the `.sif` container somewhere (see above). 
+Clone this repo and pull the `.sif` container somewhere (see above). The two workhorse scripts are simply shell scripts, so you can add them to your bashrc with `./setup.sh`. 
 
-**2. Make sample map** 
-
-Prepare a `samples.csv` indicating sample name, ploidy, number of chromosomes, homozygous peak coverage, reads, and a related species to use for assigning chromosome names:
+You should see:
 
 ```
-sample,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
-HART001,2,28,68,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R2.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/ASM2540343.fa
+./setup.sh 
+Adding Puzzler Pipeline to PATH...
+Installation complete! You can now run:
+  puzzler_asm --sample --map_file
+  puzzler_post --sample --map_file
+puzzler_asm
+Error: --sample argument is required.
 ```
 
-***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in $WD/logs/$SAMPLE.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x for me. 
+Otherwise, simply make the `/bin/puzzler_asm` and `/bin/puzzler_post` accessible and executable on the path.
 
-**3. Copy basefiles** 
+**2. Make pipeline map file** 
 
-Copy the `00_Assembly.sh` script into your wd, and modify these lines to indicate the high level assembly directory, your samples.csv file, and the puzzler `.sif` file. 
+:boom: *Most important!*
+
+Prepare a `samples.csv` which outlines all necessary pipeline components. An example template is found in [/examples/samples.csv](/examples/figs/logo.png)
 
 ```
-WD=/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies
-SAMPLE_FILE="/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies/samples.csv"
-PUZZLER="apptainer exec /project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif"
+sample,Container,WD,ploidy,chromosomes,hom_cov,hifi,hic_r1,hic_r2,reference
+HART001,/project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif,/project/coffea_pangenome/Artocarpus/Assemblies/20250101_JustinAssemblies,2,28,68,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiFi.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R1.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/HART001.HiC.R2.fastq.gz,/project/coffea_pangenome/Artocarpus/Concatenated_Reads/ASM2540343.fa
 ```
 
+:page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
-:exclamation: `00_Assembly.sh` only requires a positional argument for sample ID which matches `samples.csv`, e.g. `sbatch 00_Assembly.sh HART001`. 
+* **sample:** Sample ID, all assembly work will be saved in $WD/$sample
+* **container:** Path to the apptainer `.sif`
+* **wd:** Path to working directory to store all files 
+* **ploidy:** Ploidy of organism
+* **chromosomes:** Number of chromosomes
+* **hom_cov:** Homozygous peak coverage (see below) 
+* **hifi:** Path to HiFi reads 
+* **hic_r1:** Path to HiC R1 
+* **hic_r2:** Path to HiC R2
+* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome using their naming convention. 
 
-:exclamation: These scripts will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
-
-
-
-**Under the hood steps for `00_Assembly.sh`:**
-
-Within: `$WD/$SAMPLE`
-
-***If doesn't exist :arrow_right: then:***
-
-`$SAMPLE.hic.hap1.p_ctg.gfa` :arrow_right: hifiasm assembly
-
-<br/>
-
-The script then checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
-
-Within: `$WD/$SAMPLE/02_$ITHapHiC`
-
-***If doesn't exist :arrow_right: then:***
-
-`all.purged.fa` :arrow_right: purge duplicates <br/>
-`chr.divergence.txt` :arrow_right: estimate haplotype divergence (only for $IT="hap") <br/>
-`filtered.MQ1.bam` :arrow_right: align HiC reads <br/>
-`01_haphicMQ1/04.build/scaffolds.fa` :arrow_right: run HapHiC <br/>
-`$WD/logs/juicer/$SAMPLE.$IT-MQ1_JBAT.hic` :arrow_right: create juicer files <br/>
-
-:exclamation: The pipeline STOPs and will create Juicebox manual curation files `logs/juicer/*_MQ1_JBAT.hic` and `logs/juicer/*_MQ1_JBAT.assembly`. Load those into Juicebox, perform any edits if necessary, export with `Assembly > Export Assembly` and add the `MQ1_JBAT.review.assembly` to the sample's assembly directory: `$WD/$SAMPLE/02_$ITHapHiC`
+***Homozygous peak coverage*** is the left-most peak identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the peak with `kcov:`, which you should manually confirm. You can also run hifiasm initially and check the hifiasm log (in $WD/logs/$SAMPLE.hifiasm.log). For a triploid with 43Gb of HiFi data and an estimated genome size of 800Mb, this left-most peak was around 16x.
 
 
-<br/>
 
-**4. Post-manual finalization**
-
-The script `01_PostJuicebox.sh` then takes up provided that e.g. `HART001.pri_JBAT.review.assembly` is within `HART001/02_priHapHiC`.
-
-This script will identify which scaffolds correspond to which chromosomes from a related fasta, ensure there are no duplicate chromosomes identified, and rename and ensure strand-alignment. It will then re-map the HiC reads and create the final hic contact map pdf. 
+:fire: `puzzler_asm` and `puzzler_post` are checkpoint-based, so they will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
 
 
-The script checks for these steps for both primary assembly `$IT="pri"` and haplotype assembly `$IT="hap"`
+:one: **Script 1:** `puzzler_asm`
 
-Within: `$WD/$SAMPLE/02_$ITHapHiC`
+This script will check for these files, and create them if they do not exist in these directories:
 
-***If doesn't exist :arrow_right: then:***
+| Directory                                       | File                    | Description                  | If missing, run |
+| ----------------------------------------------- | ----------------------- | ---------------------------- | --------------- |
+| ${WD}/${SAMPLE}                                 | ${SAMPLE}.hic.p_ctg.gfa | Primary contig assembly      | hifiasm         |
+| ${WD}/${SAMPLE}/01_scaffolding                  | all.purged.fa           | Purged contig assembly       | purge_dups      |
+| ${WD}/${SAMPLE}/01_scaffolding                  | filtered.MQ1.bam        | Filtered re-mapped HiC reads | bwa mem         |
+| ${WD}/${SAMPLE}/01_scaffolding/haphic/04.build/ | scaffolds.fa            | HapHiC scaffolded assembly   | haphic pipeline |
+| ${WD}/logs/juicer/                              | ${SAMPLE}_JBAT.hic      | Juicebox input file          | juicer pre      |
 
-`map.txt` :arrow_right: align haphic scaffold fasta with other species to get scaffold ~ chr map <br/>
-`haphic_renamed.fa` :arrow_right: rename scaffolds and ensure strands are in alignment with reference <br/>
-`pg_renamed.filtered.bam` :arrow_right: re-align HiC to final assembly <br/>
-`$WD/logs/contact_maps/$SAMPLE.$IT.pdf` :arrow_right: create final contact map pdf <br/>
+:mag: **Manual Curation**
 
-<br/>
+Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
-:exclamation: If you then encounter this warning: 
+This will create e.g. `${SAMPLE}.pri-MQ1_JBAT.review.assembly`. Maintain that file name, and copy it to ${WD}/${SAMPLE}/01_scaffolding. 
 
-`~~~~ Multiple scaffolds corresponding to a single Chr for HART038 pri, INSPECT!  ~~~~` 
+:one: **Script 2:** `puzzler_post`
 
-You must stop and inspect `$WD/$SAMPLE/02_$ITHapHiC/02_orienting/hap_newID_map.txt` and deal with the duplicate 'Chr', because you have multiple scaffolds corresponding to a single reference chromosome. Rename them something unique (e.g. Chr1 and Chr1A) in column 2, and then re-run:
+This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file. 
+
+| Directory                      | File                           |                            | If missing, run |
+| ------------------------------ | ------------------------------ | -------------------------- | --------------- |
+| ${WD}/${SAMPLE}/01_scaffolding | ${SAMPLE}_JBAT.review.assembly | Juicebox output file       | NOTHING!        |
+| ${WD}/${SAMPLE}/01_scaffolding | map.txt                        | Scaffold renaming file map | minimap2        |
+| ${WD}/${SAMPLE}/01_scaffolding | haphic_renamed.fa              | Renamed scaffold file      | seqkit renaming |
+| ${WD}/${SAMPLE}/01_scaffolding | haphic_renamed.filtered.bam    | Final HiC re-mapped file   | bwa mem         |
+| ${WD}/logs/contact_maps/       | ${SAMPLE}.pdf                  | Final contact map          | haphic plot     |
+
+
+:bomb: :warning: If you then encounter this warning during `puzzler_post`: 
+
+`~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!  ~~~~` 
+
+You must stop and inspect `${WD}/${SAMPLE}/01_scaffolding/02_orienting/hap_newID_map.txt` and deal with the duplicate 'Chr', because you have multiple scaffolds corresponding to a single reference chromosome. Rename them something unique (e.g. Chr1 and Chr1A) in column 2.
+
+For example, in this file:
+
+```
+head ${WD}/${SAMPLE}/01_scaffolding/02_orienting/hap_newID_map.txt
+scaffold_1      chr1    +       42.46%  35386063
+scaffold_2      chr1  +       41.33%  9847223
+scaffold_3      chr11   +       47.76%  28452307
+scaffold_4      chr2    +       39.75%  31132341
+```
+
+We have two scaffolds with a high similarity (~42%) and a large amount of aligned bases (35 Mb and 9.8 Mb) to reference chr1. 
+
+Simply rename the second one to e.g. 
+
+```
+head ${WD}/${SAMPLE}/01_scaffolding/02_orienting/hap_newID_map.txt
+scaffold_1      chr1    +       42.46%  35386063
+scaffold_2      chr1A  +       41.33%  9847223
+scaffold_3      chr11   +       47.76%  28452307
+scaffold_4      chr2    +       39.75%  31132341
+```
+
+And then run: 
 
 ```
 cd $WD/$SAMPLE/02_$ITHapHiC/
-seqkit replace --line-width 0 -p "(.*)" -r "kv" -k 02_orienting/hap_newID_map.txt 02_orienting/orient.fa | \
-    seqkit sort --line-width 0 -n > haphic_renamed.fa
-ln -s haphic_renamed.fa pg_renamed.fa
+seqkit replace --line-width 0 -p "(.*)" -r "kv" -k ${WD}/${SAMPLE}/01_scaffolding/02_orienting/hap_newID_map.txt ${WD}/${SAMPLE}/01_scaffolding/02_orienting/orient.fa | \
+    seqkit sort --line-width 0 -n > ${WD}/${SAMPLE}/01_scaffolding/haphic_renamed.fa
 ```
 
-Then, re-submit the script: `sbatch 01_PostJuicebox.sh HART001` 
+Then, re-submit the script: `puzzler_post --sample HART001 --map-file samples.csv` and the script will identify the `haphic_renamed.fa`. 
 
 <!-- TOC --><a name="outputs"></a>
 ## Outputs 
 
-Relative to the `wd` path, the assemblies will be:
-```
-grep '>' $WD/joint_scaffold/HART001.pri.fa
->Chr01
->Chr02
-```
+Relative to the `wd` path, the outputs will be: 
 
-and
+* The final assembly will be found in: `${WD}/primary_asm/${SAMPLE}.pri.fa`.
 
-```
-grep '>' $WD/joint_scaffold/HART001.hap.fa
->HART001#1#Chr01
->HART001#1#Chr02
-...
->HART001#2#Chr01
->HART001#2#Chr02
-```
+* The final contact map for assessment will be in: `${WD}/logs/contact_maps/${SAMPLE}.pdf` and should look something like this: 
+
+![Final_Map](/examples/figs/contact_example.png)
+
 
 Within `$WD/logs` you can find: <br/>
 
