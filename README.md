@@ -24,6 +24,8 @@ Currently, only a containerized release is supported. This includes all software
 
 This singularity / apptainer `.sif` container can be pulled from `singularity pull --arch amd64 library://merondun/default/puzzler:latest` 
 
+Please note that both `puzzler_asm` and `puzzler_post` are written for SLURM architecture, so you may want to modify the resource and limits accordingly (they are simply .sh files). You will also need to ensure that apptainer/singularity is available, e.g. `module load apptainer`, which is currently embedded in the scripts. 
+
 The (large, ~4Gb) container contains many common tools including [hifiasm v0.20.0-r639](https://github.com/chhylp123/hifiasm), [purge_dups v1.2.5](https://github.com/dfguan/purge_dups), [gfatools v0.4-r214-dirty](https://github.com/lh3/gfatools), [minimap2 v2.28-r1209](https://github.com/lh3/minimap2), [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster), [samtools v1.18](https://github.com/samtools/samtools), [bwa v0.7.18-r1243-dirty](https://bio-bwa.sourceforge.net/), and [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC). It contains a lot of useful assembly and phasing tools, as I also use this for tools in development and as a 'stable' back-up for software compatability. 
 
 As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC). 
@@ -99,6 +101,36 @@ HART001,/project/coffea_pangenome/Software/Merondun/apptainers/puzzler_v1.1.sif,
 
 :fire: `puzzler_asm` and `puzzler_post` are checkpoint-based, so they will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
 
+For instance, if you submit the command `puzzler_asm --sample Squirt --map_file samples.csv` and `$WD/Squirt/Squirt.hic.p_ctg.gfa` and `$WD/Squirt/01_scaffolding/all.purged.fa` already exists, you will see this output, and the script will begin by mapping HiC reads to the draft assembly for HiC scaffolding with HapHic:
+
+```
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Squirt 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.4.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+PLOIDY: 2 
+NUMBER CHRS: 9
+HOM_COV: 37
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Squirt.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Squirt.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Squirt.HiC.R2.fastq.gz
+REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_000224145.3_KH_genomic.fa
+=======================================================================
+
+~~~~ Skipping hifiasm for Squirt, already exists ~~~~
+~~~~ Skipping purge for Squirt, already exists ~~~~
+~~~~ Mapping HiC reads to Squirt pri assembly ~~~~
+```
+
 
 :one: **Script 1:** `puzzler_asm`
 
@@ -119,7 +151,7 @@ This script will check for these files, and create them if they do not exist in 
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
-This will create e.g. `${SAMPLE}.pri-MQ1_JBAT.review.assembly`. Maintain that file name, and copy it to ${WD}/${SAMPLE}/01_scaffolding. 
+This will create e.g. `${SAMPLE}.pri-MQ1_JBAT.review.assembly`. Maintain that file name, and copy it to `${WD}/${SAMPLE}/01_scaffolding`. 
 
 <br/>
 

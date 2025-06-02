@@ -2,14 +2,16 @@
 
 #SBATCH --time=48:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=32
+#SBATCH --ntasks-per-node=64
 #SBATCH --mem=64Gb
 #SBATCH --partition=ceres
+#SBATCH --account=coffea_pangenome
 
-# use n=32 and mem = 64 typically 
+# use n=64 and mem = 64 typically 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}
+module load apptainer
 
-t=32
+t=64
 MEM=64
 
 # Default values
@@ -36,10 +38,6 @@ if [ -z "$MAP_FILE" ]; then
     echo "Error: --map_file argument is required."
     exit 1
 fi
-
-module load miniconda
-source activate puzz
-module load apptainer
 
 # Read CSV line matching sample and assign fields
 IFS=',' read -r _ SIF_PATH WD PLOIDY NUM_CHRS HOM_COV HIFI HIC_R1 HIC_R2 REFERENCE < <(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}")

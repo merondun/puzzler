@@ -1,16 +1,18 @@
 #!/bin/bash
 
-#SBATCH --time=48:00:00   
+#SBATCH --time=10-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=32
-#SBATCH --mem=256Gb
+#SBATCH --ntasks-per-node=64
+#SBATCH --mem=512Gb
 #SBATCH --partition=ceres
+#SBATCH --account=coffea_pangenome
 
-# use n=32 and mem = 256 typically 
+# use n=64 and mem = 512 typically 
 SINGULARITY_TMPDIR=${APPTAINER_TMPDIR}
+module load apptainer
 
-t=32
-MEM=256
+t=64
+MEM=512
 
 # Default values
 SAMPLE=""
@@ -37,10 +39,6 @@ if [ -z "$MAP_FILE" ]; then
     exit 1
 fi
 
-module load miniconda
-source activate puzz
-module load apptainer
-
 # Read CSV line matching sample and assign fields
 IFS=',' read -r _ SIF_PATH WD PLOIDY NUM_CHRS HOM_COV HIFI HIC_R1 HIC_R2 REFERENCE < <(awk -F',' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}")
 
@@ -59,7 +57,7 @@ __________ ____ _______________________.____     _____________________
 
 EOF
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nCONTAINER: ${SIF_PATH} \nWD: ${WD} \nPLOIDY: ${PLOIDY} \nHOM_COV: ${HOM_COV}\nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nREFERENCE: ${REFERENCE}\n=======================================================================\n"
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nCONTAINER: ${SIF_PATH} \nWD: ${WD} \nPLOIDY: ${PLOIDY} \nNUMBER CHRS: ${NUM_CHRS}\nHOM_COV: ${HOM_COV}\nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nREFERENCE: ${REFERENCE}\n=======================================================================\n"
 
 mkdir -p ${WD}/${SAMPLE} ${WD}/logs/juicer ${WD}/logs/haphic
 cd ${WD}/${SAMPLE}
@@ -101,10 +99,10 @@ cd ${WD}/${SAMPLE}/01_scaffolding
 if [ ! -s filtered.MQ1.bam ]; then
 	echo -e "\e[43m~~~~ Mapping HiC reads to ${SAMPLE} pri assembly ~~~~\e[0m" 
 	# Index reference
-	${PUZZLER} bwa index all.purged.fa 2> alignment.indexing.hic.log
+	${PUZZLER} bwa-mem2 index all.purged.fa 2> alignment.indexing.hic.log
 
 	# Align Hi-C reads
-	${PUZZLER} bwa mem -5SP -t ${t} all.purged.fa ${HIC_R1} ${HIC_R2} 2> alignment.firsthic.log | \
+	${PUZZLER} bwa-mem2 mem -5SP -t ${t} all.purged.fa ${HIC_R1} ${HIC_R2} 2> alignment.firsthic.log | \
 		${PUZZLER} samblaster 2> samblaster.firsthic.log | ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
 		${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} | \
 		${PUZZLER} samtools view - -b -@ ${t} -o filtered.MQ1.bam

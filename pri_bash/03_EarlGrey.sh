@@ -1,10 +1,11 @@
 #!/bin/bash
 
-#SBATCH --time=336:00:00   
+#SBATCH --time=14-00:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=20
 #SBATCH --mem=112Gb
 #SBATCH --partition=ceres
+#SBATCH --account=coffea_pangenome
 
 #module load miniconda
 #source activate earlgrey
