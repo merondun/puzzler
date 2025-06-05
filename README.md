@@ -1,10 +1,10 @@
 ![Puzzler](/examples/figs/logo.png)
 
-Simple check-point based shell script for high-throughput genome assembly.
+Simple check-point aware shell script for high-throughput genome assembly.
 
 > What's it for?!
 
-Making many genomes. Partiuclarly useful for pangenomics. Primarily designed for SLURM resources using `apptainer`. 
+Making many genomes, with a focus on pangenomics. Primarily designed for SLURM resources which can use containers. 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -21,9 +21,9 @@ Making many genomes. Partiuclarly useful for pangenomics. Primarily designed for
 <!-- TOC --><a name="installation"></a>
 ## Installation
 
-Currently, only a containerized release is supported. The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:latest` 
+Currently, only a containerized release is supported because we shouldn't waste our time with software install. The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:latest` 
 
-The workhorse script `puzzler` is simply a check-point based bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Squirt --map_file samples.csv`. 
+The workhorse script `puzzler` is simply a check-point aware bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Fungus --map samples.tsv`. 
 
 For installation:  
 
@@ -81,7 +81,7 @@ The (large, ~2.5Gb) container contains many common tools including:
 * [seqtk v1.4-r122](https://github.com/lh3/seqtk)
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats)
 
-1b) As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). 
+1b) As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). J
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
