@@ -4,7 +4,7 @@ Simple check-point aware shell script for high-throughput genome assembly.
 
 > What's it for?!
 
-Making many genomes, with a focus on pangenomics. Primarily designed for SLURM resources which can use containers. 
+Making many genomes, with a focus on pangenomics. Primarily designed for container-capable SLURM resources. 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -334,4 +334,4 @@ Please ensure you cite the developers of the main  `puzzler`:
 * [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/)
 * [seqtk v1.4-r122](https://github.com/lh3/seqtk)
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats)
-* [genomescope2 ]
+* [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0)
