@@ -28,8 +28,8 @@ function show_help {
     echo "Options:"
     echo "  --sample SAMPLE       Sample name (required)"
     echo "  --map FILE       Path to .tsv/.csv map file (required)"
-    echo "  --threads t           Number of threads (optional)"
-    echo "  --mem MEM             Memory allocation (optional)"
+    echo "  --threads t           Number of threads (optional; default 64)"
+    echo "  --mem MEM             Memory allocation (optional; default 512)"
     echo "  --help                Show this help message and exit"
     exit 0
 }
@@ -92,18 +92,20 @@ if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ]; then
     echo -e "\e[42m~~~~ Skipping hifiasm for ${SAMPLE}: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~\e[0m"
 elif [ ! -s "${HIFI}" ]; then
     echo -e "\e[41m~~~~ Skipping hifiasm for ${SAMPLE}, missing input: ${HIFI} ~~~~\e[0m"
+	exit 1 
 elif [ -s "${HIC_R1}" ]; then
     echo -e "\e[43m~~~~ Starting hifiasm assembly for ${SAMPLE} ~~~~\e[0m"
     cd "${WD}/${SAMPLE}/01_hifiasm"
 
 	# Run hifiasm
-    RUN_ASM="${PUZZLER} hifiasm --n-hap ${PLOIDY} --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}"
+    RUN_ASM="${PUZZLER} hifiasm --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}"
     if [[ -n "$HOM_COV" ]]; then
         RUN_ASM="$RUN_ASM --hom-cov ${HOM_COV}"
     fi
     $RUN_ASM 2> "${SAMPLE}.hifiasm.log"
 else
     echo -e "\e[41m~~~~ Skipping hifiasm for ${SAMPLE}, missing input: ${HIC_R1} ~~~~\e[0m"
+	exit 1 
 fi
 
 ##### PURGE_DUPS: Purge duplicates based on sequence #####
@@ -111,6 +113,7 @@ if [ -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
 	echo -e "\e[42m~~~~ Skipping purge for ${SAMPLE}: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ]; then
     echo -e "\e[41m~~~~ Skipping Purge_Dups for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa ~~~~\e[0m"
+	exit 1 
 else
 	echo -e "\e[43m~~~~ Starting Purge_Dups for ${SAMPLE} ~~~~\e[0m"
 	cd ${WD}/${SAMPLE}/02_purge_dups
@@ -130,9 +133,7 @@ else
 		# Continue with purge process if duplicates exist
 		${PUZZLER} get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
 		mv purged.fa p_ctg.purged.fa
-		rm *split.fa *self.paf.gz *dups.bed *init*
 	fi
-	rm *split.fa *self.paf.gz *dups.bed *init*
 fi
 
 ##### ALIGN HIC #####
@@ -140,6 +141,7 @@ if [ -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
 	echo -e "\e[42m~~~~ Skipping HiC alignment for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/filtered.bam exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
     echo -e "\e[41m~~~~ Skipping HiC alignment for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ~~~~\e[0m"
+	exit 1 
 else
 	echo -e "\e[43m~~~~ Mapping HiC reads to ${SAMPLE} draft ~~~~\e[0m" 
 	cd ${WD}/${SAMPLE}/03_haphic
@@ -159,6 +161,7 @@ if [ -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
 	echo -e "\e[42m~~~~ Skipping HapHiC for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
 	echo -e "\e[41m~~~~ Skipping HapHiC for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/filtered.bam ~~~~\e[0m"
+	exit 1 
 else
 
 	echo -e "\e[43m~~~~ Running HapHiC for ${SAMPLE}  ~~~~\e[0m" 
@@ -169,6 +172,54 @@ else
 	cd ${WD}/${SAMPLE}/03_haphic/haphic/
 	${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
 	cp ${WD}/${SAMPLE}/03_haphic/haphic/01.cluster/HapHiC_cluster.log ${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.cluster_WOULD_CONTAIN_ERRORS.log
+
+	# IF HapHic failed with the specified number of chromosomes $NUM_CHRS, then loop from NUM_CHRS - 1, NUM_CHRS - 2, until successful 
+	if [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
+	rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
+
+	# Define range of chrs to test: Within 4 of NUM_CHRS
+	START=$(( NUM_CHRS - 4 ))
+	END=$(( NUM_CHRS + 4 ))
+
+	# Prevent negative starting values (if NUM_CHRS < 4)
+	if (( START < 1 )); then
+		START=1
+	fi
+
+	# Loop through values within 4 of NUM_CHRS
+	for (( CHR_ATTEMPT=START; CHR_ATTEMPT<=END; CHR_ATTEMPT++ )); do
+
+        echo -e "\e[43m~~~~ HapHiC for ${SAMPLE} with ${NUM_CHRS} chrs failed, trying: ${CHR_ATTEMPT} ~~~~\e[0m"
+        mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic
+        cd ${WD}/${SAMPLE}/03_haphic/haphic
+        
+        ${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log
+
+        # Check if scaffolds.fa exists
+        if [ -s ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ]; then
+            echo -e "\e[43m~~~~  HapHiC completed successfully with NUM_CHRS=${CHR_ATTEMPT} ~~~~\e[0m"
+            break
+        else
+            rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
+        fi
+    done
+
+	fi 
+
+	# IF this still failed, then just scaffold with YAHS 
+	if [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
+
+		echo -e "\e[43m~~~~ HapHiC for ${SAMPLE} failed, scaffolding with YAHS instead ~~~~\e[0m"
+		cd ${WD}/${SAMPLE}/03_haphic
+		rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
+		mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic/04.build
+
+		samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
+		yahs ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa filtered.bam > yahs.log 2>&1
+		cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.fa ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
+		cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
+
+	fi 
 fi
 
 ##### JUICER #####
@@ -176,8 +227,10 @@ if [ -s "${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.hic" ]; then
 	echo -e "\e[42m~~~~ Skipping juicer HiC file creation for ${SAMPLE}: ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.hic exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
 	echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ~~~~\e[0m"
+	exit 1 
 elif [ ! -s "${REFERENCE}" ]; then
     echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${REFERENCE} ~~~~\e[0m"
+	exit 1 
 else
 
 	echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE}  ~~~~\e[0m"
@@ -212,7 +265,6 @@ else
 		
 	cp haphic-refsort_JBAT.hic ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.hic
 	cp haphic-refsort_JBAT.assembly ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.assembly
-	rm haphic-refsort_JBAT.txt 
 fi 
 
 ##### POST-JUICEBOX CHROMOSOME RENAMING #####
@@ -243,7 +295,8 @@ else
 			# Renaming: to reference chromosomes 
 			${PUZZLER} minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
 			${PUZZLER} samtools faidx haphic-refsort-post_JBAT.FINAL.fa
-			${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt
+			${PUZZLER} samtools faidx ${REFERENCE}
+			${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt --min_size 0.1 2> mapping_renaming.log
 		fi 
 	fi 
 
@@ -257,7 +310,7 @@ else
 		
 		cd ${WD}/${SAMPLE}/05_postjuicebox
 		# This file has $haphic_scafID \t $ref_chr_ID \t $strand
-		awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt > chromosome_naming_map.txt 
+		awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt | egrep 'chr|Chr' > chromosome_naming_map.txt 
 
 		# Exclude those chromsomes from map, and then add e.g. scaf101405 for the remaining non-chromosome scaffolds 
 		awk '{print $1}' chromosome_naming_map.txt > exclude_chr_scafIDs.txt
@@ -265,7 +318,7 @@ else
 
 		# Must be the same number of scaffolds
 		if [ $(cat chromosome_naming_map.txt | wc -l) -eq $(cat haphic-refsort-post_JBAT.FINAL.fa.fai | wc -l) ]; then
-			echo -e "\e[41m~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~\e[0m"
+			echo -e "\e[43m~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~\e[0m"
 		else
 			echo -e "\e[41m~~~~ Not same number of scaffolds, stop and inspect ${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt ~~~~\e[0m"
 			exit 1
@@ -316,7 +369,7 @@ else
 			
 		else 
 
-			echo -e "\e[42m~~~~ Single scaffolds corresponding to a single Chr for ${SAMPLE} ~~~~\e[0m"
+			echo -e "\e[43m~~~~ Single scaffolds corresponding to a single Chr for ${SAMPLE} ~~~~\e[0m"
 		fi # Exit duplicate scaffold check 
 
 		# Finally, rename the chromosomes
@@ -343,7 +396,7 @@ else
 	echo -e "\e[43m~~~~ Creating final HiC bam for ${SAMPLE} ~~~~\e[0m"
 	cd ${WD}/${SAMPLE}/06_realign_hic_hifi
 
-	${PUZZLER} bwa-mem2 index ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa 2> ${SAMPLE}.alignment.indexing.final.log
+	${PUZZLER} bwa-mem2 index ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa > ${SAMPLE}.alignment.indexing.final.log 2>&1
 	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa
 
 	# Align Hi-C reads
@@ -360,48 +413,16 @@ if [ -s "${WD}/primary_asm/stats/${SAMPLE}.pdf" ]; then
 elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
 	echo -e "\e[41m~~~~ Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam ~~~~\e[0m"
 else 
-	echo -e "\e[43m~~~~ Creating final contact map for ${SAMPLE} (minimum size 3-Mb chromosomes) ~~~~\e[0m"
+	echo -e "\e[43m~~~~ Creating final contact map for ${SAMPLE} ~~~~\e[0m"
 	cd ${WD}/${SAMPLE}/06_realign_hic_hifi
+	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa
+	CHRS=$(egrep 'chr|Chr' ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa.fai | cut -f1 | tr '\n' ',' | sed 's/,$//g')
 	${PUZZLER} mock_agp_file.py ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa > final_asm.agp
-	${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 3
+	${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 
 	# Copy over HiC map 
 	cp contact_map.pdf ${WD}/primary_asm/stats/${SAMPLE}.pdf
 fi # exit final hic plotting check 
-
-# ##### Final HiFi Alignment & Plotting ##### 
-# if [ -s "${WD}/primary_asm/stats/${SAMPLE}.hifi_coverage.txt" ]; then 
-# 	echo -e "\e[42m~~~~ Skipping final HiFi alignment for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.hifi_coverage.txt exists ~~~~\e[0m"
-# elif [ ! -s "${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa" ]; then
-# 	echo -e "\e[41m~~~~ Skipping final HiFi alignment for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa ~~~~\e[0m"
-# else 
-# 	cd ${WD}/${SAMPLE}/06_realign_hic_hifi
-
-# 	# Alignment 
-# 	FINAL_STATS=$(${PUZZLER} assembly_stats ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa)
-#     SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-
-# 	if [ ! -s "subsampled.hifi.10X.fastq.gz" ]; then
-# 		TARGET=$(awk -v cov=10 -v gs=${GS} 'BEGIN { printf "%.0f", cov * gs } ')
-# 		echo -e "\e[43m~~~~ Subsampling ${TARGET} bases for ${SAMPLE} to create 10x coverage ~~~~\e[0m"
-# 		${PUZZLER} bbduk.sh in=${HIFI} out=subsampled.hifi.10X.fastq.gz maxbasesout=${TARGET} > subsample.bbduk.log 2>&1
-# 	else
-# 		echo -e "\e[42m~~~~ Skipping subsampling for ${SAMPLE}, already exists ~~~~\e[0m"
-# 	fi 
-
-# 	if [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.hifi.bam" ]; then
-#         echo -e "\e[43m~~~~ Starting HiFi Alignment on final assembly ${SAMPLE} ~~~~\e[0m"
-#         ${PUZZLER} minimap2 -t ${t} -ax map-hifi \
-# 			${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa subsampled.hifi.10X.fastq.gz 2> final_asm.hifi.minimap.log | \
-# 			${PUZZLER} samtools sort --threads ${t} -o final_asm.hifi.bam
-#         ${PUZZLER} samtools index --threads ${t} final_asm.hifi.bam
-# 		${PUZZLER} mosdepth --mapq 40 --no-per-base final_asm.hifi final_asm.hifi.bam
-# 		cp final_asm.hifi.mosdepth.summary.txt ${WD}/primary_asm/stats/${SAMPLE}.hifi_coverage.txt
-
-# 	else
-# 		echo -e "\e[42m~~~~ Skipping HiFi final Alignment for ${SAMPLE} ~~~~\e[0m"
-# 	fi 
-# fi # exit final hic plotting check 
 
 ##### Basic Assembly Stats ##### 
 if [ -s "${WD}/primary_asm/stats/${SAMPLE}.stats.txt" ]; then 
@@ -434,6 +455,7 @@ else
     # Write summary
     echo -e "Sample\tSizeBP\tWithinChrsBP\tPropWithinChrs\tChrs\tSequences\tContigs\tGaps\tContigN50\tScafN50" > ${SAMPLE}.summary.txt
     echo -e "${SAMPLE}\t$SIZE\t$CHR_SIZE\t$CHR_PROP\t$NUM_CHRS\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50" >> ${SAMPLE}.summary.txt
+	cp ${SAMPLE}.summary.txt ${WD}/primary_asm/stats/
 
 fi # exit assembly stat check
 

@@ -239,7 +239,7 @@ You can then re-submit the script `puzzler --sample Fungus --map samples.tsv`, a
 
 This means that there are multiple scaffolds/chromosomes in your draft which correspond to a single chromosome in the reference genome. The script will automatically rename the duplicates into e.g. `chr1` `chr1A` `chr1B` according to length. 
 
-You should probably inspect `${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt` and to ensure that you are happy with this naming s cheme.
+You should probably inspect `${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt` and to ensure that you are happy with this naming scheme.
 
 You can also manually modify any of these by changing the value in the second column.
 

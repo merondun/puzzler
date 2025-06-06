@@ -1,0 +1,188 @@
+#!/bin/bash
+
+########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
+#SBATCH --time=10-00:00:00   
+#SBATCH --nodes=1  
+#SBATCH --ntasks-per-node=16
+#SBATCH --mem=128Gb
+#SBATCH --partition=ceres
+#SBATCH --account=coffea_pangenome
+
+RUNTIME="apptainer"
+#RUNTIME="singularity"
+
+module load apptainer
+SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
+########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
+
+# Default values
+SAMPLE=""
+MAP_FILE=""
+t=16
+MEM=128
+
+# Display help message
+function show_help {
+    echo "Usage: quality_puzzles [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --sample SAMPLE       Sample name (required)"
+    echo "  --map FILE       Path to .tsv/.csv map file (required)"
+    echo "  --threads t           Number of threads (optional; default 16)"
+    echo "  --mem MEM             Memory allocation (Gb, optional; default 128)"
+    echo "  --help                Show this help message and exit"
+    exit 0
+}
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -h|--help) show_help ;;  
+        -s|--sample) SAMPLE="$2"; shift ;;
+        -m|--map) MAP_FILE="$2"; shift ;;
+        -t|--threads) t="$2"; shift ;;
+        --mem) MEM="$2"; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+# Validate required arguments
+if [ -z "$SAMPLE" ]; then
+    echo "Error: --sample argument is required."
+    exit 1
+fi
+
+if [ -z "$MAP_FILE" ]; then
+    echo "Error: --map argument is required."
+    exit 1
+fi
+
+# Read CSV line matching sample and assign fields
+IFS=$'\t,' read -r _ SIF_PATH OUTDIR ASSEMBLY HIFI BLOB_DB BUSCO_LINEAGE BUSCO_DB < <(
+    awk -F'[\t,]' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}"
+)
+
+QP="${RUNTIME} exec ${SIF_PATH}"
+
+cat << "EOF"
+
+=======================================================================
+________   ____ ___  _____  .____    .___________________.___.        
+\_____  \ |    |   \/  _  \ |    |   |   \__    ___/\__  |   |        
+ /  / \  \|    |   /  /_\  \|    |   |   | |    |    /   |   |        
+/   \_/.  \    |  /    |    \    |___|   | |    |    \____   |        
+\_____\ \_/______/\____|__  /_______ \___| |____|    / ______|        
+       \__>               \/        \/               \/               
+__________ ____ _______________________.____     ___________ _________
+\______   \    |   \____    /\____    /|    |    \_   _____//   _____/
+ |     ___/    |   / /     /   /     / |    |     |    __)_ \_____  \ 
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \/        \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  /_______  /
+                           \/        \/        \/        \/        \/ 
+=======================================================================
+
+EOF
+
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nCONTAINER: ${SIF_PATH} \nOUTDIR: ${OUTDIR} \nASSEMBLY: ${ASSEMBLY} \nHIFI: ${HIFI} \nBlobtools database: ${BLOB_DB} \nBUSCO lineage: ${BUSCO_LINEAGE} \nBUSCO database: ${BUSCO_DB} \nRUNTIME: ${RUNTIME}\n=======================================================================\n"
+
+set -euo pipefail
+$QP busco --version > /dev/null 2>&1 || { -e "\e[40m~~~~ busco not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
+$QP blobtools --version > /dev/null 2>&1 || { -e "\e[40m~~~~ blobtools not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
+set +e +u +o pipefail 
+
+mkdir -p ${OUTDIR}/work/${SAMPLE}
+
+##### BUSCO: detect conserved genes, first download database #####
+if [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ]; then
+    echo -e "\e[43m~~~~ Downloading BUSCO Lineage database: ${BUSCO_LINEAGE} ~~~~\e[0m"
+    ${QP} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB}
+else
+    echo -e "\e[42m~~~~ BUSCO lineage dataset already exists, skipping ~~~~\e[0m"
+fi
+
+###### Run BUSCO ######
+if [ -s "${OUTDIR}/${SAMPLE}.busco.txt" ]; then 
+	echo -e "\e[42m~~~~ Skipping BUSCO for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.busco.txt exists ~~~~\e[0m"
+elif [ ! -s "${ASSEMBLY}" ]; then
+	echo -e "\e[41m~~~~ Skipping final assembly stats for ${SAMPLE}, missing input: ${ASSEMBLY} ~~~~\e[0m"
+elif [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ]; then
+	echo -e "\e[41m~~~~ Skipping final assembly stats for ${SAMPLE}, missing input: ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} ~~~~\e[0m"
+else 
+	echo -e "\e[43m~~~~ Running BUSCO for ${SAMPLE} using lineage: ${BUSCO_LINEAGE} ~~~~\e[0m"
+
+    cd ${OUTDIR}/work/${SAMPLE}
+
+    ${QP} busco -i ${ASSEMBLY} \
+        -l ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} \
+        -m genome \
+        -c 16 \
+        -o ${SAMPLE} \
+        -f
+
+    mv ${SAMPLE}/short_summary.specific.${BUSCO_LINEAGE}.${SAMPLE}.txt ${OUTDIR}/${SAMPLE}.busco.txt
+fi
+
+##### Map HiFi Reads back to Assembly ##### 
+if [ -s "${OUTDIR}/${SAMPLE}.hifi_coverage.txt" ]; then 
+	echo -e "\e[42m~~~~ Skipping HiFi coverage for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.hifi_coverage.txt exists ~~~~\e[0m"
+elif [ ! -s "${ASSEMBLY}" ]; then
+	echo -e "\e[41m~~~~ Skipping HiFi alignment for ${SAMPLE}, missing input: ${ASSEMBLY} ~~~~\e[0m"
+elif [ ! -s "${HIFI}" ]; then
+	echo -e "\e[41m~~~~ Skipping HiFi alignment for ${SAMPLE}, missing input: ${HIFI} ~~~~\e[0m"
+else 
+    cd ${OUTDIR}/work/${SAMPLE}
+
+	# Alignment 
+	if [ ! -s "${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam" ]; then
+        echo -e "\e[43m~~~~ Starting HiFi Alignment for ${SAMPLE} ~~~~\e[0m"
+        ${QP} minimap2 -t ${t} -ax map-hifi \
+			${ASSEMBLY} ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
+			${QP} samtools sort --threads ${t} -o ${SAMPLE}.hifi.bam
+        ${QP} samtools index --threads ${t} ${SAMPLE}.hifi.bam
+		${QP} mosdepth --by 250000 --mapq 30 --no-per-base ${SAMPLE}.hifi ${SAMPLE}.hifi.bam
+		cp ${SAMPLE}.hifi.mosdepth.summary.txt ${OUTDIR}/${SAMPLE}.hifi_coverage.txt
+
+	else
+		echo -e "\e[42m~~~~ Skipping HiFi Alignment for ${SAMPLE}, ${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam exists ~~~~\e[0m"
+	fi 
+fi # exit HiFi check
+
+##### Basic Assembly Stats ##### 
+if [ -s "${OUTDIR}/${SAMPLE}.stats.txt" ]; then 
+	echo -e "\e[42m~~~~ Skipping final assembly stats for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.stats.txt exists ~~~~\e[0m"
+elif [ ! -s "${ASSEMBLY}" ]; then
+	echo -e "\e[41m~~~~ Skipping final assembly stats for ${SAMPLE}, missing input: ${ASSEMBLY} ~~~~\e[0m"
+elif [ ! -s "${OUTDIR}/${SAMPLE}.busco.txt" ]; then
+	echo -e "\e[41m~~~~ Skipping final assembly stats for ${SAMPLE}, missing input: ${OUTDIR}/${SAMPLE}.busco.txt ~~~~\e[0m"
+else 
+	echo -e "\e[43m~~~~ Summarizing Assembly for ${SAMPLE} ~~~~\e[0m"
+    # Get metrics for final assembly
+    cd ${OUTDIR}/work/${SAMPLE}
+
+    FINAL_STATS=$(${QP} assembly_stats ${ASSEMBLY})
+    SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
+    SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
+    CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
+    SCAF_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
+    CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
+    GAPS=$((CTGS - SEQS))
+
+    # Parse BUSCO results
+    BUSCO_COMPLETE=$(grep "C:" ${OUTDIR}/${SAMPLE}.busco.txt | cut -d'[' -f1 | cut -d':' -f2 | cut -d'%' -f1)
+    BUSCO_SINGLE=$(grep "C:" ${OUTDIR}/${SAMPLE}.busco.txt | cut -d'[' -f2 | cut -d'%' -f1 | sed 's/S://g')
+
+    # What percentage of the assembly is in named chromosomes
+    ${QP} samtools faidx ${ASSEMBLY}
+    egrep 'chr|Chr' ${ASSEMBLY}.fai | awk '$1 !~ /A/' | cut -f1 > ${SAMPLE}.chrs
+    ${QP} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
+    CHR_STATS=$(${QP} assembly_stats ${SAMPLE}.chr.fa)
+    CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
+    CHR_PROP=$(${QP} perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
+    NUM_CHRS=$(cat ${SAMPLE}.chrs | wc -l)
+
+    # Write summary
+	echo -e "Sample\tBUSCO_Complete\tBUSCO_singlecopy\tSizeBP\tWithinChrsBP\tPropWithinChrs\tChrs\tSequences\tContigs\tGaps\tContigN50\tScafN50" > ${OUTDIR}/${SAMPLE}.summary.txt
+    echo -e "${SAMPLE}\t$BUSCO_COMPLETE\t$BUSCO_SINGLE\t$SIZE\t$CHR_SIZE\t$CHR_PROP\t$NUM_CHRS\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50" >> ${OUTDIR}/${SAMPLE}.summary.txt
+
+fi # exit assembly stat check
