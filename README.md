@@ -4,7 +4,7 @@ Simple check-point aware shell script for high-throughput genome assembly.
 
 > What's it for?!
 
-Making many genomes, with a focus on pangenomics. Primarily designed for container-capable SLURM resources. 
+Making many genomes, ideal for pangenomes. Primarily designed for container-capable SLURM resources. 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -29,7 +29,7 @@ For installation:
 
 1) Download the container `.sif`
 2) Download the `puzzler` shell script
-3) Modify your SLURM and apptainer/singularity loading within that `puzzler` script: 
+3) Modify your SLURM/HPC settings within the `puzzler` script, if necessary. 
 
 ```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
@@ -43,11 +43,7 @@ vim puzzler
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
-RUNTIME="apptainer"
-#RUNTIME="singularity"
-
 module load apptainer
-SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
 ########### EDIT THIS BLOCK WITH APPTAINER/SINGULARITY/MODULES ############
 :wq
 ```
@@ -60,9 +56,9 @@ Usage: puzzler [OPTIONS]
 
 Options:
   --sample SAMPLE       Sample name (required)
-  --map_file FILE       Path to .csv map file (required)
-  --threads t           Number of threads (optional)
-  --mem MEM             Memory allocation (optional)
+  --map FILE            Path to .tsv/.csv map file (required)
+  --threads t           Number of threads (optional; default 64)
+  --mem MEM             Memory allocation (optional; default 512)
   --help                Show this help message and exit
 ```
 
@@ -81,12 +77,17 @@ The (large, ~2.5Gb) container contains many common tools including:
 * [seqtk v1.4-r122](https://github.com/lh3/seqtk)
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats)
 
-1b) As a last resort, you can create a conda environment from the `environment.yml` file in `/apptainer/`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). J
+**Conda install**
+
+1b) As a last resort, create conda environment from `/apptainer/environment.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. 
+
+You must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. 
+
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
 
-The pipeline creates a primary genome assembly using both HiFi and HiC data. The workflow is: 
+The pipeline creates a collapsed completely *de novo* primary genome assembly using both HiFi and HiC data. The workflow is: 
 
 :pushpin: **`puzzler`**
 
@@ -99,18 +100,20 @@ The pipeline creates a primary genome assembly using both HiFi and HiC data. The
 
 :pushpin: **`puzzler`**
 
-5) Finalizing assembly, assign chromosome names based on a related reference. 
-6) Re-map HiC for final assembly check. 
+5) Finalizing assembly, assign chromosome names based on a related reference using [merothon](https://github.com/merondun/merothon). 
+6) Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 7) Output assembly statistics 
 
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
+`puzzler` only requires two inputs: `--sample`, `--map`. 
+
 **1. Make pipeline map file** 
 
 :boom: *Most important!*
 
-Prepare a `samples.tsv` which outlines all necessary pipeline components. An example template is found in [/examples/samples.tsv](/examples/samples.tsv)
+Prepare a `samples.tsv` (either tab or comma separated) which outlines all necessary pipeline components. An example template is found in [/examples/samples.tsv](/examples/samples.tsv)
 
 ```
 sample	container	wd	ploidy	chromosomes	hifi	hic_r1	hic_r2	Reference	hom_cov
@@ -121,14 +124,14 @@ Fish	/home/justin.merondun/apptainer/puzzler_v1.5.sif	/90daydata/coffea_pangenom
 :page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE``
-* **container:** Path to the apptainer `.sif`
+* **container:** Path to the apptainer `.sif`. If using conda, simply write 'conda'. 
 * **wd:** Path to working directory to store all files 
-* **ploidy:** Ploidy of organism
-* **chromosomes:** Number of chromosomes
+* **ploidy:** Ploidy of organism, or best guess. 
+* **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate in case you don't know.
 * **hifi:** Path to HiFi reads 
 * **hic_r1:** Path to HiC R1 
 * **hic_r2:** Path to HiC R2
-* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome using their naming convention. 
+* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**. 
 * **hom_cov:** Homozygous peak coverage (OPTIONAL; see below) 
 
 ***Homozygous peak coverage*** is the homozygous peak covewrage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
@@ -175,7 +178,7 @@ RUNTIME: apptainer
 ```
 
 
-:one: **Step 1:** `sbatch puzzler --sample Fungus --map samples.tsv`
+:one: **Step 1:** `[sbatch] puzzler --sample Fungus --map samples.tsv`
 
 This script will check for these files, and create them if they do not exist in these directories:
 
@@ -199,7 +202,7 @@ This will create e.g. `${SAMPLE}_JBAT.review.assembly`. Maintain that file name,
 
 <br/>
 
-:one: **Step:** resubmit `sbatch puzzler --sample Fungus --map samples.tsv`
+:one: **Step:** resubmit `[sbatch] puzzler --sample Fungus --map samples.tsv`
 
 This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file. 
 
@@ -219,7 +222,7 @@ This script will check for these files, and create them if they do not exist in 
 ```
 WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
 SAMPLE=Fungus
-SIF_PATH=/home/justin.merondun/apptainer/puzzler_v1.4.sif
+SIF_PATH=/home/justin.merondun/apptainer/puzzler_v1.6.sif
 PUZZLER="apptainer exec ${SIF_PATH}"
 
 cd ${WD}/${SAMPLE}/05_postjuicebox
@@ -233,9 +236,18 @@ You can then re-submit the script `puzzler --sample Fungus --map samples.tsv`, a
 
 <br/>
 
-:bomb: :warning: **If you then encounter this warning during post-curation** `puzzler`: 
+<!-- TOC --><a name="faq"></a>
+## FAQ
 
-`~~~~ Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!  ~~~~` 
+> Do I need to specify the Hi-C enzyme motifs for HapHiC?
+
+[HapHiC](https://github.com/zengxiaofei/HapHiC) is very good at recognizing fragments without specification, I haven't needed to do this - although I have mainly tested with Arima kits. 
+
+> The script fails on the HapHic step. 
+
+This can be difficult to diagnose, so please inspect the `${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.log`, and refer to [HapHiC](https://github.com/zengxiaofei/HapHiC) about e.g. "chromosomes are grouped together". Typically I see that error when there is insufficient or low quality HiC data. 
+
+> I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
 
 This means that there are multiple scaffolds/chromosomes in your draft which correspond to a single chromosome in the reference genome. The script will automatically rename the duplicates into e.g. `chr1` `chr1A` `chr1B` according to length. 
 
@@ -287,16 +299,9 @@ xargs ${PUZZLER} samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final
 
 As above, you can re-submit now to generate the contact maps: `puzzler --sample Fungus --map samples.tsv`.
 
-<!-- TOC --><a name="faq"></a>
-## FAQ
+> The script gave a warning: HapHiC for Fungus with 14 chrs failed, trying: 10 
 
-> Do I need to specify the Hi-C enzyme motifs for HapHiC?
-
-[HapHiC](https://github.com/zengxiaofei/HapHiC) is very good at recognizing fragments without specification, I haven't needed to do this - although I have mainly tested with Arima kits. 
-
-> The script fails on the HapHic step. 
-
-This can be difficult to diagnose, so please inspect the `${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.log`, and refer to [HapHiC](https://github.com/zengxiaofei/HapHiC) about e.g. "chromosomes are grouped together". Typically I see that error when there is insufficient or low quality HiC data. 
+If HapHic does not succeed with the specified chromosome numbers, it will re-run it with +/- 4 chromsomes. If you specified n = 14 chromosomes, `puzzler` will re-run HapHic with 10 - 18 chromoomes. If all of those fail, it will run scaffolding with YAHS instead. 
 
 <!-- TOC --><a name="outputs"></a>
 ## Outputs 

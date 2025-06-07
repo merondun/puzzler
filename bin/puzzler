@@ -1,23 +1,22 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=10-00:00:00   
+#SBATCH --time=3-00:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=64
 #SBATCH --mem=512Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
-RUNTIME="apptainer"
-#RUNTIME="singularity"
-
-module load apptainer
+module load apptainer &> /dev/null || true
+#module load singularity &> /dev/null || true
 SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 
 # Default values
 SAMPLE=""
 MAP_FILE=""
+RUNTIME=""
 t=64
 MEM=512
 
@@ -27,7 +26,7 @@ function show_help {
     echo ""
     echo "Options:"
     echo "  --sample SAMPLE       Sample name (required)"
-    echo "  --map FILE       Path to .tsv/.csv map file (required)"
+    echo "  --map FILE            Path to .tsv/.csv map file (required)"
     echo "  --threads t           Number of threads (optional; default 64)"
     echo "  --mem MEM             Memory allocation (optional; default 512)"
     echo "  --help                Show this help message and exit"
@@ -40,7 +39,7 @@ while [[ "$#" -gt 0 ]]; do
         -h|--help) show_help ;;  
         -s|--sample) SAMPLE="$2"; shift ;;
         -m|--map) MAP_FILE="$2"; shift ;;
-        -t|--threads) t="$2"; shift ;;
+        --threads) t="$2"; shift ;;
         --mem) MEM="$2"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -59,11 +58,15 @@ if [ -z "$MAP_FILE" ]; then
 fi
 
 # Read CSV line matching sample and assign fields
-IFS=$'\t,' read -r _ SIF_PATH WD PLOIDY NUM_CHRS HIFI HIC_R1 HIC_R2 REFERENCE HOM_COV < <(
+IFS=$'\t,' read -r _ RUNTIME SIF_PATH WD PLOIDY NUM_CHRS HIFI HIC_R1 HIC_R2 REFERENCE HOM_COV < <(
     awk -F'[\t,]' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}"
 )
 
-PUZZLER="${RUNTIME} exec ${SIF_PATH}"
+if [ "$RUNTIME" = "conda" ]; then
+    PUZZLER=""  # No runtime needed for Conda
+else
+    PUZZLER="${RUNTIME} exec ${SIF_PATH}"
+fi
 
 cat << "EOF"
 
@@ -292,11 +295,31 @@ else
 				${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp \
 				${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
 
+			# If genome is massive, reduce minimap2 options
+			MINIMAP_CMD="${PUZZLER} minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
+
+			# Calculate genome size in bytes
+			GENOME_SIZE=$(wc -c < "haphic-refsort-post_JBAT.FINAL.fa")
+
+			# Convert to GB
+			GENOME_SIZE_GB=$((GENOME_SIZE / 1000000000))
+
+			# Check if genome is larger than 3GB and add -n10 if needed
+			if [ "$GENOME_SIZE_GB" -gt 3 ]; then
+				MINIMAP_CMD="${PUZZLER} minimap2 -x asm20 -n10 -k21 -w19 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
+				echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, adding -n10 -k21 -w19 to minimap2 command ~~~~\e[0m"
+			else
+				echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, running default minimap2 command ~~~~\e[0m"
+			fi
+
+			# Run Minimap2
+			eval "$MINIMAP_CMD"
+
 			# Renaming: to reference chromosomes 
-			${PUZZLER} minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
+			#${PUZZLER} minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
 			${PUZZLER} samtools faidx haphic-refsort-post_JBAT.FINAL.fa
 			${PUZZLER} samtools faidx ${REFERENCE}
-			${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt --min_size 0.1 2> mapping_renaming.log
+			${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
 		fi 
 	fi 
 
