@@ -102,7 +102,7 @@ elif [ -s "${HIC_R1}" ]; then
 
 	# Run hifiasm
     RUN_ASM="${PUZZLER} hifiasm --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}"
-    if [[ -n "$HOM_COV" ]]; then
+    if [[ -z "$HOM_COV" || "$HOM_COV" == "NA" ]]; then
         RUN_ASM="$RUN_ASM --hom-cov ${HOM_COV}"
     fi
     $RUN_ASM 2> "${SAMPLE}.hifiasm.log"
@@ -164,6 +164,9 @@ if [ -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
 	echo -e "\e[42m~~~~ Skipping HapHiC for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
 	echo -e "\e[41m~~~~ Skipping HapHiC for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/filtered.bam ~~~~\e[0m"
+	exit 1 
+elif [[ -z "$NUM_CHRS" || "$NUM_CHRS" == "NA" ]]; then
+	echo -e "\e[41m~~~~ Skipping HapHiC for ${SAMPLE}, must specify chromosome number estimate or guess ~~~~\e[0m"
 	exit 1 
 else
 
@@ -231,12 +234,32 @@ if [ -s "${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.hic" ]; then
 elif [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
 	echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ~~~~\e[0m"
 	exit 1 
-elif [ ! -s "${REFERENCE}" ]; then
-    echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${REFERENCE} ~~~~\e[0m"
-	exit 1 
-else
+if [ ! -f "${REFERENCE}" ] || [ "${REFERENCE}" = "NA" ]; then
+	#DO THIS IF NO REFERENCE SPECIFIED 
+    echo -e "\e[43m~~~~ Creating Juicer file for ${SAMPLE} WITHOUT reference alignment: not provided! ~~~~\e[0m"
 
-	echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE}  ~~~~\e[0m"
+	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
+	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
+	${PUZZLER} juicer pre \
+		-a -q 1 \
+		-o haphic_JBAT \
+		${WD}/${SAMPLE}/03_haphic/filtered.bam \
+		${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp \
+		${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
+	grep PRE_C_SIZE haphic_JBAT.log | \
+		awk '{print $2" "$3}' > chrom.sizes
+	${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
+		-r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
+		haphic_JBAT.txt \
+		haphic_JBAT.hic \
+		chrom.sizes > juicer_pre.log 2>&1
+		
+	cp haphic_JBAT.hic ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.hic
+	cp haphic_JBAT.assembly ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.assembly
+
+else
+	#DO THIS IF REFERENCE EXISTS
+	echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE}, with reference alignment  ~~~~\e[0m"
 	cd ${WD}/${SAMPLE}/04_juicer
 
 	# Orient chromosomes according to a related reference
@@ -246,18 +269,15 @@ else
 		echo -e "\e[42m~~~~ Skipping initial alignment between reference and draft ~~~~\e[0m]"
 	fi
 
-	${PUZZLER} haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > refsort.agp 2> refsort.log
 	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
 	${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-
+	${PUZZLER} haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > refsort.agp 2> refsort.log
 	${PUZZLER} juicer pre \
 		-a -q 1 \
 		-o haphic-refsort_JBAT \
 		${WD}/${SAMPLE}/03_haphic/filtered.bam \
 		refsort.agp \
-		${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic-refsort_JBAT.log 2>&1
-
-	# Extract chromosome sizes and create HiC file
+		${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
 	grep PRE_C_SIZE haphic-refsort_JBAT.log | \
 		awk '{print $2" "$3}' > chrom.sizes
 	${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
@@ -273,6 +293,9 @@ fi
 ##### POST-JUICEBOX CHROMOSOME RENAMING #####
 if [ ! -s "${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.review.assembly" ]; then
 	echo -e "\e[41m~~~~ Post curation assembly file doesn't exist for ${SAMPLE} - Run Juicebox! ~~~~\e[0m"
+	exit 1 
+elif [ ! -f "${REFERENCE}" ] || [ "${REFERENCE}" = "NA" ]; then
+    echo -e "\e[41m~~~~ No reference provided, so renaming will not proceed! ~~~~\e[0m"
 	exit 1 
 else
 

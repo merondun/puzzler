@@ -12,6 +12,7 @@ Making many genomes, ideal for pangenomes. Primarily designed for container-capa
 - [Workflow](#workflow)
 - [Quick Start](#quick-start)
 - [Details](#details)
+- [Visual Workflow](#visual)
 - [Outputs](#outputs)
 - [FAQ](#faq)
 - [Contact](#contact)
@@ -132,7 +133,7 @@ Fish	/home/justin.merondun/apptainer/puzzler_v1.5.sif	/90daydata/coffea_pangenom
 * **hic_r1:** Path to HiC R1 
 * **hic_r2:** Path to HiC R2
 * **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**. 
-* **hom_cov:** Homozygous peak coverage (OPTIONAL; see below) 
+* **hom_cov:** Homozygous peak coverage (OPTIONAL; see below, otherwise write "NA") 
 
 ***Homozygous peak coverage*** is the homozygous peak covewrage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
@@ -202,9 +203,9 @@ This will create e.g. `${SAMPLE}_JBAT.review.assembly`. Maintain that file name,
 
 <br/>
 
-:one: **Step:** resubmit `[sbatch] puzzler --sample Fungus --map samples.tsv`
+:two: **Step 2:** resubmit `[sbatch] puzzler --sample Fungus --map samples.tsv`
 
-This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file. 
+This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file or if you do not have a related reference genome. 
 
 | File                                                      |                            | If missing, run |
 | --------------------------------------------------------- | -------------------------- | --------------- |
@@ -232,9 +233,16 @@ ${PUZZLER} juicer post -o final_asm.fa \
   ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
 ```
 
-You can then re-submit the script `puzzler --sample Fungus --map samples.tsv`, and the script will simply run the final HiC mapping check, outputting the juicebox-curated assembly in `$WD/primary_asm/$SAMPLE.fa` and the final contact map in `WD/primary_asm/stats/$SAMPLE.pdf`. 
+If you still want the final HiC map, you can then re-submit the script `puzzler --sample Fungus --map samples.tsv`, and the script will simply run the final HiC mapping check, outputting the juicebox-curated assembly in `$WD/primary_asm/$SAMPLE.fa` and the final contact map in `WD/primary_asm/stats/$SAMPLE.pdf`. 
 
 <br/>
+
+<!-- TOC --><a name="visual"></a>
+## Visual Workflow
+
+Below is an exhaustive workflow outline documenting the inputs and outputs for each `puzzler` and `puzzle_quality` step. Only four hands-on steps are required from raw reads to assembly summary statistics. 
+
+![workflow](/examples/figs/workflow.png)
 
 <!-- TOC --><a name="faq"></a>
 ## FAQ
