@@ -239,7 +239,7 @@ else
     cd ${BLOB_DB}
     if [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ]; then
         echo -e "\e[43m~~~~ Blasting reference against databases ~~~~\e[0m"
-        ${PQ} blastn -db nt \
+        ${PQ} blastn -db nt/nt_core \
             -query ${ASSEMBLY} \
             -outfmt "6 qseqid staxids bitscore std" \
             -max_target_seqs 10 \

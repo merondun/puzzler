@@ -1,10 +1,10 @@
 ![Puzzler](/examples/figs/logo.png)
 
-Simple check-point aware shell script for high-throughput genome assembly.
+Simple check-point aware shell script wrapper for high-throughput genome assembly.
 
 > What's it for?!
 
-Making many genomes, ideal for pangenomes. Primarily designed for container-capable SLURM resources. 
+Making many genomes. Designed for scalable pangenomics. Optimized for container-capable SLURM resources. 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -22,14 +22,14 @@ Making many genomes, ideal for pangenomes. Primarily designed for container-capa
 <!-- TOC --><a name="installation"></a>
 ## Installation
 
-Currently, only a containerized release is supported because we shouldn't waste our time with software install. The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:latest` 
+Currently, only a containerized release is supported because we shouldn't waste our time with software install and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is obtainable without root. The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:latest` 
 
 The workhorse script `puzzler` is simply a check-point aware bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Fungus --map samples.tsv`. 
 
 For installation:  
 
 1) Download the container `.sif`
-2) Download the `puzzler` shell script
+2) Download the `puzzler` shell script, ideally add to path (e.g. `chmod +x /path/puzzler; echo 'export PATH=$PATH:/path/puzzler' >> ~/.bashrc`)
 3) Modify your SLURM/HPC settings within the `puzzler` script, if necessary. 
 
 ```
@@ -76,7 +76,6 @@ The (large, ~2.5Gb) container contains many common tools including:
 * [merothon v0.4.2](https://github.com/merondun/merothon)
 * [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/)
 * [seqtk v1.4-r122](https://github.com/lh3/seqtk)
-* [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats)
 
 **Conda install**
 
@@ -103,7 +102,8 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 5) Finalizing assembly, assign chromosome names based on a related reference using [merothon](https://github.com/merondun/merothon). 
 6) Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
-7) Output assembly statistics 
+
+You may then wish to proceed with `puzzle_quality`, which runs a variety of quality checks on assembly fasta files. 
 
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
@@ -335,16 +335,21 @@ Either make an issue or send an email to Justin at heritabilities [@] gmail.com
 
 Please ensure you cite the developers of the main  `puzzler`:
 
-* [hifiasm v0.25.0-r726](https://github.com/chhylp123/hifiasm)
-* [purge_dups v1.2.6](https://github.com/dfguan/purge_dups)
-* [minimap2 v2.29-r1283](https://github.com/lh3/minimap2)
-* [bwa-mem2 v2.2.1](https://github.com/bwa-mem2/bwa-mem2)
-* [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster)
-* [samtools v1.21](https://github.com/samtools/samtools)
-* [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC)
-* [juicer v1.2](https://github.com/aidenlab/juicer)
+* [apptainer/singularity](https://github.com/apptainer/apptainer): https://doi.org/10.1371/journal.pone.0177459
+* [hifiasm v0.25.0-r726](https://github.com/chhylp123/hifiasm): https://doi.org/10.1038/s41592-020-01056-5
+* [purge_dups v1.2.6](https://github.com/dfguan/purge_dups): https://doi.org/10.1093/bioinformatics/btaa025
+* [minimap2 v2.29-r1283](https://github.com/lh3/minimap2): https://doi.org/10.1093/bioinformatics/bty191
+* [bwa-mem2 v2.2.1](https://github.com/bwa-mem2/bwa-mem2): https://doi.org/10.1109/IPDPS.2019.00041
+* [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster): https://doi.org/10.1093/bioinformatics/btu314
+* [samtools v1.21](https://github.com/samtools/samtools): https://doi.org/10.1093/gigascience/giab008
+* [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC): https://doi.org/10.1038/s41477-024-01755-3 and https://doi.org/10.1038/s41477-019-0487-8
+* [juicer v1.2](https://github.com/aidenlab/juicer): https://doi.org/10.1016/j.cels.2016.07.002
+If using chromosome-renaming: 
 * [merothon v0.4.2](https://github.com/merondun/merothon)
-* [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/)
-* [seqtk v1.4-r122](https://github.com/lh3/seqtk)
-* [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats)
-* [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0)
+* [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/): https://doi.org/10.1002/imt2.191
+If using optional software:
+* [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0): https://doi.org/10.1038/s41467-020-14998-3
+* [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
+* [yak v0.1-r69-dirty](https://github.com/lh3/yak): https://doi.org/10.1038/s41592-020-01056-5 (same as hifiasm)
+* [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://f1000research.com/articles/6-1287/v1
+* [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats): https://zenodo.org/record/3968774
