@@ -4,7 +4,7 @@ Simple check-point aware shell script wrapper for high-throughput genome assembl
 
 > What's it for?!
 
-Making many genomes. Designed for scalable pangenomics. Optimized for container-capable SLURM resources. 
+Scalable genome assembly. As simple and portable as possible: only requires the `.sif` and a table with file paths. Optimized for container-capable SLURM resources. 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -16,6 +16,8 @@ Making many genomes. Designed for scalable pangenomics. Optimized for container-
 - [Outputs](#outputs)
 - [FAQ](#faq)
 - [Contact](#contact)
+- [Citation](#citation)
+- [Changelog](#changelog)
 
 <!-- TOC end --> 
 
@@ -81,7 +83,7 @@ The (large, ~2.5Gb) container contains many common tools including:
 
 1b) As a last resort, create conda environment from `/apptainer/environment.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. 
 
-You must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. 
+:exclamation: If you go the conda route, you must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. Simply search for that line in the script and replace the `/opt/` path with the path to your `.jarfile`. 
 
 
 <!-- TOC --><a name="workflow"></a>
@@ -242,7 +244,7 @@ If you still want the final HiC map, you can then re-submit the script `puzzler 
 
 Below is an exhaustive workflow outline documenting the inputs and outputs for each `puzzler` and `puzzle_quality` step. Only four hands-on steps are required from raw reads to assembly summary statistics. 
 
-![workflow](/examples/figs/workflow.png)
+![workflow](/examples/figs/Workflow.png)
 
 <!-- TOC --><a name="faq"></a>
 ## FAQ
@@ -254,6 +256,19 @@ Below is an exhaustive workflow outline documenting the inputs and outputs for e
 > The script fails on the HapHic step. 
 
 This can be difficult to diagnose, so please inspect the `${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.log`, and refer to [HapHiC](https://github.com/zengxiaofei/HapHiC) about e.g. "chromosomes are grouped together". Typically I see that error when there is insufficient or low quality HiC data. 
+
+> I can't launch the container, "FATAL:   container creation failed: failed to resolve session directory /var/apptainer/mnt/session: lstat /var/apptainer: no such file or directory"
+
+I see this warning if you try to run apptainer on a login node, which is typically a setting set by IT. You can try modifying some paths IF NECESSARY, but I really recommend testing on a compute node or submitting to a job scheduler. 
+
+Potentially try:
+
+```
+export APPTAINER_TMPDIR=/your/tmp/dir
+export APPTAINER_CACHEDIR=$HOME/.apptainer_cache
+mkdir -p "$APPTAINER_TMPDIR"
+apptainer exe $SIF hifiasm
+```
 
 > I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
 
@@ -285,27 +300,8 @@ scaffold_3      chr11   +       47.76%  28452307
 scaffold_4      chr2    +       39.75%  31132341
 ```
 
-If you did any manual edits and want to re-generate `final_asm.fa`, just fill in these fields and re-run: 
+If you did any manual edits and want to re-generate `final_asm.fa`, just fill in these fields and re-run puzzler.
 
-```
-WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
-SAMPLE=Fungus
-SIF_PATH=/home/justin.merondun/apptainer/puzzler_v1.4.sif
-PUZZLER="apptainer exec ${SIF_PATH}"
-
-cd ${WD}/${SAMPLE}/05_postjuicebox/
-
-# Sort them according to ID
-awk '$2 ~ /^chr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' > sorted_chr.txt
-awk '$2 ~ /^scaffold_/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
-
-# Rename
-${PUZZLER} seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
-${PUZZLER} samtools faidx haphic_renamed_unord.fa
-xargs ${PUZZLER} samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final_asm.fa
-```
-
-As above, you can re-submit now to generate the contact maps: `puzzler --sample Fungus --map samples.tsv`.
 
 > The script gave a warning: HapHiC for Fungus with 14 chrs failed, trying: 10 
 
@@ -331,9 +327,12 @@ Each directory within `$WD/$SAMPLE` corresponds to an assembly step, where all l
 <!-- TOC --><a name="contact"></a>
 ## Contact
 
-Either make an issue or send an email to Justin at heritabilities [@] gmail.com 
+Please make a git issue with any problems, no matter how small. Otherwise, email Justin at heritabilities [@] gmail.com 
 
-Please ensure you cite the developers of the main  `puzzler`:
+<!-- TOC --><a name="citation"></a>
+## Citation
+
+Please ensure you cite the developers of software within `puzzler`:
 
 * [apptainer/singularity](https://github.com/apptainer/apptainer): https://doi.org/10.1371/journal.pone.0177459
 * [hifiasm v0.25.0-r726](https://github.com/chhylp123/hifiasm): https://doi.org/10.1038/s41592-020-01056-5
@@ -344,12 +343,24 @@ Please ensure you cite the developers of the main  `puzzler`:
 * [samtools v1.21](https://github.com/samtools/samtools): https://doi.org/10.1093/gigascience/giab008
 * [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC): https://doi.org/10.1038/s41477-024-01755-3 and https://doi.org/10.1038/s41477-019-0487-8
 * [juicer v1.2](https://github.com/aidenlab/juicer): https://doi.org/10.1016/j.cels.2016.07.002
+
 If using chromosome-renaming: 
 * [merothon v0.4.2](https://github.com/merondun/merothon)
 * [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/): https://doi.org/10.1002/imt2.191
+
 If using optional software:
 * [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0): https://doi.org/10.1038/s41467-020-14998-3
+
+If using, please ensure you cite the developers of software within `puzzle_quality`:
 * [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
 * [yak v0.1-r69-dirty](https://github.com/lh3/yak): https://doi.org/10.1038/s41592-020-01056-5 (same as hifiasm)
 * [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://f1000research.com/articles/6-1287/v1
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats): https://zenodo.org/record/3968774
+
+<!-- TOC --><a name="changelog"></a>
+## Changelog
+
+`puzzler`
+
+**v1.7**: merge puzzler & puzzle_quality. 
+**v1.6**: add accomodation for specifying no reference ("NA" in `samples.tsv`). 

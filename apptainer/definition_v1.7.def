@@ -3,7 +3,8 @@ From: continuumio/miniconda3
 
 %files
     /project/coffea_pangenome/Software/Merondun/HapHiC /opt/HapHiC
-    environment.yml /opt/environment.yml
+    environment_v1.7.yml /opt/environment.yml
+    paf2dotplot.R /usr/local/bin/paf2dotplot.R
 
 %post
     conda env create -f /opt/environment.yml
@@ -15,13 +16,17 @@ From: continuumio/miniconda3
     
     # Install ps utility
     apt-get update && apt-get install -y procps python3-pip git
-    pip install assembly_stats
-    git clone https://github.com/merondun/merothon.git /opt/merothon
-    cd /opt/merothon
-    pip install -e . 
+    pip install assembly_stats docopt pysam matplotlib tqdm pyyaml 
+
+    # Clone and install blobtools
+    cd /opt
+    git clone https://github.com/DRL/blobtools.git
+    cd blobtools
+    python setup.py install
+
+    chmod +x /usr/local/bin/paf2dotplot.R
 
 %environment
-    export PATH=/bin:$PATH
+    export PATH=/usr/local/bin:/bin:$PATH
 
 %runscript
-    exec /bin/bash "$@"

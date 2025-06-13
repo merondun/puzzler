@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=10-00:00:00   
+#SBATCH --time=2-00:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=16
 #SBATCH --mem=256Gb
@@ -19,17 +19,20 @@ MAP_FILE=""
 RUNTIME=""
 t=16
 MEM=256
+VERSION="v1.1"
+
 
 # Display help message
 function show_help {
     echo "Usage: puzzle_quality [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --sample SAMPLE       Sample name (required)"
-    echo "  --map FILE       Path to .tsv/.csv map file (required)"
+    echo "  -s, --sample SAMPLE   Sample name (required)"
+    echo "  -m, --map FILE        Path to .tsv/.csv map file (required)"
     echo "  --threads t           Number of threads (optional; default 16)"
     echo "  --mem MEM             Memory allocation (Gb, optional; default 256)"
-    echo "  --help                Show this help message and exit"
+    echo "  -v, --version         Show version and exit"
+    echo "  -h, --help            Show this help message and exit"
     exit 0
 }
 
@@ -37,6 +40,7 @@ function show_help {
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -h|--help) show_help ;;  
+        -v|--version) echo "puzzle_quality version: $VERSION"; exit 0 ;;
         -s|--sample) SAMPLE="$2"; shift ;;
         -m|--map) MAP_FILE="$2"; shift ;;
         -t|--threads) t="$2"; shift ;;
@@ -96,9 +100,6 @@ set +e +u +o pipefail
 
 mkdir -p ${OUTDIR}/work/${SAMPLE}
 
-##### BUSCO: detect conserved genes, first download database #####
-
-
 ###### BUSCO ######
 if [ -s "${OUTDIR}/${SAMPLE}.busco.txt" ]; then 
 	echo -e "\e[42m~~~~ Skipping BUSCO for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.busco.txt exists ~~~~\e[0m"
@@ -129,7 +130,7 @@ else
 fi
 
 ##### Map HiFi Reads back to Assembly ##### 
-if [ -s "${OUTDIR}/${SAMPLE}.hifi_coverage.txt" ]; then 
+if [ -s "${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam" ]; then 
 	echo -e "\e[42m~~~~ Skipping HiFi coverage for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.hifi_coverage.txt exists ~~~~\e[0m"
 elif [ ! -s "${ASSEMBLY}" ]; then
 	echo -e "\e[41m~~~~ Skipping HiFi alignment for ${SAMPLE}, missing input: ${ASSEMBLY} ~~~~\e[0m"
@@ -141,18 +142,12 @@ else
     cd ${OUTDIR}/work/${SAMPLE}
 
 	# Alignment 
-	if [ ! -s "${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam" ]; then
-        echo -e "\e[43m~~~~ Starting HiFi Alignment for ${SAMPLE} ~~~~\e[0m"
-        { ${PQ} minimap2 -t ${t} -ax map-hifi \
-			${ASSEMBLY} ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
-			${PQ} samtools sort --threads ${t} -o ${SAMPLE}.hifi.bam; } > ${OUTDIR}/work/${SAMPLE}.hifi.alignment.log 2>&1
-        ${PQ} samtools index --threads ${t} ${SAMPLE}.hifi.bam
-		${PQ} mosdepth --by 250000 --mapq 30 --no-per-base ${SAMPLE}.hifi ${SAMPLE}.hifi.bam
-        zcat ${SAMPLE}.hifi.regions.bed.gz | awk -v s=${SAMPLE} '{OFS="\t"}{print $0, s}' > ${OUTDIR}/${SAMPLE}.hifi_coverage.txt
-
-	else
-		echo -e "\e[42m~~~~ Skipping HiFi Alignment for ${SAMPLE}, ${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam exists ~~~~\e[0m"
-	fi 
+    echo -e "\e[43m~~~~ Starting HiFi Alignment for ${SAMPLE} ~~~~\e[0m"
+    { ${PQ} minimap2 -t ${t} -ax map-hifi \
+        ${ASSEMBLY} ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
+        ${PQ} samtools sort --threads ${t} -o ${SAMPLE}.hifi.bam; } > ${OUTDIR}/work/${SAMPLE}.hifi.alignment.log 2>&1
+    ${PQ} samtools index -c --threads ${t} ${SAMPLE}.hifi.bam
+    
 fi # exit HiFi check
 
 ##### YAK k-mer QV ##### 
@@ -175,7 +170,7 @@ else
 fi
 
 ##### Blobtools contamination search ##### 
-if [ -s "${OUTDIR}/${SAMPLE}.blob.txt" ]; then 
+if [ -s "${OUTDIR}/${SAMPLE}.blob.stats.txt" ]; then 
 	echo -e "\e[42m~~~~ Skipping blobtools for ${SAMPLE}: ${OUTDIR}/${SAMPLE}.stats.txt exists ~~~~\e[0m"
 elif [ ! -s "${ASSEMBLY}" ]; then
 	echo -e "\e[41m~~~~ Skipping blobtools for ${SAMPLE}, missing input: ${ASSEMBLY} ~~~~\e[0m"
@@ -188,77 +183,66 @@ else
 
     # Download Refseq Taxdump
     cd ${BLOB_DB}
-    mkdir -p data
-    if [ ! -s "${BLOB_DB}/data/nodes.dmp" ]; then
+    mkdir -p data out
+    if [ ! -s "${BLOB_DB}/data/nodes.dmp" ] || [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
         echo -e "\e[43m~~~~ Grabbing NCBI taxdump files ~~~~\e[0m"
         wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
         tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp > ncbi_dump.tar.log 2>&1
-        ${PQ} blobtools nodesdb --nodes data/nodes.dmp --names data/names.dmp > ncbi_dump.nodedump.log 2>&1
-
 	else
 		echo -e "\e[42m~~~~ Skipping NCBI taxdump, ${BLOB_DB}/data/nodes.dmp exists ~~~~\e[0m"
 	fi 
 
     # Download refseq nt databases (MASSIVE!) 
-    mkdir -p nt
+    mkdir -p ${BLOB_DB}/nt
+    cd ${BLOB_DB}/nt
     if [ ! -s "${BLOB_DB}/nt/core_nt.ndb" ]; then
         echo -e "\e[43m~~~~ Downloading RefSeq nt database.... will take hours ~~~~\e[0m"
-        curl -s ftp://ftp.ncbi.nlm.nih.gov/blast/db/ | grep "nt.[0-9][0-9].tar.gz" | awk '{print "ftp://ftp.ncbi.nlm.nih.gov/blast/db/"$NF}' | xargs -n 1 wget -P nt/
-        for file in nt/*.tar.gz; do 
-            tar xf $file -C nt && rm $file; 
-        done
+        $PQ update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt [*]
+        # curl -s ftp://ftp.ncbi.nlm.nih.gov/blast/db/ | grep "nt.[0-9][0-9].tar.gz" | awk '{print "ftp://ftp.ncbi.nlm.nih.gov/blast/db/"$NF}' | xargs -n 1 wget -P nt/
+        # for file in nt/*.tar.gz; do 
+        #     tar xf $file -C nt && rm $file; 
+        # done
 	else
 		echo -e "\e[42m~~~~ Skipping RefSeq nt download, ${BLOB_DB}/nr/core_nt.ndb exists ~~~~\e[0m"
 	fi 
 
-    # # Grab refseq uniprot proteomes (MASSIVE!)
-    # mkdir -p uniprot
-    # if [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ]; then
-    #     echo -e "\e[43m~~~~ Downloading uniprot reference proteome database.... will take hours ~~~~\e[0m"
-
-    #     wget -q -O uniprot/reference_proteomes.tar.gz \
-    #     ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
-    #         -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
-    #         awk '/tar.gz/ {print $9}')
-    #     cd uniprot
-    #     tar xf reference_proteomes.tar.gz
-
-    #     touch reference_proteomes.fasta.gz
-    #     find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
-
-    #     echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
-    #     zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
-
-    #     echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
-    #     ${PQ} diamond makedb -p 16 --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ../taxdump/nodes.dmp -d reference_proteomes.dmnd
-    #     cd -
-	# else
-	# 	echo -e "\e[42m~~~~ Skipping diamond uniprot databases, ${BLOB_DB}/uniprot/reference_proteomes.dmnd exists ~~~~\e[0m"
-	# fi 
-
     cd ${BLOB_DB}
-    if [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ]; then
+    if [ ! -s "${SAMPLE}_blast.out" ]; then
         echo -e "\e[43m~~~~ Blasting reference against databases ~~~~\e[0m"
-        ${PQ} blastn -db nt/nt_core \
+        ${PQ} blastn -db ${BLOB_DB}/nt/nt_core \
             -query ${ASSEMBLY} \
             -outfmt "6 qseqid staxids bitscore std" \
             -max_target_seqs 10 \
             -max_hsps 1 \
             -evalue 1e-25 \
             -num_threads 16 \
-            -out ${SAMPLE}_blast.out
+            -out ${SAMPLE}_blast.out > ${SAMPLE}.blast.log 2>&1
 	else
 		echo -e "\e[42m~~~~ Skipping blast, ${BLOB_DB}/${SAMPLE}_blast.out exists ~~~~\e[0m"
 	fi 
 
-    if [ ! -s "${BLOB_DB}/data/nodes.dmp" ]; then
+    if [ ! -s "${SAMPLE}_blast.out" ]; then
+    	echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${BLOB_DB}/${SAMPLE}_blast.log ~~~~\e[0m"
+    elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
+        echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"  
+        { ${PQ} blobtools create -i ${ASSEMBLY} -b ${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam -t ${SAMPLE}_blast.out \
+            --db ${BLOB_DB}/data/nodesDB.txt -o out/${SAMPLE} && \
+            ${PQ} blobtools view -i out/${SAMPLE}.blobDB.json && \
+            ${PQ} blobtools plot -i out/${SAMPLE}.blobDB.json --format pdf; } > ${SAMPLE}.blob.log 2>&1
+        cp ${SAMPLE}*blobplot.bam0.pdf ${OUTDIR}/${SAMPLE}.blob.pdf
+        cp ${SAMPLE}.*blobplot.stats.txt ${OUTDIR}/${SAMPLE}.blob.stats.txt
+        cp ${SAMPLE}.*table.txt ${OUTDIR}/${SAMPLE}.blob.contaminants.txt
+    elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
         echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"
-        ${PQ} blobtools create -i ${ASSEMBLY} -b ${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam --db data/nodes.db --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp -t example/blast.out -o example/test && \
-            ${PQ} blobtools view -i example/test.blobDB.json && \
-            ${PQ} blobtools plot -i example/test.blobDB.json
-
+        { ${PQ} blobtools create -i ${ASSEMBLY} -b ${OUTDIR}/work/${SAMPLE}/${SAMPLE}.hifi.bam -t ${SAMPLE}_blast.out \
+            --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o out/${SAMPLE} && \
+            ${PQ} blobtools view -i out/${SAMPLE}.blobDB.json && \
+            ${PQ} blobtools plot -i out/${SAMPLE}.blobDB.json --format pdf; } > ${SAMPLE}.blob.log 2>&1
+        cp ${SAMPLE}*blobplot.bam0.pdf ${OUTDIR}/${SAMPLE}.blob.pdf
+        cp ${SAMPLE}.*blobplot.stats.txt ${OUTDIR}/${SAMPLE}.blob.stats.txt
+        cp ${SAMPLE}.*table.txt ${OUTDIR}/${SAMPLE}.blob.contaminants.txt
 	else
-		echo -e "\e[42m~~~~ Skipping NCBI taxdump, ${BLOB_DB}/data/nodes.dmp exists ~~~~\e[0m"
+		echo -e "\e[42m~~~~ Skipping blobtools, ${BLOB_DB}/data/nodesDB.txt is missing ~~~~\e[0m"
 	fi 
 fi
 
@@ -284,7 +268,7 @@ else
 
     # What percentage of the assembly is in named chromosomes
     ${PQ} samtools faidx ${ASSEMBLY}
-    egrep 'chr|Chr' ${ASSEMBLY}.fai | awk '$1 !~ /A/' | cut -f1 > ${SAMPLE}.chrs
+    egrep 'chr|Chr' ${ASSEMBLY}.fai | awk '$1 !~ /A/' | grep -v 'SUPER' | cut -f1 > ${SAMPLE}.chrs
     ${PQ} samtools faidx ${ASSEMBLY} -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
     CHR_STATS=$(${PQ} assembly_stats ${SAMPLE}.chr.fa)
     CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
