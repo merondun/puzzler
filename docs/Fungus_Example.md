@@ -116,23 +116,31 @@ The most important part is to prepare the map file `samples.tsv` with these colu
 
 :heavy_exclamation_mark:***Use full paths***!! 
 
-* **sample:** Sample ID, all assembly work will be saved in `$WD/$sample`
-* **container:** Path to the apptainer `.sif`
-* **wd:** Path to working directory to store all files 
-* **ploidy:** Ploidy of organism, or best guess
-* **chromosomes:** Number of chromosomes
-* **hifi:** Path to HiFi reads 
-* **hic_r1:** Path to HiC R1 
-* **hic_r2:** Path to HiC R2
-* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome using their naming convention. 
-* **hom_cov:** Homozygous peak coverage (OPTIONAL)
+* **sample:** Sample ID, all assembly work will be saved in `$WD/Fungus`.
+* **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
+* **container:** Path to the apptainer `.sif`. If all software available on path, simply write 'conda'. 
+* **wd:** Path to working directory to store all files.
+* **hifi:** Path to HiFi reads.
+* **hic_r1:** Path to HiC R1.
+* **hic_r2:** Path to HiC R2.
+* **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate if unknown.
 
-| sample | container                                        | wd                                                    | ploidy | chromosomes | hifi                                                         | hic_r1                                                       | hic_r2                                                       | Reference                                                    | hom_cov |
-| ------ | ------------------------------------------------ | ----------------------------------------------------- | ------ | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------- |
-| Crane  | /home/justin.merondun/apptainer/puzzler_v1.5.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | 2      | 40          | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R2.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106855.1_bGruGru1.hap1.1_genomic.fna | 48      |
-| Fungus | /home/justin.merondun/apptainer/puzzler_v1.5.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | 1      | 14          | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna |         |
+***OPTIONAL columns*** 
+*Specify "NA" and the script will skip respective components.*
 
-I left the `hom_cov` column empty for Fungus, so it won't specify this for `hifiasm`, instead letting it select this level internally. 
+* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
+* **hom_cov:** Homozygous peak coverage.
+* **blob_database:** Directory to save all blobtools databases.
+* **busco_lineage:** Busco odb10 version lineage.
+* **busco_database:** Directory to save busco dbs.
+
+
+| sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage | busco_database                                             |
+| ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | ------------- | ---------------------------------------------------------- |
+| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+      |
+
+I left the `hom_cov` column empty, so it won't specify this for `hifiasm`, instead letting hifiasm select this level internally. 
 
 Because the assembly and input files are small, I simply run this on a compute node with 4 cores and 36 Gb of memory:
 

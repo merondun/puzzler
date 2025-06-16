@@ -112,7 +112,10 @@ __________ ____ _______________________.____     _____________________
 
 EOF
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\n=======================================================================\n"
+core_avail=$(nproc)
+mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminfo)
+
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n=======================================================================\n"
 
 set -euo pipefail
 $PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~~ hifiasm not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
@@ -607,7 +610,7 @@ else
     echo -e "\e[43m~~~~ Running blobtools on ${SAMPLE} ~~~~\e[0m"
 
     ##### Map HiFi Reads back to Assembly ##### 
-    if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then 
+    if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hifi.complete" ]; then
         echo -e "\e[42m~~~~ Skipping HiFi alignment for ${SAMPLE}: ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam exists ~~~~\e[0m"
     else 
         cd ${WD}/${SAMPLE}/06_realign_hic_hifi
@@ -618,6 +621,7 @@ else
             ${WD}/primary_asm/${SAMPLE}.fa ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
             ${PUZZLER} samtools sort --threads ${t} -o asm.hifi.bam; } > hifi.alignment.log 2>&1
         ${PUZZLER} samtools index -c --threads ${t} asm.hifi.bam
+        touch ${WD}/${SAMPLE}/qc_align_hifi.complete
         
     fi # exit HiFi check
 
@@ -828,3 +832,6 @@ else
     echo -e "$VALUES" >> ${WD}/primary_asm/stats/${SAMPLE}.summary.txt
 
 fi # exit assembly stat check
+
+echo -e "\e[43m~~~~ Your final assembly for ${SAMPLE} is: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
+echo -e "\e[43m~~~~ Your final assembly stats for ${SAMPLE} are in: ${WD}/primary_asm/stats/${SAMPLE}.summary.txt ~~~~\e[0m"
