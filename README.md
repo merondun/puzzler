@@ -24,7 +24,17 @@ Scalable genome assembly. As simple and portable as possible: only requires the 
 <!-- TOC --><a name="installation"></a>
 ## Installation
 
-Currently, only a containerized release is supported because we shouldn't waste our time with software install and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is obtainable without root. The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:latest` 
+Currently, only a containerized release is supported because we shouldn't waste our time with software install and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is obtainable without root. 
+
+The singularity / apptainer `.sif` can be yanked with: `apptainer pull --arch amd64 library://merondun/default/puzzler:v1.7` 
+
+Depending on your architecture, you might need to update your apptainer libraries:
+
+```
+apptainer remote add --no-login SylabsCloud cloud.sycloud.io
+apptainer remote use SylabsCloud
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.7
+```
 
 The workhorse script `puzzler` is simply a check-point aware bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Fungus --map samples.tsv`. 
 
@@ -32,7 +42,7 @@ For installation:
 
 1) Download the container `.sif`
 2) Download the `puzzler` shell script, ideally add to path (e.g. `chmod +x /path/puzzler; echo 'export PATH=$PATH:/path/puzzler' >> ~/.bashrc`)
-3) Modify your SLURM/HPC settings within the `puzzler` script, if necessary. 
+3) Modify your SLURM/HPC settings within the `puzzler` script to accomodate your scheduler. 
 
 ```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
@@ -54,30 +64,21 @@ module load apptainer
 Test: 
 
 ```
-puzzler -h
 Usage: puzzler [OPTIONS]
 
 Options:
-  --sample SAMPLE       Sample name (required)
-  --map FILE            Path to .tsv/.csv map file (required)
+  -s, --sample SAMPLE       Sample name (required)
+  -m, --map FILE            Path to .tsv/.csv map file (required)
   --threads t           Number of threads (optional; default 64)
   --mem MEM             Memory allocation (optional; default 512)
-  --help                Show this help message and exit
+  -v, --version         Show version and exit
+  -h, --help                Show help and exit
+
+  Required --map Structure:
+  The provided map file (e.g., samples.txt) must contain the following columns in this order:
+  RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
+  For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
 ```
-
-The (large, ~2.5Gb) container contains many common tools including:
-
-* [hifiasm v0.25.0-r726](https://github.com/chhylp123/hifiasm)
-* [purge_dups v1.2.6](https://github.com/dfguan/purge_dups)
-* [minimap2 v2.29-r1283](https://github.com/lh3/minimap2)
-* [bwa-mem2 v2.2.1](https://github.com/bwa-mem2/bwa-mem2)
-* [samblaster v0.1.26](https://github.com/GregoryFaust/samblaster)
-* [samtools v1.21](https://github.com/samtools/samtools)
-* [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC)
-* [juicer v1.2](https://github.com/aidenlab/juicer)
-* [merothon v0.4.2](https://github.com/merondun/merothon)
-* [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/)
-* [seqtk v1.4-r122](https://github.com/lh3/seqtk)
 
 **Conda install**
 
@@ -91,21 +92,24 @@ The (large, ~2.5Gb) container contains many common tools including:
 
 The pipeline creates a collapsed completely *de novo* primary genome assembly using both HiFi and HiC data. The workflow is: 
 
-:pushpin: **`puzzler`**
+:pushpin: **`sbatch puzzler`**
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
 2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. This `puzzler` implementation is not coverage based - only sequence similarity based, which works well in many species with variable ploidy. 
-3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
+3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails. 
 4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`). 
 
 :mag: **Manual Curation in Juicebox** 
 
-:pushpin: **`puzzler`**
+:pushpin: **`sbatch puzzler`**
 
-5) Finalizing assembly, assign chromosome names based on a related reference using [merothon](https://github.com/merondun/merothon). 
-6) Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
+5) Finalizing assembly, assign chromosome names based on a related reference using [merothon](https://github.com/merondun/merothon).
+6) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
+7) QC: [yak](https://github.com/lh3/yak) base quality check. 
+8) QC: [busco](https://busco.ezlab.org/) check.
+9) QC: [blobtools](https://blobtools.readme.io/docs/what-is-blobtools) contaminant check against uniprot. 
+10) QC: [assembly_stats](https://github.com/MikeTrizna/assembly_stats) assembly statistic metrics. 
 
-You may then wish to proceed with `puzzle_quality`, which runs a variety of quality checks on assembly fasta files. 
 
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
@@ -119,23 +123,30 @@ You may then wish to proceed with `puzzle_quality`, which runs a variety of qual
 Prepare a `samples.tsv` (either tab or comma separated) which outlines all necessary pipeline components. An example template is found in [/examples/samples.tsv](/examples/samples.tsv)
 
 ```
-sample	container	wd	ploidy	chromosomes	hifi	hic_r1	hic_r2	Reference	hom_cov
-Crane	/home/justin.merondun/apptainer/puzzler_v1.5.sif	/90daydata/coffea_pangenome/puzzler_trials/assemblies	2	40	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiFi.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R1.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R2.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106855.1_bGruGru1.hap1.1_genomic.fna	48
-Fish	/home/justin.merondun/apptainer/puzzler_v1.5.sif	/90daydata/coffea_pangenome/puzzler_trials/assemblies	2	24	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiFi.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R1.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R2.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_951216825.1_fEleAnt2.1_genomic.fna	42
+sample	runtime	container	wd	hifi	hic_r1	hic_r2	num_chrs	reference	hom_cov	blob_database	busco_lineage	busco_database
+Beaver	apptainer	/home/justin.merondun/apptainer/puzzler_v1.7.sif	/90daydata/coffea_pangenome/puzzler_trials/assemblies	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz	20	/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna	NA	/90daydata/coffea_pangenome/puzzler_trials/blob_downloads	mammalia_odb10	/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Crane	apptainer	/home/justin.merondun/apptainer/puzzler_v1.7.sif	/90daydata/coffea_pangenome/puzzler_trials/assemblies	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiFi.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R1.fastq.gz	/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R2.fastq.gz	40	/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106855.1_bGruGru1.hap1.1_genomic.fna	48	/90daydata/coffea_pangenome/puzzler_trials/blob_downloads	aves_odb10	/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 ```
 
 :page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
-* **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE``
-* **container:** Path to the apptainer `.sif`. If using conda, simply write 'conda'. 
-* **wd:** Path to working directory to store all files 
-* **ploidy:** Ploidy of organism, or best guess. 
+* **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE`.
+* **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure "$runtime exec puzzler.sif" works.
+* **container:** Path to the apptainer `.sif`. If all software available on path, simply write 'conda'. 
+* **wd:** Path to working directory to store all files.
+* **hifi:** Path to HiFi reads.
+* **hic_r1:** Path to HiC R1.
+* **hic_r2:** Path to HiC R2.
 * **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate in case you don't know.
-* **hifi:** Path to HiFi reads 
-* **hic_r1:** Path to HiC R1 
-* **hic_r2:** Path to HiC R2
-* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**. 
-* **hom_cov:** Homozygous peak coverage (OPTIONAL; see below, otherwise write "NA") 
+
+***OPTIONAL columns*** 
+*Specify "NA" and the script will skip respective components.*
+
+* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
+* **hom_cov:** Homozygous peak coverage.
+* **blob_database:** Directory to save all blobtools databases.
+* **busco_lineage:** Busco odb10 version lineage.
+* **busco_database:** Directory to save busco dbs.
 
 ***Homozygous peak coverage*** is the homozygous peak covewrage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
@@ -147,9 +158,21 @@ For more details about this homozygous coverage and for a full example, see the 
 <!-- TOC --><a name="details"></a>
 ## Details
 
-:fire: `puzzler` is checkpoint-based, so it will skip already-completed tasks based on file existence (files with a size > 0). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
+:fire: `puzzler` is checkpoint-based, so it will skip already-completed tasks based on file existence and successful step completion (files with a size > 0 and `$WD/$SAMPLE/hifiasm.complete`). You can therefore trick the script by creating or copying manual files into the appropriate directories. 
 
-For instance, if you submit the command `puzzler --sample Fungus --map samples.tsv` and you had already completed hifiasm, purge duplicates, and haphic steps, yet miss the juicer outputs, the script will create the juicebox `.hic` files. 
+For instance, if you submit the command `puzzler --sample Fungus --map samples.tsv` and you had already completed hifiasm, purge duplicates, and haphic steps, your `$WD/Fungus` directory will look like this:
+
+```
+Jun 16 14:02 01_hifiasm
+Jun 16 17:34 02_purge_dups
+Jun 16 14:02 03_haphic
+Jun 16 13:44 hifiasm.complete
+Jun 16 13:44 purge_dups.complete
+Jun 16 13:44 align_hic.complete
+Jun 16 13:44 scaffolding.complete
+```
+
+And since you miss the juicer outputs, the script will create the juicebox `.hic` files:
 
 ```
 =======================================================================
@@ -162,22 +185,26 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 
 =======================================================================
-Parameters for sample: Fungus
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.5.sif 
+Parameters for sample: Fungus 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
-PLOIDY: 1 
-NUMBER CHRS: 3
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
 HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
 REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
-HOM_COV: 
-RUNTIME: apptainer
+HOM_COV: NA
+BLOB_DB: /90daydata/coffea_pangenome/puzzler_trials/blob_downloads
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 =======================================================================
 
-~~~~ Starting hifiasm assembly for Fungus ~~~~
-~~~~ Starting Purge_Dups for Fungus ~~~~
-~~~~ Mapping HiC reads to Fungus draft ~~~~
+~~~~ Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
+~~~~ Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~~
+~~~~ Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/filtered.bam exists ~~~~
+~~~~ Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
+~~~~ Creating .hic file for juicebox for Fungus, with reference alignment  ~~~~
 ```
 
 
@@ -195,13 +222,22 @@ This script will check for these files, and create them if they do not exist in 
 
 <br/>
 
-:mag: **Manual curation:** Juicebox! 
+Note that the script will also output a `.complete` file for each step, in case the step didn't finish completely (e.g. ran out of time). **If you are manually copying in files (e.g. you do a separate `purge_dups`, then make sure you create this file e.g. `touch $WD/$SAMPLE/purge_dups.complete`)
 
+```
+$WD/$SAMPLE/hifiasm.complete
+$WD/$SAMPLE/purge_dups.complete
+$WD/$SAMPLE/align_hic.complete
+$WD/$SAMPLE/scaffolding.complete
+$WD/$SAMPLE/juicer.complete
+```
+
+:mag: **Manual curation:** Juicebox! 
 
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
-This will create e.g. `${SAMPLE}_JBAT.review.assembly`. Maintain that file name, and copy it to `${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.review.assembly`. 
+This will create e.g. `$SAMPLE_JBAT.review.assembly`. Maintain that file name, and copy it to `$WD/juicer_files/$SAMPLE_JBAT.review.assembly`. 
 
 <br/>
 
@@ -219,23 +255,6 @@ This script will check for these files, and create them if they do not exist in 
 | $WD/primary_asm/stats/Fungus.stats.txt                   | Calculate Assembly Stats   | assembly_stats  |
 
 <br/>
-
-:volcano: **NOTE:** If you don't care about renaming chromosomes to a reference, you can simply run juicer:
-
-```
-WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
-SAMPLE=Fungus
-SIF_PATH=/home/justin.merondun/apptainer/puzzler_v1.6.sif
-PUZZLER="apptainer exec ${SIF_PATH}"
-
-cd ${WD}/${SAMPLE}/05_postjuicebox
-${PUZZLER} juicer post -o final_asm.fa \
-  ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.review.assembly \
-  ${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp \
-  ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-```
-
-If you still want the final HiC map, you can then re-submit the script `puzzler --sample Fungus --map samples.tsv`, and the script will simply run the final HiC mapping check, outputting the juicebox-curated assembly in `$WD/primary_asm/$SAMPLE.fa` and the final contact map in `WD/primary_asm/stats/$SAMPLE.pdf`. 
 
 <br/>
 
@@ -348,14 +367,16 @@ If using chromosome-renaming:
 * [merothon v0.4.2](https://github.com/merondun/merothon)
 * [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/): https://doi.org/10.1002/imt2.191
 
-If using optional software:
-* [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0): https://doi.org/10.1038/s41467-020-14998-3
-
-If using, please ensure you cite the developers of software within `puzzle_quality`:
+If assessing assembly quality / contaminants:
 * [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
 * [yak v0.1-r69-dirty](https://github.com/lh3/yak): https://doi.org/10.1038/s41592-020-01056-5 (same as hifiasm)
 * [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://f1000research.com/articles/6-1287/v1
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats): https://zenodo.org/record/3968774
+
+If using optional software:
+* [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0): https://doi.org/10.1038/s41467-020-14998-3
+
+
 
 <!-- TOC --><a name="changelog"></a>
 ## Changelog

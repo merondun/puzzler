@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=2-00:00:00   
+#SBATCH --time=1-00:00:00   
 #SBATCH --nodes=1  
 #SBATCH --ntasks-per-node=64
-#SBATCH --mem=128Gb
+#SBATCH --mem=512Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -117,7 +117,6 @@ echo -e "=======================================================================
 set -euo pipefail
 $PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~~ hifiasm not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
 $PUZZLER haphic --version > /dev/null 2>&1 || { -e "\e[40m~~~~ haphic not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
-set +e +u +o pipefail 
 
 ########## End checks #############
 
@@ -129,7 +128,7 @@ else
     echo -e "\e[43m~~~~ Assembling genome for ${SAMPLE} ~~~~\e[0m"
 
     ##### HIFIASM: Generate Primary Assembly #####
-    if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ]; then
+    if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ] && [ -f "${WD}/${SAMPLE}/hifiasm.complete" ]; then
         echo -e "\e[42m~~~~ Skipping hifiasm for ${SAMPLE}: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~\e[0m"
     elif [ ! -s "${HIFI}" ]; then
         echo -e "\e[41m~~~~ Skipping hifiasm for ${SAMPLE}, missing input: ${HIFI} ~~~~\e[0m"
@@ -144,13 +143,14 @@ else
             RUN_ASM="$RUN_ASM --hom-cov ${HOM_COV}"
         fi
         $RUN_ASM 2> "${SAMPLE}.hifiasm.log"
+        touch ${WD}/${SAMPLE}/hifiasm.complete
     else
         echo -e "\e[41m~~~~ Skipping hifiasm for ${SAMPLE}, missing input: ${HIC_R1} ~~~~\e[0m"
         exit 1 
     fi
 
     ##### PURGE_DUPS: Purge duplicates based on sequence #####
-    if [ -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
+    if [ -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ] && [ -f "${WD}/${SAMPLE}/purge_dups.complete" ]; then
         echo -e "\e[42m~~~~ Skipping purge for ${SAMPLE}: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa exists ~~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ]; then
         echo -e "\e[41m~~~~ Skipping Purge_Dups for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa ~~~~\e[0m"
@@ -175,10 +175,11 @@ else
             ${PUZZLER} get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
             mv purged.fa p_ctg.purged.fa
         fi
+        touch ${WD}/${SAMPLE}/purge_dups.complete
     fi
 
     ##### ALIGN HIC #####
-    if [ -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
+    if [ -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ] && [ -f "${WD}/${SAMPLE}/align_hic.complete" ]; then
         echo -e "\e[42m~~~~ Skipping HiC alignment for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/filtered.bam exists ~~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
         echo -e "\e[41m~~~~ Skipping HiC alignment for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ~~~~\e[0m"
@@ -195,10 +196,11 @@ else
             ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
             ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} | \
             ${PUZZLER} samtools view - -b -@ ${t} -o filtered.bam; } > ${SAMPLE}.alignment.hic.log 2>&1
+        touch ${WD}/${SAMPLE}/align_hic.complete
     fi
 
-    ##### HAPHIC #####
-    if [ -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then 
+    ##### SCAFFOLDING #####
+    if [ -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ] && [ -f "${WD}/${SAMPLE}/scaffolding.complete" ]; then
         echo -e "\e[42m~~~~ Skipping HapHiC for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
         echo -e "\e[41m~~~~ Skipping HapHiC for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/filtered.bam ~~~~\e[0m"
@@ -263,10 +265,11 @@ else
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.fa ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
         fi 
+        touch ${WD}/${SAMPLE}/scaffolding.complete
     fi
 
     ##### JUICER #####
-    if [ -s "${WD}/juicer_files/${SAMPLE}_JBAT.hic" ]; then
+    if [ -s "${WD}/juicer_files/${SAMPLE}_JBAT.hic" ] && [ -f "${WD}/${SAMPLE}/juicer.complete" ]; then
         echo -e "\e[42m~~~~ Skipping juicer HiC file creation for ${SAMPLE}: ${WD}/juicer_files/${SAMPLE}_JBAT.hic exists ~~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
         echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ~~~~\e[0m"
@@ -294,6 +297,7 @@ else
                 
             cp haphic_JBAT.hic ${WD}/juicer_files/${SAMPLE}_JBAT.hic
             cp haphic_JBAT.assembly ${WD}/juicer_files/${SAMPLE}_JBAT.assembly
+            touch ${WD}/${SAMPLE}/juicer.complete
 
     else
         #DO THIS IF REFERENCE EXISTS
@@ -326,6 +330,7 @@ else
             
         cp haphic-refsort_JBAT.hic ${WD}/juicer_files/${SAMPLE}_JBAT.hic
         cp haphic-refsort_JBAT.assembly ${WD}/juicer_files/${SAMPLE}_JBAT.assembly
+        touch ${WD}/${SAMPLE}/juicer.complete
     fi 
 
     ##### Extract post juicebox assembly
@@ -488,7 +493,7 @@ fi # exit assembly creation loop, if assembly exists - just skip to quality chec
 echo -e "\e[43m~~~~ Assessing genome quality for ${SAMPLE} ~~~~\e[0m"
 
 ###### Final HIC mapping ##### 
-if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then 
+if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hic.complete" ]; then
     echo -e "\e[42m~~~~ Skipping alignment for final HiC map ${SAMPLE}: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam exists ~~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~~ Skipping alignment for final HiC map ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
@@ -508,11 +513,12 @@ else
         ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
         ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} --remove-dup | \
         ${PUZZLER} samtools view - -b -@ ${t} -o final_asm.filtered.bam; } > alignment.final_hic.log 2>&1
+    touch ${WD}/${SAMPLE}/qc_align_hic.complete
 
 fi # exit final hic mapping check 
 
 ##### Final HIC Plotting ##### 
-if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf" ]; then 
+if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf" ]; then
     echo -e "\e[42m~~~~ Skipping final contact map generating for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.pdf exists ~~~~\e[0m"
 elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
     echo -e "\e[41m~~~~ Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam ~~~~\e[0m"
@@ -525,7 +531,7 @@ else
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 2> haphic_plot.log
     else
 	    echo -e "\e[43m~~~~ Creating final contact map for ${SAMPLE}, plotting named chromosomes ~~~~\e[0m"
-		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | grep -v 'SUPER' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
+		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | egrep -v 'SUPER|unloc' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 	fi 
 
@@ -534,8 +540,8 @@ else
 fi # exit final hic plotting check 
 
 ##### YAK k-mer QV ##### 
-if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/yak.qv.txt" ]; then 
-    echo -e "\e[42m~~~~ Skipping YAK k-mer QV for ${SAMPLE}: ${WD}/${SAMPLE}/07_busco_yak_blob/yak.qv.txt exists ~~~~\e[0m"
+if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt" ] && [ -f "${WD}/${SAMPLE}/yak.complete" ]; then
+    echo -e "\e[42m~~~~ Skipping YAK k-mer QV for ${SAMPLE}: ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt exists ~~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~~ Skipping YAK k-mer QV for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
 elif [ ! -s "${HIFI}" ]; then
@@ -546,11 +552,11 @@ else
 
     ${PUZZLER} yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
     ${PUZZLER} yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
-
+    touch ${WD}/${SAMPLE}/yak.complete
 fi
 
 ###### BUSCO ######
-if [ -s "${WD}/primary_asm/stats/${SAMPLE}.busco.txt" ]; then 
+if [ -s "${WD}/primary_asm/stats/${SAMPLE}.busco.txt" ] && [ -f "${WD}/${SAMPLE}/busco.complete" ]; then
     echo -e "\e[42m~~~~ Skipping BUSCO for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.busco.txt exists ~~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~~ Skipping BUSCO for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
@@ -571,16 +577,8 @@ else
         rm ${B_LOCK_FILE}
 
     elif [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ] && [ -f "${BUSCO_DB}/${BUSCO_LINEAGE}.lock" ]; then
-        echo -e "\e[43m~~~~ Another instance is already downloading  busco database. Waiting 5 min...  ~~~~\e[0m"
-        TIMEOUT=0
-        while [ -f "$B_LOCK_FILE" ]; do
-            sleep 300
-            TIMEOUT=$((TIMEOUT + 5))
-            if [ "$TIMEOUT" -ge 60 ]; then
-                echo -e "\e[41m~~~~ ERROR: Lock file exists for 1 hour! Check ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} and rm ${BUSCO_DB}/${BUSCO_LINEAGE}.lock ~~~~\e[0m"
-                exit 1
-            fi
-        done
+        echo -e "\e[41m~~~~ Another instance already dl-ing busco db. Resubmit puzzler after it's finished. Exiting ~~~~\e[0m"
+        exit 1 
     else
         echo -e "\e[42m~~~~ BUSCO lineage dataset already exists, skipping ~~~~\e[0m"
     fi
@@ -593,6 +591,7 @@ else
         -f > busco.log 2>&1
 
     mv ${SAMPLE}/short_summary.specific.${BUSCO_LINEAGE}.${SAMPLE}.txt ${WD}/primary_asm/stats/${SAMPLE}.busco.txt
+    touch ${WD}/${SAMPLE}/busco.complete
 fi
 
 ##### Blobtools contamination search ##### 
@@ -624,24 +623,14 @@ else
 
     LOCK_FILE="${BLOB_DB}/download_taxdump.lock"
 
-    if [ -f "$LOCK_FILE" ]; then
-        echo -e "\e[43m~~~~ Another instance is already downloading the taxdump database. Waiting 5 min... ~~~~\e[0m"
-        TIMEOUT=0
-        while [ -f "$LOCK_FILE" ]; do
-            sleep 300
-            TIMEOUT=$((TIMEOUT + 5))
-            if [ "$TIMEOUT" -ge 60 ]; then
-                echo -e "\e[41m~~~~ ERROR: Lock file exists for 1 hour! Check ${BLOB_DB}/data/nodes.dmp and rm ${BLOB_DB}/download_taxdump.lock ~~~~\e[0m"
-                exit 1
-            fi
-        done
-    fi
-
     #### Download Refseq Taxdump (small!)
-    cd ${BLOB_DB}
-    mkdir -p data out
-    if [ ! -s "${BLOB_DB}/data/nodes.dmp" ] && [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
+    if [ -f "$LOCK_FILE" ]; then
+        echo -e "\e[41m~~~~ Another instance already dl-ing taxdump db. Resubmit puzzler when finished, or rm $LOCK_FILE! Exiting ~~~~\e[0m"
+        exit 1
+    elif [ ! -s "${BLOB_DB}/data/nodes.dmp" ] && [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
         echo -e "\e[43m~~~~ Grabbing NCBI taxdump files ~~~~\e[0m"
+        cd ${BLOB_DB}
+        mkdir -p data out
         # Create lock file to signal database download in progress
         touch "$LOCK_FILE"
         wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
@@ -657,27 +646,17 @@ else
     
     NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
 
-    if [ -f "$NT_LOCK_FILE" ]; then
-        echo -e "\e[43m~~~~ Another instance is already downloading the nt database. Waiting... ~~~~\e[0m"
-        TIMEOUT=0
-        while [ -f "$NT_LOCK_FILE" ]; do
-            sleep 600
-            TIMEOUT=$((TIMEOUT + 10))
-            if [ "$TIMEOUT" -ge 720 ]; then
-                echo -e "\e[41m~~~~ ERROR: Lock file exists for 12 hrs! Check ${BLOB_DB}/nt and rm ${BLOB_DB}/download_nt.lock ~~~~\e[0m"
-                exit 1
-            fi
-        done
-    fi
-
     # Capture output and errors
-    if [ ! -f "$NT_LOCK_FILE" ]; then
+    if [ -f "$NT_LOCK_FILE" ]; then
+        echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
+        exit 1 
+    elif [ ! -f "$NT_LOCK_FILE" ]; then
         echo -e "\e[43m~~~~ Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~~\e[0m"
         touch "$NT_LOCK_FILE"
         ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
         
         # If there's an error with the script, stop! 
-        if grep -i "Warning\|not found\|skipping\|error" nt_check_database.log; then
+        if grep -i "not found\|error" nt_check_database.log; then
             echo -e "\e[41m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~~\e[0m"
             exit 1
         fi
@@ -689,23 +668,77 @@ else
         echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
     fi 
 
+    # # Grab refseq uniprot proteomes (MASSIVE!)
+    # mkdir -p uniprot
+    # if [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ]; then
+    #     echo -e "\e[43m~~~~ Downloading uniprot reference proteome database.... will take hours ~~~~\e[0m"
+
+    #     wget -q -O uniprot/reference_proteomes.tar.gz \
+    #     ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
+    #         -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
+    #         awk '/tar.gz/ {print $9}')
+    #     cd uniprot
+    #     tar xf reference_proteomes.tar.gz
+
+    #     touch reference_proteomes.fasta.gz
+    #     find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
+
+    #     echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
+    #     zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+
+    #     echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
+    #     ${PUZZLER} diamond makedb -p ${t} --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ../taxdump/nodes.dmp -d reference_proteomes.dmnd
+    #     cd -
+	# else
+	# 	echo -e "\e[42m~~~~ Skipping diamond uniprot databases, ${BLOB_DB}/uniprot/reference_proteomes.dmnd exists ~~~~\e[0m"
+	# fi 
+
+
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ ! -s "${SAMPLE}_blast.out" ]; then
-        echo -e "\e[43m~~~~ Blasting ${SAMPLE} against databases, will take some time... ~~~~\e[0m"
-        ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
-            -query ${WD}/primary_asm/${SAMPLE}.fa \
-            -outfmt "6 qseqid staxids bitscore std" \
-            -max_target_seqs 10 \
-            -max_hsps 1 \
-            -evalue 1e-25 \
-            -num_threads ${t} \
-            -out blast.out > blast.log 2>&1
+    if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
+            echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
     else
-        echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
+        echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
+        mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+        cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+
+        # Split primary assembly into 1Mb sliding windows
+        ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
+            -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
+
+        # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
+        ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
+
+        # Run BLAST on each chunk in parallel
+        for f in query_chunk_*; do
+            ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
+                -query "$f" \
+                -outfmt "6 qseqid staxids bitscore std" \
+                -max_target_seqs 10 \
+                -max_hsps 1 \
+                -evalue 1e-25 \
+                -num_threads "${t}" \
+                -out "$f.out" &
+        done
+        wait
+
+        # Combine results
+        cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
+
+        # ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
+        #     -query ${WD}/primary_asm/${SAMPLE}.fa \
+        #     -outfmt "6 qseqid staxids bitscore std" \
+        #     -max_target_seqs 10 \
+        #     -max_hsps 1 \
+        #     -evalue 1e-25 \
+        #     -num_threads ${t} \
+        #     -out blast.out > blast.log 2>&1
+        touch ${WD}/${SAMPLE}/blastn.complete
     fi 
 
-    if [ ! -s "blast.out" ]; then
+    if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
         echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blast.log ~~~~\e[0m"
+        exit 1 
     elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then
 	     echo -e "\e[41m~~~~ Alignment file missing for ${SAMPLE}, check ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam ~~~~\e[0m"
     elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
@@ -736,8 +769,8 @@ else
 fi
 
 ##### Basic Assembly Stats ##### 
-if [ -s "${WD}/primary_asm/stats/${SAMPLE}.stats.txt" ]; then 
-    echo -e "\e[42m~~~~ Skipping final assembly stats for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.stats.txt exists ~~~~\e[0m"
+if [ -s "${WD}/primary_asm/stats/${SAMPLE}.summary.txt" ]; then 
+    echo -e "\e[42m~~~~ Skipping final assembly stats for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.summary.txt exists ~~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~~ Skipping final assembly stats for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
 else 
@@ -760,7 +793,7 @@ else
 	# Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
     if [ "${REFERENCE}" != "NA" ]; then
 		${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
-		egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | grep -v 'SUPER' | cut -f1 > ${SAMPLE}.chrs
+		egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc' | cut -f1 > ${SAMPLE}.chrs
 		${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
 		CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
 		CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
