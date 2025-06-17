@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=1-00:00:00   
+#SBATCH --time=0-08:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=64
-#SBATCH --mem=512Gb
+#SBATCH --ntasks-per-node=12
+#SBATCH --mem=64Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -26,13 +26,13 @@ function show_help {
     echo "Usage: puzzler [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -s, --sample SAMPLE       Sample name (required)"
-    echo "  -m, --map FILE            Path to .tsv/.csv map file (required)"
+    echo "  -s, --sample SAMPLE   Sample name (required)"
+    echo "  -m, --map FILE        Path to .tsv/.csv map file (required)"
     echo "  --threads t           Number of threads (optional; default 64)"
     echo "  --mem MEM             Memory allocation (optional; default 512)"
-    echo "  --no_juice             Skip juicer file creation entirely (optional; not recommended!)"
+    echo "  --no_juice            Skip juicer file creation entirely (optional; not recommended!)"
     echo "  -v, --version         Show version and exit"
-    echo "  -h, --help                Show help and exit"
+    echo "  -h, --help            Show help and exit"
     echo ""
     echo "  Required --map Structure:"
     echo "  The provided map file (e.g., samples.txt) must contain the following columns in this order:"
@@ -124,7 +124,7 @@ EOF
 core_avail=$(nproc)
 mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminfo)
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n${JUICE_PRINT}\n=======================================================================\n"
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n=======================================================================\n"
 
 set -euo pipefail
 $PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~~ hifiasm not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
@@ -132,12 +132,13 @@ $PUZZLER haphic --version > /dev/null 2>&1 || { -e "\e[40m~~~~ haphic not found,
 
 ########## End checks #############
 
-mkdir -p ${WD}/primary_asm/stats ${WD}/juicer_files ${WD}/${SAMPLE}/01_hifiasm ${WD}/${SAMPLE}/02_purge_dups ${WD}/${SAMPLE}/03_haphic ${WD}/${SAMPLE}/04_juicer ${WD}/${SAMPLE}/05_postjuicebox ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob
+mkdir -p ${WD}/primary_asm/stats ${WD}/juicer_files ${WD}/${SAMPLE}/01_hifiasm ${WD}/${SAMPLE}/02_purge_dups ${WD}/${SAMPLE}/03_haphic ${WD}/${SAMPLE}/04_juicer ${WD}/${SAMPLE}/05_postjuicebox ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob ${BUSCO_DB}
 if [ -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[42m~~~~ Skipping assembly for ${SAMPLE}: ${WD}/primary_asm/${SAMPLE}.fa exists ~~~~\e[0m"
 else
 
     echo -e "\e[43m~~~~ Assembling genome for ${SAMPLE} ~~~~\e[0m"
+    echo -e "\e[43m~~~~ ${JUICE_PRINT} ~~~~\e[0m"
 
     ##### HIFIASM: Generate Primary Assembly #####
     if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ] && [ -f "${WD}/${SAMPLE}/hifiasm.complete" ]; then
@@ -669,73 +670,105 @@ else
         echo -e "\e[42m~~~~ Skipping NCBI taxdump, ${BLOB_DB}/data/nodes.dmp exists ~~~~\e[0m"
     fi 
 
-    #### Download refseq nt databases (MASSIVE!)     
-    UP_LOCK_FILE="${BLOB_DB}/download_up.lock"
+    # #### Download uniprot databases (MASSIVE!)     
+    # UP_LOCK_FILE="${BLOB_DB}/download_up.lock"
 
-    # Capture output and errors
-    if [ -f "$UP_LOCK_FILE" ]; then
-        echo -e "\e[41m~~~~ Another instance already dl-ing uniprot db. Resubmit puzzler when finished or rm $UP_LOCK_FILE! Exiting ~~~~\e[0m"
-        exit 1
-    elif [ ! -f "$UP_LOCK_FILE" ] && [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ] && [ ! -f "${BLOB_DB}/uniprot_db.complete" ]; then
-        echo -e "\e[43m~~~~ Checking/Downloading uniprot database.... will take hours if non-existent ~~~~\e[0m"
-        touch "$UP_LOCK_FILE"
+    # # Capture output and errors
+    # if [ -f "$UP_LOCK_FILE" ]; then
+    #     echo -e "\e[41m~~~~ Another instance already dl-ing uniprot db. Resubmit puzzler when finished or rm $UP_LOCK_FILE! Exiting ~~~~\e[0m"
+    #     exit 1
+    # elif [ ! -f "$UP_LOCK_FILE" ] && [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ] && [ ! -f "${BLOB_DB}/uniprot_db.complete" ]; then
+    #     echo -e "\e[43m~~~~ Checking/Downloading uniprot database.... will take hours if non-existent ~~~~\e[0m"
+    #     touch "$UP_LOCK_FILE"
 
-        mkdir -p ${BLOB_DB}/uniprot
-        cd ${BLOB_DB}/
+    #     mkdir -p ${BLOB_DB}/uniprot
+    #     cd ${BLOB_DB}/
 
-        {
-        wget -q -O uniprot/reference_proteomes.tar.gz \
-        ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
-            -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
-            awk '/tar.gz/ {print $9}')
-        cd uniprot
-        tar xf reference_proteomes.tar.gz
+    #     {
+    #     wget -q -O uniprot/reference_proteomes.tar.gz \
+    #     ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
+    #         -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
+    #         awk '/tar.gz/ {print $9}')
+    #     cd uniprot
+    #     tar xf reference_proteomes.tar.gz
 
-        touch reference_proteomes.fasta.gz
-        find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
+    #     touch reference_proteomes.fasta.gz
+    #     find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
 
-        echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
-        zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+    #     echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
+    #     zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
 
-        echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
-        ${PUZZLER} diamond makedb -p ${t} --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ${BLOB_DB}/data/nodes.dmp -d reference_proteomes.dmnd
-        } > ${BLOB_DB}/uniprot_db.log 2>&1
-        # Database is ready, so remove the lock file 
-        echo -e "\e[43m~~~~ Uniprot database created successfully successfully ~~~~\e[0m"
-        touch ${BLOB_DB}/uniprot_db.complete
-        rm "$UP_LOCK_FILE"
-    else
-        echo -e "\e[42m~~~~ Error detected during uniprot database creation! Check ${BLOB_DB}/uniprot or rm $UP_LOCK_FILE ~~~~\e[0m"
-    fi 
+    #     echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
+    #     ${PUZZLER} diamond makedb -p ${t} --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ${BLOB_DB}/data/nodes.dmp -d reference_proteomes.dmnd
+    #     } > ${BLOB_DB}/uniprot_db.log 2>&1
+    #     # Database is ready, so remove the lock file 
+    #     echo -e "\e[43m~~~~ Uniprot database created successfully successfully ~~~~\e[0m"
+    #     touch ${BLOB_DB}/uniprot_db.complete
+    #     rm "$UP_LOCK_FILE"
+    # else
+    #     echo -e "\e[42m~~~~ Error detected during uniprot database creation! Check ${BLOB_DB}/uniprot or rm $UP_LOCK_FILE ~~~~\e[0m"
+    # fi 
 
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out" ] && [ -f "${WD}/${SAMPLE}/blastx.complete" ]; then
-            echo -e "\e[42m~~~~ Skipping blastx, ${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out exists ~~~~\e[0m"
-    else
-        {
-        # Split primary assembly into 1Mb sliding windows
-        ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
-            -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
-        ${PUZZLER} seqkit split --by-size 1 primary_split_1mb.fa -O blast_parts_1mb
+    # cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    # if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out" ] && [ -f "${WD}/${SAMPLE}/blastx.complete" ]; then
+    #         echo -e "\e[42m~~~~ Skipping blastx, ${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out exists ~~~~\e[0m"
+    # else
+    #     {
+    #     # Split primary assembly into 1Mb sliding windows
+    #     ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
+    #         -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
+    #     ${PUZZLER} seqkit split --by-size 1 primary_split_1mb.fa -O blast_parts_1mb
 
-        # Run BLAST on each chunk in parallel
-        for f in blast_parts_1mb/*.fa; do
-            ${PUZZLER} diamond blastx \
-                --query "$f" \
-                --db ${BLOB_DB}/uniprot/reference_proteomes.dmnd \
-                --outfmt 6 qseqid staxids bitscore qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore \
-                --sensitive \
-                --max-target-seqs 1 \
-                --evalue 1e-25 \
-                --threads ${t} \
-                > "$f.dmnd.out"
-        done
+    #     # Run BLAST on each chunk in parallel
+    #     for f in blast_parts_1mb/*.fa; do
+    #         ${PUZZLER} diamond blastx \
+    #             --query "$f" \
+    #             --db ${BLOB_DB}/uniprot/reference_proteomes.dmnd \
+    #             --outfmt 6 qseqid staxids bitscore qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore \
+    #             --sensitive \
+    #             --max-target-seqs 1 \
+    #             --evalue 1e-25 \
+    #             --threads ${t} \
+    #             > "$f.dmnd.out"
+    #     done
 
-        # Combine results
-        cat blast_parts_1mb/*.dmnd.out > "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out"
-        } > blastx.log 2>&1
-        touch ${WD}/${SAMPLE}/blastx.complete
-    fi 
+    #     # Combine results
+    #     cat blast_parts_1mb/*.dmnd.out > "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out"
+    #     } > blastx.log 2>&1
+    #     touch ${WD}/${SAMPLE}/blastx.complete
+    # fi 
+
+    # cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    # if [ ! -s "diamond_1mb.out" ] && [ ! -s "${WD}/${SAMPLE}/blastx.complete" ]; then
+    #     echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blastx.log ~~~~\e[0m"
+    #     exit 1 
+    # elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then
+	#      echo -e "\e[41m~~~~ Alignment file missing for ${SAMPLE}, check ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam ~~~~\e[0m"
+    # elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
+
+    #     echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"  
+    #     { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
+    #         --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
+    #         ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
+    #         ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+    #     cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
+    #     cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
+    #     cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
+
+    # elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
+
+    #     echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"
+    #     { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
+    #         --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
+    #         ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
+    #         ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+    #     cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
+    #     cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
+    #     cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
+
+    # else
+    #     echo -e "\e[42m~~~~ Skipping blobtools, ${BLOB_DB}/data/nodesDB.txt is missing ~~~~\e[0m"
+    # fi 
 
     #### Download refseq nt databases (MASSIVE!) 
     mkdir -p ${BLOB_DB}/nt
@@ -744,7 +777,9 @@ else
     NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
 
     # Capture output and errors
-    if [ -f "$NT_LOCK_FILE" ]; then
+    if [ -f "${BLOB_DB}/nt.complete" ]; then
+        echo -e "\e[42m~~~~ Refseq nt database appears okay. ${BLOB_DB}/nt/nt.ndb exists ~~~~\e[0m"
+    elif [ -f "$NT_LOCK_FILE" ]; then
         echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
         exit 1 
     elif [ ! -f "$NT_LOCK_FILE" ]; then
@@ -761,6 +796,7 @@ else
         # Otherwise, database is ready, so remove the lock file 
         echo -e "\e[43m~~~~ RefSeq nt database exists successfully ~~~~\e[0m"
         rm "$NT_LOCK_FILE"
+        touch ${BLOB_DB}/nt.complete
     else
         echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
     fi 
@@ -770,33 +806,34 @@ else
             echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
     else
         echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
-        mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
-        cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+        # mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+        # cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
 
-        # Split primary assembly into 1Mb sliding windows
-        ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
-            -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
+        # # Split primary assembly into 1Mb sliding windows
+        # ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
+        #     -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
 
-        # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
-        ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
+        # # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
+        # ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
 
-        # Run BLAST on each chunk in parallel
-        for f in query_chunk_*; do
-            ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
-                -query "$f" \
-                -outfmt "6 qseqid staxids bitscore std" \
-                -max_target_seqs 10 \
-                -max_hsps 1 \
-                -evalue 1e-25 \
-                -num_threads "${t}" \
-                -out "$f.out" &
-        done
-        wait
+        # # Run BLAST on each chunk in parallel
+        # for f in query_chunk_*; do
+        #     ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
+        #         -query "$f" \
+        #         -outfmt "6 qseqid staxids bitscore std" \
+        #         -max_target_seqs 10 \
+        #         -max_hsps 1 \
+        #         -evalue 1e-25 \
+        #         -num_threads "${t}" \
+        #         -out "$f.out" &
+        # done
+        # wait
 
-        # Combine results
-        cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
+        # # Combine results
+        # cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
 
-        ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
+        ${PUZZLER} blastn -task megablast \
+            -db ${BLOB_DB}/nt/nt \
             -query ${WD}/primary_asm/${SAMPLE}.fa \
             -outfmt "6 qseqid staxids bitscore std" \
             -max_target_seqs 10 \
@@ -807,17 +844,16 @@ else
         touch ${WD}/${SAMPLE}/blastn.complete
     fi 
 
-    #if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ ! -s "diamond_1mb.out" ] && [ ! -s "${WD}/${SAMPLE}/blastx.complete" ]; then
-        echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blastx.log ~~~~\e[0m"
+    if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
+        echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blast.log ~~~~\e[0m"
         exit 1 
     elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then
 	     echo -e "\e[41m~~~~ Alignment file missing for ${SAMPLE}, check ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam ~~~~\e[0m"
     elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
 
         echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"  
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
+        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
             --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
             ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
             ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
@@ -828,7 +864,7 @@ else
     elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
 
         echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
+        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
             --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
             ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
             ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
@@ -902,5 +938,5 @@ else
 
 fi # exit assembly stat check
 
-echo -e "\e[43m~~~~ Your final assembly for ${SAMPLE} is: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
-echo -e "\e[43m~~~~ Your final assembly stats for ${SAMPLE} are in: ${WD}/primary_asm/stats/${SAMPLE}.summary.txt ~~~~\e[0m"
+echo -e "\e[46m~~~~ Your final assembly for ${SAMPLE} is: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
+echo -e "\e[46m~~~~ Your final assembly stats for ${SAMPLE} are in: ${WD}/primary_asm/stats/${SAMPLE}.summary.txt ~~~~\e[0m"

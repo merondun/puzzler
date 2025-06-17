@@ -74,15 +74,17 @@ module load apptainer
 Test: 
 
 ```
+puzzler -h
 Usage: puzzler [OPTIONS]
 
 Options:
-  -s, --sample SAMPLE       Sample name (required)
-  -m, --map FILE            Path to .tsv/.csv map file (required)
+  -s, --sample SAMPLE   Sample name (required)
+  -m, --map FILE        Path to .tsv/.csv map file (required)
   --threads t           Number of threads (optional; default 64)
   --mem MEM             Memory allocation (optional; default 512)
+  --no_juice            Skip juicer file creation entirely (optional; not recommended!)
   -v, --version         Show version and exit
-  -h, --help                Show help and exit
+  -h, --help            Show help and exit
 
   Required --map Structure:
   The provided map file (e.g., samples.txt) must contain the following columns in this order:
