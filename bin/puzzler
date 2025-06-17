@@ -215,6 +215,7 @@ else
 
         echo -e "\e[43m~~~~ Running HapHiC for ${SAMPLE}  ~~~~\e[0m" 
         mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic
+        set +euo pipefail
         # Clean up any previous runs, otherwise fails ... 
         rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
 
@@ -269,6 +270,7 @@ else
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
         fi 
         touch ${WD}/${SAMPLE}/scaffolding.complete
+        set -euo pipefail
     fi
 
     ##### JUICER #####
