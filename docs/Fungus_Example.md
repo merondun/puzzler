@@ -4,6 +4,8 @@
 
 ## File Preparation
 
+### Reads
+
 First, grab the [HiFi](https://www.ncbi.nlm.nih.gov/sra/ERX12134039[accn]) and [HiC](https://www.ncbi.nlm.nih.gov/sra/ERX12138301[accn]) data from the SRA. Let's only use 100K HiFi reads and 10M HiC paired reads so it runs quickly.
 
 ```bash
@@ -31,6 +33,8 @@ fasterq-dump --split-files ERR12765203
 head -n 1000000 ERR12765203_1.fastq | gzip -c > ../concat_reads/Fungus.HiC.R1.fastq.gz
 head -n 1000000 ERR12765203_2.fastq | gzip -c > ../concat_reads/Fungus.HiC.R2.fastq.gz
 ```
+
+### [Optional] Simplify Reference Chr Names
 
 I will name the chromosomes according to the published reference assembly:
 
@@ -85,9 +89,9 @@ grep '>' GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
 
 
 
-## Determine homozygous coverage with genomescope2
+## [Optional] Determine homozygous coverage & genome size with genomescope2
 
-Using HiFi reads, determine homozygous coverage peaks:
+Using HiFi reads, we can determine homozygous coverage peaks, which also gives a sense of HiFi data quality. We ideally want enough HiFi data that we have a clean peak that is easily separated from the errors. 
 
 ```bash
 module load apptainer
@@ -108,13 +112,21 @@ Will output this plot:
 
 ![genomescope2](/examples/figs/Fungus_linear_plot.png)
 
-The left-peak corresponds to around 14, so we would set `--hom_cov` to 28. Instead, I will just let use hifiasm determine appropriate levels, and check the `.log`.
+The left-peak corresponds to around 18, so we would set `--hom_cov` to 32 if it was diploid. 
 
-## Draft Assembly
+It can sometimes be difficult to disentangle haploid and diploid samples using genomescope2, and we don't know the ploidy of this species. 
 
-The most important part is to prepare the map file `samples.tsv` with these columns, in this specific order. 
+Instead of specifying `--hom_cov` directly, I will just let use `hifiasm` determine appropriate levels, and check the `.log`.
+
+## `puzzler`
+
+### Step 1: Draft Assembly
+
+:bulb: The most important part is to prepare the map file `samples.tsv` with these columns, **in this specific order.**
 
 :heavy_exclamation_mark:***Use full paths***!! 
+
+
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/Fungus`.
 * **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
@@ -135,17 +147,223 @@ The most important part is to prepare the map file `samples.tsv` with these colu
 * **busco_database:** Directory to save busco dbs.
 
 
+
 | sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage | busco_database                                             |
 | ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | ------------- | ---------------------------------------------------------- |
 | Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-      |
 
-I left the `hom_cov` column empty, so it won't specify this for `hifiasm`, instead letting hifiasm select this level internally. 
+I set `hom_cov` to "NA", so it won't specify this for `hifiasm`, instead letting it select this level internally. 
 
-Because the assembly and input files are small, I simply run this on a compute node with 4 cores and 36 Gb of memory:
+Because the assembly and input files (400K HiFi reads; 310mb file size, 2M paired HiC reads; 373mb each) are small, I simply run this on a compute node with `--threads 4`and `--mem 32`  Gb of memory. 
 
 ```bash
-puzzler --sample Fungus --map samples.tsv --threads 4 --mem 36
+=======================================================================
+__________ ____ _______________________.____     _____________________
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif
+WD: /project/90daydata/coffea_pangenome/puzzler_trials/assemblies
+HIFI: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
+HOM_COV: NA
+BLOB_DB: /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /project/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 4
+Cores Available: 4
+RAM Requested: 32
+Memory Available: 327.3 GB
+=======================================================================
+
+~~~~ Assembling genome for Fungus ~~~~
+~~~~ Starting hifiasm assembly for Fungus ~~~~
+```
+
+:alarm_clock: This is a good time to check that all of your paths and parameters look appropriate. 
+
+ We can then check the output `Fungus/01_hifiasm/Fungus.hifiasm.log` file to ensure an appropriate `--hom_cov` was selected:
+
+```bash
+ 1: ****************************************************************************************************> 905745
+ 2: ****************************************************************************************************> 63784
+ 3: ********************************** 12624
+ 4: ************** 5273
+ 5: ******** 2871
+ 6: **** 1643
+ 7: *** 1091
+ 8: ** 842
+ 9: ** 677
+10: * 383
+11: * 306
+12: * 298
+13: * 413
+14: * 443
+15: ** 577
+16: ** 904
+17: *** 1281
+18: ***** 1752
+19: ****** 2310
+20: ********* 3375
+21: ************ 4347
+22: **************** 5891
+23: ********************** 8012
+24: **************************** 10458
+25: *********************************** 12942
+26: ***************************************** 14919
+27: ************************************************** 18171
+28: ********************************************************* 20927
+29: *************************************************************** 22993
+30: ********************************************************************** 25613
+31: ******************************************************************************* 28887
+32: ************************************************************************************* 31331
+33: ******************************************************************************************* 33257
+34: ************************************************************************************************ 35302
+35: **************************************************************************************************** 36699
+36: ************************************************************************************************** 36086
+37: *********************************************************************************************** 34944
+38: ********************************************************************************************** 34616
+39: *************************************************************************************** 31801
+40: ************************************************************************************ 30938
+41: ******************************************************************************* 28950
+42: ************************************************************************** 27087
+43: ****************************************************************** 24120
+44: ********************************************************** 21313
+45: *********************************************** 17428
+46: **************************************** 14650
+47: ********************************** 12535
+48: ***************************** 10638
+49: ************************* 9016
+50: ******************** 7335
+51: *************** 5624
+52: ************ 4336
+53: ********* 3417
+54: ******* 2709
+55: ***** 1883
+56: **** 1415
+57: *** 1273
+58: *** 981
+59: ** 821
+60: ** 719
+61: ** 606
+62: * 521
+63: * 476
+64: * 458
+65: * 450
+66: * 507
+67: * 450
+68: * 467
+69: * 401
+70: * 325
+71: * 401
+72: * 327
+73: * 408
+74: * 312
+75: * 314
+76: * 324
+77: * 373
+78: * 313
+79: * 294
+80: * 248
+81: * 271
+82: * 342
+83: * 228
+84: * 289
+85: * 349
+86: * 338
+87: * 318
+88: * 311
+89: * 299
+90: * 236
+91: * 261
+92: * 222
+93: * 230
+94: * 215
+95: * 208
+[M::ha_hist_line]  rest: ************************ 8842
+[M::ha_analyze_count] left: none
+[M::ha_analyze_count] right: none
+[M::ha_pt_gen] peak_hom: 35; peak_het: -1
+```
+
+`hifiasm` automatically selected 35, while `genomescope2` estimated left peak at 18.1 (if assuming diploid, `--hom_cov` =36).
+
+Puzzler continues up until the juicebox curation stage. The output indicates that puzzler was unable to successfully run [HapHiC](https://github.com/zengxiaofei/HapHiC) with the specified number of chromosomes (from `samples.tsv`). Puzzler will automatically atttempt HapHiC with +/- 4 chromosomes, to see if it will successfully run with those chromosomes numbers instead. If that fails, puzzler will instead run [YAHS](https://github.com/c-zhou/yahs), which in my experience has always run successfully. 
+
+Of the many genomes I have run so far, Fungus is the only genome not successfully scaffolded with HapHiC, so maybe it has something to do with the small size of chromosomes. 
+
+```bash
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.6.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+PLOIDY: 1 
+NUMBER CHRS: 14
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
+HOM_COV: NA
+RUNTIME: apptainer
+=======================================================================
+
+~~~~ Starting hifiasm assembly for Fungus ~~~~
+~~~~ Starting Purge_Dups for Fungus ~~~~
+~~~~ Mapping HiC reads to Fungus draft ~~~~
+~~~~ Running HapHiC for Fungus  ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 10 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 11 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 12 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 13 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 14 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 15 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 16 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 17 ~~~~
+~~~~ HapHiC for Fungus with 14 chrs failed, trying: 18 ~~~~
+~~~~ HapHiC for Fungus failed, scaffolding with YAHS instead ~~~~
+~~~~ Creating .hic file for juicebox for Fungus  ~~~~
+~~~~ Post curation assembly file doesn't exist for Fungus - Run Juicebox! ~~~~
+```
+
+In any case, the pipeline will also run `haphic refsort`, provided a related species is provided, which will align your draft scaffolds in order of the reference genome for juicebox curation. **This is not reference-guided assembly**, and will not rename or otherwise modify the scaffolds. Please see the [HapHiC](https://github.com/zengxiaofei/HapHiC) `refsort` description for more details. 
+
+If you did not provide a `$REFERENCE` file, it will still output the `.hic` and `.assembly` files, just without running `haphic refsort`. 
+
+### Step 2: Juicebox Curation
+
+Now we are ready to load the `$WD/juicer_files/Fungus_JBAT.hic` and `$WD/juicer_files/Fungus_JBAT.assembly` file into juicebox. 
+
+Perform our edits. Pull in the `.hic` file, import the `.assembly` file with `Assembly > Import Map Assembly`. There's very minimal edits on this genome, I just merge two blocks which originate from one chromosome: 
+
+![Fungus_Edits_Juicebox]()
+
+Afterwards, save the file with `Assembly > Export Assembly`, and save the  `Fungus_JBAT.review.assembly` to the directory `$WD/juicer_files`, retaining the default file name! 
+
+### Step 3: Chromosome Renaming, Remapping HiC
+
+Simply submit `puzzler` with the same parameters as before, and the script will assign chromosome names, output a final HiC contact map on the final assembly, and output assembly statistics:
+
+```bash
+puzzler --sample Fungus --map samples.tsv 
 
 =======================================================================
 __________ ____ _______________________.____     _____________________ 
@@ -158,7 +376,7 @@ __________ ____ _______________________.____     _____________________
 
 =======================================================================
 Parameters for sample: Fungus 
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.5.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.6.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 PLOIDY: 1 
 NUMBER CHRS: 14
@@ -170,126 +388,39 @@ HOM_COV:
 RUNTIME: apptainer
 =======================================================================
 
-~~~~ Starting hifiasm assembly for Fungus ~~~~
-~~~~ Starting Purge_Dups for Fungus ~~~~
-~~~~ Skipping purge for Fungus: no duplicates found! ~~~~
-~~~~ Mapping HiC reads to Fungus draft ~~~~
-~~~~ Running HapHiC for Fungus  ~~~~
+~~~~ Skipping hifiasm for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~
+~~~~ Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~~
+~~~~ Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/filtered.bam exists ~~~~
+~~~~ Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
+~~~~ Skipping juicer HiC file creation for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/juicer_files/Fungus_JBAT.hic exists ~~~~
+~~~~ Skipping draft-reference mapping for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/05_postjuicebox/map.txt exists ~~~~
+~~~~ Renaming chromosomes for Fungus ~~~~
+~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~
+~~~~ Single scaffolds corresponding to a single Chr for Fungus ~~~~
+~~~~ Creating final HiC bam for Fungus ~~~~
 ```
 
-:alarm_clock: This is a good time to check that all of your paths and parameters look appropriate. 
+Which outputs a final HiC contact map at `$WD/primary_asm/stats/$SAMPLE.pdf`: 
 
- We can then check the output `Fungus/01_hifiasm/Fungus.hifiasm.log` file to ensure an appropriate `--hom_cov` was selected:
+![final hic contacts](/examples/figs/Fungus_Final.png)
+
+### Step 3: If No `$REFERENCE` 
+
+:bomb: If you **DO NOT** have a somewhat-related species to assign chromosomes (note that we only really need weak alignments, I have done this with ~60 MY diverged species), then you can be finished after juicebox curation. 
+
+After Juicebox curation, just run this, which will extract the final assembly:
 
 ```bash
-[M::ha_hist_line]     1: ****************************************************************************************************> 593244
-[M::ha_hist_line]     2: ****************************************************************************************************> 40550
-[M::ha_hist_line]     3: ************************************************ 12704
-[M::ha_hist_line]     4: ************************************** 9994
-[M::ha_hist_line]     5: *********************************** 9165
-[M::ha_hist_line]     6: ****************************************** 10998
-[M::ha_hist_line]     7: ******************************************* 11210
-[M::ha_hist_line]     8: ******************************************* 11324
-[M::ha_hist_line]     9: *************************************************** 13249
-[M::ha_hist_line]    10: ************************************************************ 15787
-[M::ha_hist_line]    11: ************************************************************* 15949
-[M::ha_hist_line]    12: ***************************************************************** 16971
-[M::ha_hist_line]    13: *********************************************************************** 18676
-[M::ha_hist_line]    14: ******************************************************************************* 20572
-[M::ha_hist_line]    15: *********************************************************************************** 21659
-[M::ha_hist_line]    16: **************************************************************************************** 23154
-[M::ha_hist_line]    17: ******************************************************************************************** 24120
-[M::ha_hist_line]    18: ********************************************************************************************** 24568
-[M::ha_hist_line]    19: ************************************************************************************************* 25442
-[M::ha_hist_line]    20: **************************************************************************************************** 26141
-[M::ha_hist_line]    21: **************************************************************************************************** 26206
-[M::ha_hist_line]    22: ************************************************************************************************ 25169
-[M::ha_hist_line]    23: ********************************************************************************************** 24528
-[M::ha_hist_line]    24: ************************************************************************************************* 25467
-[M::ha_hist_line]    25: ********************************************************************************************** 24699
-[M::ha_hist_line]    26: ******************************************************************************************* 23770
-[M::ha_hist_line]    27: ************************************************************************************** 22573
-[M::ha_hist_line]    28: ******************************************************************************* 20825
-[M::ha_hist_line]    29: ******************************************************************************* 20710
-[M::ha_hist_line]    30: ************************************************************************* 19117
-[M::ha_hist_line]    31: *********************************************************************** 18523
-[M::ha_hist_line]    32: ******************************************************************* 17560
-[M::ha_hist_line]    33: ******************************************************************* 17552
-[M::ha_hist_line]    34: ********************************************************* 15052
-[M::ha_hist_line]    35: ************************************************** 13078
-[M::ha_hist_line]    36: ************************************************ 12449
-[M::ha_hist_line]    37: ***************************************** 10692
-[M::ha_hist_line]    38: *************************************** 10336
-[M::ha_hist_line]    39: *********************************** 9066
-[M::ha_hist_line]    40: ****************************** 7739
-[M::ha_hist_line]    41: ************************ 6334
-[M::ha_hist_line]    42: ******************* 5061
-[M::ha_hist_line]    43: ************** 3797
-[M::ha_hist_line]    44: ************ 3082
-[M::ha_hist_line]    45: ********** 2711
-[M::ha_hist_line]    46: ******* 1795
-[M::ha_hist_line]    47: ***** 1200
-[M::ha_hist_line]    48: ***** 1342
-[M::ha_hist_line]    49: **** 952
-[M::ha_hist_line]    50: *** 686
-[M::ha_hist_line]    51: ** 541
-[M::ha_hist_line]    52: * 393
-[M::ha_hist_line]    53: * 266
-[M::ha_hist_line]    54: * 238
-[M::ha_hist_line]    55: * 163
-[M::ha_hist_line]    56: * 138
-[M::ha_hist_line]  rest: ******************* 4852
-[M::ha_analyze_count] left: none
-[M::ha_analyze_count] right: none
-[M::ha_pt_gen] peak_hom: 21; peak_het: -1
+SAMPLE=Fungus
+WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.6.sif"
+
+cd ${WD}/${SAMPLE}/05_postjuicebox
+${PUZZLER} juicer post \
+    -o haphic-refsort-post_JBAT \
+    ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.review.assembly \
+    ${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp \
+    ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
 ```
 
-`hifiasm` automatically selected 21, instead of `genomescope2` estimate of 28, which is actually a bigger gap than I've seen with larger genomes. 
-
-We successfully got to the `haphic pipeline` step, but now we ran into an issue because haphic could not identify our specified number of chromosomes (n=14).
-
-```bash
-#!/bin/bash
-
-#SBATCH --time=48:00:00   
-#SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=10
-#SBATCH --mem=56Gb
-#SBATCH --partition=ceres
-
-
-
-
-if [ ! -s ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/04.build/scaffolds.fa ]; then
-rm -rf ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/*
-
-    # Attempt NUM_CHRS values from 2 to 40
-    for CHR_ATTEMPT in {2..40}; do
-
-        echo -e "\e[43m~~~~ Running HapHiC for ${SAMPLE} ${IT} ${CHR_ATTEMPT} ~~~~\e[0m"
-        cd ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1
-
-        ${PUZZLER} haphic pipeline ../all.purged.fa ../filtered.MQ1.bam ${CHR_ATTEMPT} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ${WD}/${SAMPLE}/02_${IT}HapHiC/${SAMPLE}.${IT}.${CHR_ATTEMPT}.haphic.LOOP.log
-
-        # Check if scaffolds.fa exists
-        if [ -s ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/04.build/scaffolds.fa ]; then
-            echo -e "\e[32mScaffolds.fa created successfully with NUM_CHRS=${CHR_ATTEMPT}\e[0m"
-            break
-        else
-            echo -e "\e[31mFailed with NUM_CHRS=${CHR_ATTEMPT}, retrying...\e[0m"
-            rm -rf ${WD}/${SAMPLE}/02_${IT}HapHiC/01_haphicMQ1/*
-        fi
-    done
-fi
-```
-
-
-
-
-
-Otherwise, now it's load the `$WD/primary_asm/juicer_files/Fungus_JBAT.hic` and `$WD/primary_asm/juicer_files/Fungus_JBAT.assembly` file into juicebox. 
-
-
-
-
-
+Which will output: `haphic-refsort-post_JBAT.FINAL.fa`. Your final assembly. 

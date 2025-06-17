@@ -219,7 +219,7 @@ else
         rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
 
         cd ${WD}/${SAMPLE}/03_haphic/haphic/
-        ${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --remove_allelic_links ${PLOIDY} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
+        ${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
         cp ${WD}/${SAMPLE}/03_haphic/haphic/01.cluster/HapHiC_cluster.log ${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.cluster_WOULD_CONTAIN_ERRORS.log
 
         # IF HapHic failed with the specified number of chromosomes $NUM_CHRS, then loop from NUM_CHRS - 1, NUM_CHRS - 2, until successful 
@@ -644,111 +644,155 @@ else
         echo -e "\e[42m~~~~ Skipping NCBI taxdump, ${BLOB_DB}/data/nodes.dmp exists ~~~~\e[0m"
     fi 
 
-    #### Download refseq nt databases (MASSIVE!) 
-    mkdir -p ${BLOB_DB}/nt
-    cd ${BLOB_DB}/nt
-    
-    NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
+    #### Download refseq nt databases (MASSIVE!)     
+    UP_LOCK_FILE="${BLOB_DB}/download_up.lock"
 
     # Capture output and errors
-    if [ -f "$NT_LOCK_FILE" ]; then
-        echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
-        exit 1 
-    elif [ ! -f "$NT_LOCK_FILE" ]; then
-        echo -e "\e[43m~~~~ Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~~\e[0m"
-        touch "$NT_LOCK_FILE"
-        ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
-        
-        # If there's an error with the script, stop! 
-        if grep -i "not found\|error" nt_check_database.log; then
-            echo -e "\e[41m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~~\e[0m"
-            exit 1
-        fi
+    if [ -f "$UP_LOCK_FILE" ]; then
+        echo -e "\e[41m~~~~ Another instance already dl-ing uniprot db. Resubmit puzzler when finished or rm $UP_LOCK_FILE! Exiting ~~~~\e[0m"
+        exit 1
+    elif [ ! -f "$UP_LOCK_FILE" ] && [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ] && [ ! -f "${BLOB_DB}/uniprot_db.complete" ]; then
+        echo -e "\e[43m~~~~ Checking/Downloading uniprot database.... will take hours if non-existent ~~~~\e[0m"
+        touch "$UP_LOCK_FILE"
 
-        # Otherwise, database is ready, so remove the lock file 
-        echo -e "\e[43m~~~~ RefSeq nt database exists successfully ~~~~\e[0m"
-        rm "$NT_LOCK_FILE"
+        mkdir -p ${BLOB_DB}/uniprot
+        cd ${BLOB_DB}/
+
+        {
+        wget -q -O uniprot/reference_proteomes.tar.gz \
+        ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
+            -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
+            awk '/tar.gz/ {print $9}')
+        cd uniprot
+        tar xf reference_proteomes.tar.gz
+
+        touch reference_proteomes.fasta.gz
+        find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
+
+        echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
+        zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+
+        echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
+        ${PUZZLER} diamond makedb -p ${t} --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ${BLOB_DB}/data/nodes.dmp -d reference_proteomes.dmnd
+        } > ${BLOB_DB}/uniprot_db.log 2>&1
+        # Database is ready, so remove the lock file 
+        echo -e "\e[43m~~~~ Uniprot database created successfully successfully ~~~~\e[0m"
+        touch ${BLOB_DB}/uniprot_db.complete
+        rm "$UP_LOCK_FILE"
     else
-        echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
+        echo -e "\e[42m~~~~ Error detected during uniprot database creation! Check ${BLOB_DB}/uniprot or rm $UP_LOCK_FILE ~~~~\e[0m"
     fi 
 
-    # # Grab refseq uniprot proteomes (MASSIVE!)
-    # mkdir -p uniprot
-    # if [ ! -s "${BLOB_DB}/uniprot/reference_proteomes.dmnd" ]; then
-    #     echo -e "\e[43m~~~~ Downloading uniprot reference proteome database.... will take hours ~~~~\e[0m"
-
-    #     wget -q -O uniprot/reference_proteomes.tar.gz \
-    #     ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
-    #         -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
-    #         awk '/tar.gz/ {print $9}')
-    #     cd uniprot
-    #     tar xf reference_proteomes.tar.gz
-
-    #     touch reference_proteomes.fasta.gz
-    #     find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
-
-    #     echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
-    #     zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
-
-    #     echo -e "\e[43m~~~~ Creating diamond uniprot reference proteome database.... ~~~~\e[0m"
-    #     ${PUZZLER} diamond makedb -p ${t} --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ../taxdump/nodes.dmp -d reference_proteomes.dmnd
-    #     cd -
-	# else
-	# 	echo -e "\e[42m~~~~ Skipping diamond uniprot databases, ${BLOB_DB}/uniprot/reference_proteomes.dmnd exists ~~~~\e[0m"
-	# fi 
-
-
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
-            echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
+    if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out" ] && [ -f "${WD}/${SAMPLE}/blastx.complete" ]; then
+            echo -e "\e[42m~~~~ Skipping blastx, ${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out exists ~~~~\e[0m"
     else
-        echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
-        mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
-        cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
-
+        {
         # Split primary assembly into 1Mb sliding windows
         ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
             -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
-
-        # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
-        ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
+        ${PUZZLER} seqkit split --by-size 1 primary_split_1mb.fa -O blast_parts_1mb
 
         # Run BLAST on each chunk in parallel
-        for f in query_chunk_*; do
-            ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
-                -query "$f" \
-                -outfmt "6 qseqid staxids bitscore std" \
-                -max_target_seqs 10 \
-                -max_hsps 1 \
-                -evalue 1e-25 \
-                -num_threads "${t}" \
-                -out "$f.out" &
+        for f in blast_parts_1mb/*.fa; do
+            ${PUZZLER} diamond blastx \
+                --query "$f" \
+                --db ${BLOB_DB}/uniprot/reference_proteomes.dmnd \
+                --outfmt 6 qseqid staxids bitscore qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore \
+                --sensitive \
+                --max-target-seqs 1 \
+                --evalue 1e-25 \
+                --threads ${t} \
+                > "$f.dmnd.out"
         done
-        wait
 
         # Combine results
-        cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
-
-        # ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
-        #     -query ${WD}/primary_asm/${SAMPLE}.fa \
-        #     -outfmt "6 qseqid staxids bitscore std" \
-        #     -max_target_seqs 10 \
-        #     -max_hsps 1 \
-        #     -evalue 1e-25 \
-        #     -num_threads ${t} \
-        #     -out blast.out > blast.log 2>&1
-        touch ${WD}/${SAMPLE}/blastn.complete
+        cat blast_parts_1mb/*.dmnd.out > "${WD}/${SAMPLE}/07_busco_yak_blob/diamond_1mb.out"
+        } > blastx.log 2>&1
+        touch ${WD}/${SAMPLE}/blastx.complete
     fi 
 
-    if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
-        echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blast.log ~~~~\e[0m"
+    # #### Download refseq nt databases (MASSIVE!) 
+    # mkdir -p ${BLOB_DB}/nt
+    # cd ${BLOB_DB}/nt
+    
+    # NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
+
+    # # Capture output and errors
+    # if [ -f "$NT_LOCK_FILE" ]; then
+    #     echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
+    #     exit 1 
+    # elif [ ! -f "$NT_LOCK_FILE" ]; then
+    #     echo -e "\e[43m~~~~ Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~~\e[0m"
+    #     touch "$NT_LOCK_FILE"
+    #     ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
+        
+    #     # If there's an error with the script, stop! 
+    #     if grep -i "not found\|error" nt_check_database.log; then
+    #         echo -e "\e[41m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~~\e[0m"
+    #         exit 1
+    #     fi
+
+    #     # Otherwise, database is ready, so remove the lock file 
+    #     echo -e "\e[43m~~~~ RefSeq nt database exists successfully ~~~~\e[0m"
+    #     rm "$NT_LOCK_FILE"
+    # else
+    #     echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
+    # fi 
+
+    # cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    # if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
+    #         echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
+    # else
+    #     echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
+    #     mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+    #     cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+
+    #     # Split primary assembly into 1Mb sliding windows
+    #     ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
+    #         -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
+
+    #     # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
+    #     ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
+
+    #     # Run BLAST on each chunk in parallel
+    #     for f in query_chunk_*; do
+    #         ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
+    #             -query "$f" \
+    #             -outfmt "6 qseqid staxids bitscore std" \
+    #             -max_target_seqs 10 \
+    #             -max_hsps 1 \
+    #             -evalue 1e-25 \
+    #             -num_threads "${t}" \
+    #             -out "$f.out" &
+    #     done
+    #     wait
+
+    #     # Combine results
+    #     cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
+
+    #     # ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
+    #     #     -query ${WD}/primary_asm/${SAMPLE}.fa \
+    #     #     -outfmt "6 qseqid staxids bitscore std" \
+    #     #     -max_target_seqs 10 \
+    #     #     -max_hsps 1 \
+    #     #     -evalue 1e-25 \
+    #     #     -num_threads ${t} \
+    #     #     -out blast.out > blast.log 2>&1
+    #     touch ${WD}/${SAMPLE}/blastn.complete
+    # fi 
+
+    #if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
+    cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    if [ ! -s "diamond_1mb.out" ] && [ ! -s "${WD}/${SAMPLE}/blastx.complete" ]; then
+        echo -e "\e[41m~~~~ Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blastx.log ~~~~\e[0m"
         exit 1 
     elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then
 	     echo -e "\e[41m~~~~ Alignment file missing for ${SAMPLE}, check ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam ~~~~\e[0m"
     elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
 
         echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"  
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
             --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
             ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
             ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
@@ -759,7 +803,7 @@ else
     elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
 
         echo -e "\e[43m~~~~ Creating blobplot for ${SAMPLE} ~~~~\e[0m"
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t diamond_1mb.out \
             --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
             ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
             ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
