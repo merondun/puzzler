@@ -19,6 +19,7 @@ MAP_FILE=""
 t=64
 MEM=512
 VERSION="v1.7"
+NO_JUICE="FALSE"
 
 # Display help message
 function show_help {
@@ -29,6 +30,7 @@ function show_help {
     echo "  -m, --map FILE            Path to .tsv/.csv map file (required)"
     echo "  --threads t           Number of threads (optional; default 64)"
     echo "  --mem MEM             Memory allocation (optional; default 512)"
+    echo "  --no_juice             Skip juicer file creation entirely (optional; not recommended!)"
     echo "  -v, --version         Show version and exit"
     echo "  -h, --help                Show help and exit"
     echo ""
@@ -50,6 +52,7 @@ while [[ "$#" -gt 0 ]]; do
         -v|--version) echo "puzzler version: $VERSION"; exit 0 ;;
         -s|--sample) SAMPLE="$2"; shift ;;
         -m|--map) MAP_FILE="$2"; shift ;;
+        --no_juice) NO_JUICE="TRUE" ;;
         --threads) t="$2"; shift ;;
         --mem) MEM="$2"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -99,6 +102,12 @@ else
     PUZZLER="${RUNTIME} exec ${CONTAINER}"
 fi
 
+if [ "$NO_JUICE" = "TRUE" ]; then
+    JUICE_PRINT="Skipping juicer, no manual curation (not recommended!)"
+else
+    JUICE_PRINT="Running juicer, script will stop after .hic files created"
+fi
+
 cat << "EOF"
 
 =======================================================================
@@ -115,7 +124,7 @@ EOF
 core_avail=$(nproc)
 mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminfo)
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n=======================================================================\n"
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n${JUICE_PRINT}\n=======================================================================\n"
 
 set -euo pipefail
 $PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~~ hifiasm not found, is runtime set and container exists? ~~~~\e[0m"; exit 1; } 
@@ -273,78 +282,93 @@ else
         set -euo pipefail
     fi
 
-    ##### JUICER #####
-    if [ -s "${WD}/juicer_files/${SAMPLE}_JBAT.hic" ] && [ -f "${WD}/${SAMPLE}/juicer.complete" ]; then
+    # If the scaffolds.fa file is missing, stop! 
+    if [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
+        echo -e "\e[41m~~~~ Skipping juicer / renaming for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ~~~~\e[0m"
+        exit 1
+
+    ##### IF --no_juice, SKIP JUICER!!! #####
+    elif [ "$NO_JUICE" = "TRUE" ] && [ "${REFERENCE}" = "NA" ]; then
+
+        # If reference is also missing, you're done! 
+        echo -e "\e[43m~~~~ Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~~\e[0m"
+        echo -e "\e[43m~~~~ No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
+        cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/primary_asm/${SAMPLE}.fa
+        touch ${WD}/${SAMPLE}/juicer.complete
+
+    elif [ "$NO_JUICE" = "TRUE" ] && [ "${REFERENCE}" != "NA" ]; then
+
+        # If reference, do the same as if it's been juiced
+        echo -e "\e[43m~~~~ Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~~\e[0m"
+        cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa
+        touch ${WD}/${SAMPLE}/juicer.complete
+
+    elif [ -s "${WD}/juicer_files/${SAMPLE}_JBAT.hic" ] && [ -f "${WD}/${SAMPLE}/juicer.complete" ]; then
         echo -e "\e[42m~~~~ Skipping juicer HiC file creation for ${SAMPLE}: ${WD}/juicer_files/${SAMPLE}_JBAT.hic exists ~~~~\e[0m"
-    elif [ ! -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ]; then
-        echo -e "\e[41m~~~~ Skipping juicer HiC file creation for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ~~~~\e[0m"
-        exit 1 
-    elif [ "${REFERENCE}" = "NA" ]; then
-            #DO THIS IF NO REFERENCE SPECIFIED 
-            echo -e "\e[43m~~~~ Creating Juicer file for ${SAMPLE} WITHOUT reference alignment: not provided! ~~~~\e[0m"
-            cd ${WD}/${SAMPLE}/04_juicer
 
-            ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
-            ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-            ${PUZZLER} juicer pre \
-                -a -q 1 \
-                -o haphic_JBAT \
-                ${WD}/${SAMPLE}/03_haphic/filtered.bam \
-                ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp \
-                ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
-            grep PRE_C_SIZE haphic_JBAT.log | \
-                awk '{print $2" "$3}' > chrom.sizes
-            ${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
-                -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
-                haphic_JBAT.txt \
-                haphic_JBAT.hic \
-                chrom.sizes > juicer_pre.log 2>&1
-                
-            cp haphic_JBAT.hic ${WD}/juicer_files/${SAMPLE}_JBAT.hic
-            cp haphic_JBAT.assembly ${WD}/juicer_files/${SAMPLE}_JBAT.assembly
-            touch ${WD}/${SAMPLE}/juicer.complete
-
-    else
-        #DO THIS IF REFERENCE EXISTS
-        echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE}, with reference alignment  ~~~~\e[0m"
+    else 
+        
+        ##### Now that checks are in place, RUN JUICER! #####
+        echo -e "\e[43m~~~~ Creating .hic file for juicebox for ${SAMPLE} ~~~~\e[0m"
         cd ${WD}/${SAMPLE}/04_juicer
 
         # Orient chromosomes according to a related reference
-        if [ ! -s "${WD}/${SAMPLE}/04_juicer/asm_to_ref.paf" ]; then
-            ${PUZZLER} minimap2 -x asm20 ${REFERENCE} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa --secondary=no -t ${t} -o asm_to_ref.paf 2> minimap.ref.log
+        if [ -s "${WD}/${SAMPLE}/04_juicer/alignment.agp" ]; then 
+            echo -e "\e[42m~~~~ Skipping initial alignment between reference and draft, ${WD}/${SAMPLE}/04_juicer/alignment.agp exists ~~~~\e[0m]"
+        elif [ "${REFERENCE}" != "NA" ] && [ ! -s "${WD}/${SAMPLE}/04_juicer/asm_to_ref.paf" ]; then
+            # If genome is massive, reduce minimap2 options
+            MINIMAP_CMD="${PUZZLER} minimap2 -x asm5 ${REFERENCE} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa --secondary=no -t ${t} -o asm_to_ref.paf 2> minimap.ref.log"
+            GENOME_SIZE=$(wc -c < "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa")
+            GENOME_SIZE_GB=$((GENOME_SIZE / 1000000000))
+
+            # Check if genome is larger than 3GB and add -n10 if needed
+            if [ "$GENOME_SIZE_GB" -gt 3 ]; then
+                MINIMAP_CMD="${PUZZLER} minimap2 -x asm5 -n10 -k21 -w19 ${REFERENCE} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa --secondary=no -t ${t} -o asm_to_ref.paf 2> minimap.ref.log"
+                echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, adding -n10 -k21 -w19 to minimap2 command ~~~~\e[0m"
+            else
+                echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, running default minimap2 command ~~~~\e[0m"
+            fi
+
+            eval "$MINIMAP_CMD"
+            ${PUZZLER} haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > alignment.agp 2> refsort.log
+
         else
-            echo -e "\e[42m~~~~ Skipping initial alignment between reference and draft ~~~~\e[0m]"
+            cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp alignment.agp
         fi
 
+        # Otherwise, proceed as usual 
         ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
         ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-        ${PUZZLER} haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > refsort.agp 2> refsort.log
+        
         ${PUZZLER} juicer pre \
             -a -q 1 \
-            -o haphic-refsort_JBAT \
+            -o haphic_JBAT \
             ${WD}/${SAMPLE}/03_haphic/filtered.bam \
-            refsort.agp \
-            ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic-refsort_JBAT.log 2>&1
-        grep PRE_C_SIZE haphic-refsort_JBAT.log | \
+            alignment.agp \
+            ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
+        grep PRE_C_SIZE haphic_JBAT.log | \
             awk '{print $2" "$3}' > chrom.sizes
         ${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
             -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
-            haphic-refsort_JBAT.txt \
-            haphic-refsort_JBAT.hic \
+            haphic_JBAT.txt \
+            haphic_JBAT.hic \
             chrom.sizes > juicer_pre.log 2>&1
             
-        cp haphic-refsort_JBAT.hic ${WD}/juicer_files/${SAMPLE}_JBAT.hic
-        cp haphic-refsort_JBAT.assembly ${WD}/juicer_files/${SAMPLE}_JBAT.assembly
+        cp haphic_JBAT.hic ${WD}/juicer_files/${SAMPLE}_JBAT.hic
+        cp haphic_JBAT.assembly ${WD}/juicer_files/${SAMPLE}_JBAT.assembly
         touch ${WD}/${SAMPLE}/juicer.complete
+
     fi 
 
     ##### Extract post juicebox assembly
-    if [ -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then 
-            echo -e "\e[42m~~~~ Skipping post-juicer extraction for ${SAMPLE}: ${WD}/primary_asm/${SAMPLE}.fa exists ~~~~\e[0m"
+    if [ "$NO_JUICE" = "TRUE" ]; then
+        echo -e "\e[41m~~~~ Skipping juicer extraction for ${SAMPLE}, --no_juice requested! (not recommended!) ~~~~\e[0m"
     elif [ ! -s "${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly" ]; then
         echo -e "\e[41m~~~~ Post curation assembly file missing for ${SAMPLE}: Run Juicebox & place in ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly ~~~~\e[0m"
         exit 1 
     elif [ "${REFERENCE}" = "NA" ]; then
+
+        # If juicebox review file exists, but no reference file, just extract that file for final assembly  
         echo -e "\e[43m~~~~ No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
         cd ${WD}/${SAMPLE}/05_postjuicebox
         ${PUZZLER} juicer post \
@@ -353,74 +377,73 @@ else
             ${WD}/${SAMPLE}/04_juicer/haphic_JBAT.liftover.agp \
             ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
         cp haphic-post_JBAT.FINAL.fa ${WD}/primary_asm/${SAMPLE}.fa
+
+    else 
+
+        # If juicebox review file exists and reference provided, get ready for chromosome naming 
+        echo -e "\e[43m~~~~ Extracting post-curation assembly and mapping to reference for ${SAMPLE} ~~~~\e[0m"
+        cd ${WD}/${SAMPLE}/05_postjuicebox
+        ${PUZZLER} juicer post \
+            -o haphic-post_JBAT \
+            ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly \
+            ${WD}/${SAMPLE}/04_juicer/haphic_JBAT.liftover.agp \
+            ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
+        mv haphic-post_JBAT.FINAL.fa ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa
+    fi 
+
+    ##### CHROMOSOME RENAMING #####
+    if [ "${REFERENCE}" = "NA" ]; then 
+        echo -e "\e[43m~~~~ No reference provided for ${SAMPLE}: no chromosome re-naming, so final assembly already: ${WD}/primary_asm/${SAMPLE}.fa ~~~~\e[0m"
     else
 
-        ##### POST-JUICEBOX CHROMOSOME RENAMING #####
         # Create draft - reference map file 
         cd ${WD}/${SAMPLE}/05_postjuicebox
-        if [ -s "${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa" ]; then 
-            echo -e "\e[43m~~~~ Final assembly exists for ${SAMPLE}: ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa ~~~~\e[0m"
+        if [ -s "${WD}/${SAMPLE}/05_postjuicebox/map.txt" ]; then
+            echo -e "\e[42m~~~~ Skipping draft-reference mapping for ${SAMPLE}: ${WD}/${SAMPLE}/05_postjuicebox/map.txt exists ~~~~\e[0m"
+        elif [ ! -s "${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa" ]; then
+            echo -e "\e[41m~~~~ Skipping draft-reference mapping for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa ~~~~\e[0m"
         else
-            if [ -s "${WD}/${SAMPLE}/05_postjuicebox/map.txt" ]; then
-                echo -e "\e[42m~~~~ Skipping draft-reference mapping for ${SAMPLE}: ${WD}/${SAMPLE}/05_postjuicebox/map.txt exists ~~~~\e[0m"
-            elif [ ! -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
-                echo -e "\e[41m~~~~ Skipping draft-reference mapping for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ~~~~\e[0m"
-            elif [ ! -s "${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp" ]; then
-                echo -e "\e[41m~~~~ Skipping draft-reference mapping for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp ~~~~\e[0m"
+
+            # If genome is massive, reduce minimap2 options
+            MINIMAP_CMD="${PUZZLER} minimap2 -x asm5 ${REFERENCE} post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
+            GENOME_SIZE=$(wc -c < "post_juicer_asm.fa")
+            GENOME_SIZE_GB=$((GENOME_SIZE / 1000000000))
+
+            # Check if genome is larger than 3GB and add -n10 if needed
+            if [ "$GENOME_SIZE_GB" -gt 3 ]; then
+                MINIMAP_CMD="${PUZZLER} minimap2 -x asm5 -n10 -k21 -w19 ${REFERENCE} post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
+                echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, adding -n10 -k21 -w19 to minimap2 command ~~~~\e[0m"
             else
-                echo -e "\e[43m~~~~ Extracting post-curation assembly and mapping to reference for ${SAMPLE} ~~~~\e[0m"
-                ${PUZZLER} juicer post \
-                    -o haphic-refsort-post_JBAT \
-                    ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly \
-                    ${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp \
-                    ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
+                echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, running default minimap2 command ~~~~\e[0m"
+            fi
 
-                # If genome is massive, reduce minimap2 options
-                MINIMAP_CMD="${PUZZLER} minimap2 -x asm20 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
+            # Run Minimap2
+            eval "$MINIMAP_CMD"
 
-                # Calculate genome size in bytes
-                GENOME_SIZE=$(wc -c < "haphic-refsort-post_JBAT.FINAL.fa")
-
-                # Convert to GB
-                GENOME_SIZE_GB=$((GENOME_SIZE / 1000000000))
-
-                # Check if genome is larger than 3GB and add -n10 if needed
-                if [ "$GENOME_SIZE_GB" -gt 3 ]; then
-                    MINIMAP_CMD="${PUZZLER} minimap2 -x asm5 -n10 -k21 -w19 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log"
-                    echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, adding -n10 -k21 -w19 to minimap2 command ~~~~\e[0m"
-                else
-                    echo -e "\e[43m~~~~ Genome size is ${GENOME_SIZE_GB}GB, running default minimap2 command ~~~~\e[0m"
-                fi
-
-                # Run Minimap2
-                eval "$MINIMAP_CMD"
-
-                # Renaming: to reference chromosomes 
-                ${PUZZLER} minimap2 -x asm5 ${REFERENCE} haphic-refsort-post_JBAT.FINAL.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
-                ${PUZZLER} samtools faidx haphic-refsort-post_JBAT.FINAL.fa
-                ${PUZZLER} samtools faidx ${REFERENCE}
-                ${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai haphic-refsort-post_JBAT.FINAL.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
-            fi 
+            # Renaming: to reference chromosomes 
+            ${PUZZLER} samtools faidx post_juicer_asm.fa
+            ${PUZZLER} samtools faidx ${REFERENCE}
+            ${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai post_juicer_asm.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
         fi 
 
         # Renaming script 
         if [ -s "${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa" ]; then 
-            echo -e "\e[42m~~~~ Skipping renaming chromosomes for ${SAMPLE}: ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa exists ~~~~\e[0m"
+            echo -e "\e[42m~~~~ Skipping renaming chromosomes for ${SAMPLE}: renamed ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa exists ~~~~\e[0m"
         elif [ ! -s "${WD}/${SAMPLE}/05_postjuicebox/map.txt" ]; then
             echo -e "\e[41m~~~~ Skipping renaming chromosomes for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/05_postjuicebox/map.txt~~~~\e[0m"
         else 
             echo -e "\e[43m~~~~ Renaming chromosomes for ${SAMPLE} ~~~~\e[0m"
             
             cd ${WD}/${SAMPLE}/05_postjuicebox
-            # This file has $haphic_scafID \t $ref_chr_ID \t $strand
+            # This file has $haphic_scafID \t $ref_chr_ID \t $strand: ONLY WORKS IF THE SCAFFOLDS IN REF ARE NAMED E.G. >chr1 or >Chr1 
             awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt | egrep 'chr|Chr' > chromosome_naming_map.txt 
 
             # Exclude those chromsomes from map, and then add e.g. scaf101405 for the remaining non-chromosome scaffolds 
             awk '{print $1}' chromosome_naming_map.txt > exclude_chr_scafIDs.txt
-            grep -vwf exclude_chr_scafIDs.txt haphic-refsort-post_JBAT.FINAL.fa.fai | awk '{OFS="\t"}{print $1, $1, "+"}' >> chromosome_naming_map.txt
+            grep -vwf exclude_chr_scafIDs.txt post_juicer_asm.fa.fai | awk '{OFS="\t"}{print $1, $1, "+"}' >> chromosome_naming_map.txt
 
             # Must be the same number of scaffolds
-            if [ $(cat chromosome_naming_map.txt | wc -l) -eq $(cat haphic-refsort-post_JBAT.FINAL.fa.fai | wc -l) ]; then
+            if [ $(cat chromosome_naming_map.txt | wc -l) -eq $(cat post_juicer_asm.fa.fai | wc -l) ]; then
                 echo -e "\e[43m~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~\e[0m"
             else
                 echo -e "\e[41m~~~~ Not same number of scaffolds, stop and inspect ${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt ~~~~\e[0m"
@@ -430,8 +453,8 @@ else
             # Orient chromosomes in the same strand direction 
             awk '{if ($3 == "-") print $1}' chromosome_naming_map.txt > reverse_list.txt
             awk '{if ($3 == "+") print $1}' chromosome_naming_map.txt > positive_list.txt
-            ${PUZZLER} seqtk subseq haphic-refsort-post_JBAT.FINAL.fa reverse_list.txt > to_revercomp.fa
-            ${PUZZLER} seqtk subseq haphic-refsort-post_JBAT.FINAL.fa positive_list.txt > positive.fa
+            ${PUZZLER} seqtk subseq post_juicer_asm.fa reverse_list.txt > to_revercomp.fa
+            ${PUZZLER} seqtk subseq post_juicer_asm.fa positive_list.txt > positive.fa
             ${PUZZLER} seqkit seq --line-width 0 -t DNA -v -r -p to_revercomp.fa > revcomp.fa
             cat positive.fa revcomp.fa > orient.fa
             rm reverse_list.txt positive_list.txt to_revercomp.fa positive.fa revcomp.fa
@@ -487,7 +510,7 @@ else
 
         fi # exit renaming check 
 
-    fi # exit loop check if juicebox file doesn't exist 
+    fi # exit loop check if renaming needs to be done...
 
 fi # exit assembly creation loop, if assembly exists - just skip to quality checks 
 
@@ -714,75 +737,75 @@ else
         touch ${WD}/${SAMPLE}/blastx.complete
     fi 
 
-    # #### Download refseq nt databases (MASSIVE!) 
-    # mkdir -p ${BLOB_DB}/nt
-    # cd ${BLOB_DB}/nt
+    #### Download refseq nt databases (MASSIVE!) 
+    mkdir -p ${BLOB_DB}/nt
+    cd ${BLOB_DB}/nt
     
-    # NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
+    NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
 
-    # # Capture output and errors
-    # if [ -f "$NT_LOCK_FILE" ]; then
-    #     echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
-    #     exit 1 
-    # elif [ ! -f "$NT_LOCK_FILE" ]; then
-    #     echo -e "\e[43m~~~~ Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~~\e[0m"
-    #     touch "$NT_LOCK_FILE"
-    #     ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
+    # Capture output and errors
+    if [ -f "$NT_LOCK_FILE" ]; then
+        echo -e "\e[41m~~~~ Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~~\e[0m"
+        exit 1 
+    elif [ ! -f "$NT_LOCK_FILE" ]; then
+        echo -e "\e[43m~~~~ Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~~\e[0m"
+        touch "$NT_LOCK_FILE"
+        ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
         
-    #     # If there's an error with the script, stop! 
-    #     if grep -i "not found\|error" nt_check_database.log; then
-    #         echo -e "\e[41m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~~\e[0m"
-    #         exit 1
-    #     fi
+        # If there's an error with the script, stop! 
+        if grep -i "not found\|error" nt_check_database.log; then
+            echo -e "\e[41m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~~\e[0m"
+            exit 1
+        fi
 
-    #     # Otherwise, database is ready, so remove the lock file 
-    #     echo -e "\e[43m~~~~ RefSeq nt database exists successfully ~~~~\e[0m"
-    #     rm "$NT_LOCK_FILE"
-    # else
-    #     echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
-    # fi 
+        # Otherwise, database is ready, so remove the lock file 
+        echo -e "\e[43m~~~~ RefSeq nt database exists successfully ~~~~\e[0m"
+        rm "$NT_LOCK_FILE"
+    else
+        echo -e "\e[42m~~~~ Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~~\e[0m"
+    fi 
 
-    # cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    # if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
-    #         echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
-    # else
-    #     echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
-    #     mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
-    #     cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+    cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
+            echo -e "\e[42m~~~~ Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~~\e[0m"
+    else
+        echo -e "\e[43m~~~~ Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~~\e[0m"
+        mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
+        cd ${WD}/${SAMPLE}/07_busco_yak_blob/blast_parts
 
-    #     # Split primary assembly into 1Mb sliding windows
-    #     ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
-    #         -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
+        # Split primary assembly into 1Mb sliding windows
+        ${PUZZLER} seqkit sliding -s 1000000 -W 1000000 -g \
+            -o primary_split_1mb.fa "${WD}/primary_asm/${SAMPLE}.fa"
 
-    #     # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
-    #     ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
+        # Split the resulting FASTA file into ~smaller multi-seq parts for parallel BLAST
+        ${PUZZLER} split -a 3 -f primary_split_1mb.fa --output-prefix query_chunk_
 
-    #     # Run BLAST on each chunk in parallel
-    #     for f in query_chunk_*; do
-    #         ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
-    #             -query "$f" \
-    #             -outfmt "6 qseqid staxids bitscore std" \
-    #             -max_target_seqs 10 \
-    #             -max_hsps 1 \
-    #             -evalue 1e-25 \
-    #             -num_threads "${t}" \
-    #             -out "$f.out" &
-    #     done
-    #     wait
+        # Run BLAST on each chunk in parallel
+        for f in query_chunk_*; do
+            ${PUZZLER} blastn -db "${BLOB_DB}/nt/nt" \
+                -query "$f" \
+                -outfmt "6 qseqid staxids bitscore std" \
+                -max_target_seqs 10 \
+                -max_hsps 1 \
+                -evalue 1e-25 \
+                -num_threads "${t}" \
+                -out "$f.out" &
+        done
+        wait
 
-    #     # Combine results
-    #     cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
+        # Combine results
+        cat query_chunk_*.out > "${WD}/${SAMPLE}/07_busco_yak_blob/blast.out"
 
-    #     # ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
-    #     #     -query ${WD}/primary_asm/${SAMPLE}.fa \
-    #     #     -outfmt "6 qseqid staxids bitscore std" \
-    #     #     -max_target_seqs 10 \
-    #     #     -max_hsps 1 \
-    #     #     -evalue 1e-25 \
-    #     #     -num_threads ${t} \
-    #     #     -out blast.out > blast.log 2>&1
-    #     touch ${WD}/${SAMPLE}/blastn.complete
-    # fi 
+        ${PUZZLER} blastn -db ${BLOB_DB}/nt/nt \
+            -query ${WD}/primary_asm/${SAMPLE}.fa \
+            -outfmt "6 qseqid staxids bitscore std" \
+            -max_target_seqs 10 \
+            -max_hsps 1 \
+            -evalue 1e-25 \
+            -num_threads ${t} \
+            -out blast.out > blast.log 2>&1
+        touch ${WD}/${SAMPLE}/blastn.complete
+    fi 
 
     #if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
