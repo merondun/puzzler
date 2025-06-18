@@ -311,6 +311,33 @@ mkdir -p "$APPTAINER_TMPDIR"
 apptainer exe $SIF hifiasm
 ```
 
+> I receive a warning about minimap2 failing when generating an alignment between the reference and the draft! 
+
+Your warning might look like this:
+
+```~~~~ Extracting post-curation assembly and mapping to reference for Frog ~~~~
+/var/spool/slurmd/job15728028/slurm_script: line 518: 4097808 Aborted                 ${PUZZLER} minimap2 -x asm20 ${REFERENCE} --max-chain-skip 100 --max-chain-iter 1000 --frag yes post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/05_postjuicebox: "${PUZZLER} minimap2 -x asm20 ${REFERENCE} --max-chain-skip 100 --max-chain-iter 1000 --frag yes post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log" (line 423)
+```
+
+This occurs in edge cases with massive chromosomes and is a [limitation of minimap2](https://github.com/lh3/minimap2/issues/755). In my trials, this only occured on the [toad](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_027917425.1/) and [frog](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_048569485.1/) assemblies which have chromosomes > 500 Mb. 
+
+Within `$WD/$SAMPLE/05_postjuicebox/$SAMPLE.minimap.postjuicer.log`, your log will probably end with: *"minimap2: lchain.c:73: mg_chain_backtrack: Assertion `n_v < (2147483647)' failed."* 
+
+We simply need the `.paf` file, so I recommend running [mashmap](https://github.com/marbl/MashMap) instead, e.g.:
+
+```
+SAMPLE=Toad
+WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
+REFERENCE=/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_027917425.1_aGasCar1.pri_genomic.fna
+
+mashmap -r ${REFERENCE} -q $WD/$SAMPLE/05_postjuicebox/post_juicer_asm.fa -t 64 -s 10000 --perc_identity 95 -o $WD/$SAMPLE/05_postjuicebox/asmpost_to_paf.paf
+```
+
+And then just 
+
+
 > I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
 
 This means that there are multiple scaffolds/chromosomes in your draft which correspond to a single chromosome in the reference genome. The script will automatically rename the duplicates into e.g. `chr1` `chr1A` `chr1B` according to length. 
@@ -388,6 +415,7 @@ Please ensure you cite the developers of software within `puzzler`:
 If using chromosome-renaming: 
 * [merothon v0.4.2](https://github.com/merondun/merothon)
 * [seqkit v2.10.0](https://bioinf.shenwei.me/seqkit/): https://doi.org/10.1002/imt2.191
+* [mashmap v3.1.3](https://github.com/marbl/MashMap): https://doi.org/10.1093/bioinformatics/btad512
 
 If assessing assembly quality / contaminants:
 * [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
@@ -404,6 +432,8 @@ If using optional software:
 ## Changelog
 
 `puzzler`
+
+**v1.8**: switch minimap2 to mashmap for draft-reference mapping, magnitudes faster and works with >500mb chromosomes. Add time counter.
 
 **v1.7**: merge puzzler & puzzle_quality. 
 
