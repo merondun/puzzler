@@ -115,7 +115,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 :pushpin: **`sbatch puzzler`**
 
-5) Finalizing assembly, assign chromosome names based on a related reference using [merothon](https://github.com/merondun/merothon).
+5) Finalizing assembly: extract juicer assembly, assign chromosome names based on a related reference, reverse complement according to reverse, using [merothon](https://github.com/merondun/merothon).
 6) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 7) QC: [yak](https://github.com/lh3/yak) base quality check. 
 8) QC: [busco](https://busco.ezlab.org/) check.
@@ -156,7 +156,7 @@ Prepare a `samples.tsv` which outlines all necessary pipeline components. An exa
 
 * **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
 * **hom_cov:** Homozygous peak coverage.
-* **blob_database:** Directory to save all blobtools databases.
+* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours with 64 cores*. 
 * **busco_lineage:** Busco odb10 version lineage.
 * **busco_database:** Directory to save busco dbs.
 
@@ -272,6 +272,11 @@ This script will check for these files, and create them if they do not exist in 
 | $WD/primary_asm/stats/$SAMPLE.summary.txt                 |                                    | Summarize assembly statistics   | assembly_stats  |
 
 <br/>
+
+:one: **Step 1(B):** `[sbatch] puzzler --sample Fungus --map samples.tsv --no_juice`
+
+If you are feeling reckless, you can run the entire process in one command without juicebox manual curation. **I do not recommend this, as juicebox is essential, at least for fixing obvious misassemblies or merged chromosomes**. The command above would run the entire process from `hifiasm` to `assembly_stats`, using only the scaffolded assembly instead of the juicebox curated assembly. 
+
 
 <br/>
 
