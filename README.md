@@ -411,6 +411,7 @@ Please ensure you cite the developers of software within `puzzler`:
 * [samtools v1.21](https://github.com/samtools/samtools): https://doi.org/10.1093/gigascience/giab008
 * [HapHiC v1.0.6](https://github.com/zengxiaofei/HapHiC): https://doi.org/10.1038/s41477-024-01755-3 and https://doi.org/10.1038/s41477-019-0487-8
 * [juicer v1.2](https://github.com/aidenlab/juicer): https://doi.org/10.1016/j.cels.2016.07.002
+* [YAHS v1.2.2 (if HapHiC failed)](https://github.com/c-zhou/yahs): https://doi.org/10.1093/bioinformatics/btac808
 
 If using chromosome-renaming: 
 * [merothon v0.4.2](https://github.com/merondun/merothon)
@@ -420,7 +421,9 @@ If using chromosome-renaming:
 If assessing assembly quality / contaminants:
 * [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
 * [yak v0.1-r69-dirty](https://github.com/lh3/yak): https://doi.org/10.1038/s41592-020-01056-5 (same as hifiasm)
-* [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://f1000research.com/articles/6-1287/v1
+* [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://doi.org/10.12688/f1000research.12232.1
+* [blastn v2.16.0+](https://sequenceserver.com/blog/citing-ncbi-blast/): https://doi.org/10.1186/1471-2105-10-421
+* [NCBI RefSeq nt database](https://www.ncbi.nlm.nih.gov/refseq/publications/): https://doi.org/10.1093/nar/gkae1038
 * [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats): https://zenodo.org/record/3968774
 
 If using optional software:

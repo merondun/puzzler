@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=0-12:00:00   
+#SBATCH --time=0-9:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=64
-#SBATCH --mem=512Gb
+#SBATCH --ntasks-per-node=24
+#SBATCH --mem=384Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -601,7 +601,8 @@ else
         -m genome \
         -c ${t} \
         -o ${SAMPLE} \
-        -f > busco.log 2>&1
+        -f \
+        --offline > busco.log 2>&1
 
     cp ${WD}/${SAMPLE}/07_busco_yak_blob/${SAMPLE}/short_summary.specific*.txt ${WD}/primary_asm/stats/${SAMPLE}.busco.txt
     touch ${WD}/${SAMPLE}/busco.complete
@@ -744,7 +745,6 @@ else
 
     echo -e "\e[43m~~~ $(elapsed) Summarizing Assembly for ${SAMPLE} ~~~\e[0m"
     # Get metrics for final assembly
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
 
     FINAL_STATS=$(${PUZZLER} assembly_stats ${WD}/primary_asm/${SAMPLE}.fa)
     SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
@@ -754,21 +754,27 @@ else
     CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
     GAPS=$((CTGS - SEQS))
 
-    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50"
-    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50"
+    YAK_CV=$(awk '$1 == "CV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
+    YAK_QV=$(awk '$1 == "QV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
 
-	# Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
+    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tYAK_CV\tYAK_QV"
+    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t$YAK_CV\t$YAK_QV"
+
+    # Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
     if [ "${REFERENCE}" != "NA" ]; then
-		${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
-		egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc' | cut -f1 > ${SAMPLE}.chrs
-		${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
-		CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
-		CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-		CHR_PROP=$(${PUZZLER} perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
+        ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
+        egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc|A|B|C|D' | cut -f1 > ${SAMPLE}.chrs
+        ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
+        CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
+        CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
+        CHR_PROP=$(${PUZZLER} perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
+        CHR_SEQS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
+        CHR_CTGS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
+        CHR_GAPS=$((CHR_CTGS - CHR_SEQS))
 
-		HEADER+="\tWithinChrsBP\tPropWithinChrs"
-        VALUES+="\t$CHR_SIZE\t$CHR_PROP"
-	fi 
+        HEADER+="\tWithinChrsBP\tPropWithinChrs\tGapsInChrs"
+        VALUES+="\t$CHR_SIZE\t$CHR_PROP\t$CHR_GAPS"
+    fi 
 
     # Add BUSCO metrics **only if BUSCO_LINEAGE is not "NA"**
     if [ "$BUSCO_LINEAGE" != "NA" ]; then
@@ -778,16 +784,6 @@ else
 
         HEADER+="\tBUSCO_Complete\tBUSCO_singlecopy"
         VALUES+="\t$BUSCO_COMPLETE\t$BUSCO_SINGLE"
-    fi
-
-    # Add QV metrics **only if HIFI is not "NA"**
-    if [ "$HIFI" != "NA" ]; then
-        # Parse QV results
-        YAK_CV=$(awk '$1 == "CV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
-        YAK_QV=$(awk '$1 == "QV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
-
-        HEADER+="\tYAK_CV\tYAK_QV"
-        VALUES+="\t$YAK_CV\t$YAK_QV"
     fi
 
     # Write to summary file
