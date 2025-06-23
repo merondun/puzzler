@@ -3,12 +3,13 @@
 echo "Adding Puzzler Pipeline to PATH..."
 
 # Update the PATH variable with the correct directory
-echo 'export PATH="$HOME/puzzler/bin:$PATH"' >> ~/.bashrc
-chmod +x $HOME/puzzler/bin/*
+INSTALL_PATH=$(dirname "$(realpath bin/puzzler)")
+grep -qxF "export PATH=\$PATH:$INSTALL_PATH" ~/.bashrc || echo "export PATH=\$PATH:$INSTALL_PATH" >> ~/.bashrc
+export PATH="$PATH:$INSTALL_PATH"
+chmod +x bin/puzzler
 
 # Apply changes immediately
 source ~/.bashrc
 
 echo "Installation complete! You can now run:"
-echo "  puzzler_asm --sample --map_file"
-echo "  puzzler_post --sample --map_file"
+echo "  puzzler --sample $SAMPLE --map_file examples/samples.tsv"

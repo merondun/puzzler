@@ -23,18 +23,18 @@ cd Rhizosphaera_kalkhoffii
 module load sratoolkit/3.2.0
 
 # FUNGUS
-#HIFI ERR12760830	   HIC ERR12765203	
-prefetch ERR12760830	
+#HIFI ERR12760830      HIC ERR12765203  
+prefetch ERR12760830    
 fasterq-dump --split-files ERR12760830
 head -n 200000 ERR12760830.fastq | gzip -c > ../concat_reads/Fungus.HiFi.fastq.gz
 
-prefetch ERR12765203 --max-size 0	
-fasterq-dump --split-files ERR12765203	
+prefetch ERR12765203 --max-size 0   
+fasterq-dump --split-files ERR12765203  
 head -n 1000000 ERR12765203_1.fastq | gzip -c > ../concat_reads/Fungus.HiC.R1.fastq.gz
 head -n 1000000 ERR12765203_2.fastq | gzip -c > ../concat_reads/Fungus.HiC.R2.fastq.gz
 ```
 
-### [Optional] Simplify Reference Chr Names
+### Simplify Reference Chr Names
 
 I will name the chromosomes according to the published reference assembly:
 
@@ -87,7 +87,7 @@ grep '>' GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
 >OZ066578.1 Rhizosphaera kalkhoffii genome assembly, organelle: mitochondrion
 ```
 
-
+Now, all of the scaffolds matching these chromosomes based on synteny will just be labled 'chr1', 'chr2'. 
 
 ## [Optional] Determine homozygous coverage & genome size with genomescope2
 
@@ -118,15 +118,103 @@ It can sometimes be difficult to disentangle haploid and diploid samples using g
 
 Instead of specifying `--hom_cov` directly, I will just let use `hifiasm` determine appropriate levels, and check the `.log`.
 
-## `puzzler`
+## `puzzler` Workflow
 
-### Step 1: Draft Assembly
+I will analyze 4 analytical forks for the Fungus sample:
+
+1) With `juicer` manual curation.
+2) Same with (1), except without a `$REFERENCE` relative species.
+3) Without `jucier` manual curation. 
+4) Same with (3), except without a `$REFERENCE` relative species.
+
+This will give us 4 assemblies to compare, and show what the pipeline can do. 
+
+:stop_sign: Analyses (1) and (2) will stop at the manual curation step, giving us the `.hic` and `.assembly` file within `$WD/juicer_files` to load into juicebox. 
+
+:rabbit: Analyses (3) and (4) go all the way to the end, one-command genome assembly and QC. **This is not recommended, as manual curation is essential for checking misassemblies!** 
+
+_____
+
+### Inputs
+
+**Puzzler script:**
+
+First and foremost, I ran this fresh on a different HPC, so I downloaded the puzzler script and added it to my path:
+
+```bash
+wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
+chmod +x puzzler
+INSTALL_PATH=$(dirname "$(realpath puzzler)")
+grep -qxF "export PATH=\$PATH:$INSTALL_PATH" ~/.bashrc || echo "export PATH=\$PATH:$INSTALL_PATH" >> ~/.bashrc
+export PATH="$PATH:$INSTALL_PATH"
+```
+
+And then changed the SLURM scheduler so I can submit the script directly. I also modify the default values for threads and memory so I don't need to specify `--t 48 --mem 384` every time to `puzzler`. 
+
+```
+vim puzzler
+########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
+#SBATCH --time=2-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=32
+#SBATCH --mem=256Gb
+#SBATCH --partition=atlas
+#SBATCH --account=coffea_pangenome
+
+module load apptainer &> /dev/null || true
+#module load singularity &> /dev/null || true
+SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
+########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
+
+# Default values
+SAMPLE=""
+MAP_FILE=""
+t=48
+MEM=384
+:wq
+```
+
+**Puzzler container:**
+
+I can simply grab the container with all the software with:
+
+```bash
+module load apptainer
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
+
+ls -lhtr ~/apptainer/
+total 3.4G
+-rwxr-x--- 1 justin.merondun justin.merondun 3.4G Jun 16 14:41 puzzler_v1.8.sif
+-rwxr-x--- 1 justin.merondun justin.merondun  49K Jun 17 16:40 puzzler
+```
+
+Then I just navigate to my `$WD` and make sure it's still on my path:
+
+```bash
+cd /project/90daydata/coffea_pangenome/puzzler_trials/assemblies
+puzzler -h
+Usage: puzzler [OPTIONS]
+
+Options:
+  -s, --sample SAMPLE   Sample name (required)
+  -m, --map FILE        Path to .tsv/.csv map file (required)
+  --threads t           Number of threads (optional; default 64)
+  --mem MEM             Memory allocation (optional; default 512)
+  --no_juice            Skip juicer file creation entirely (optional; not recommended!)
+  -v, --version         Show version and exit
+  -h, --help            Show help and exit
+
+  Required --map Structure:
+  The provided map file (e.g., samples.txt) must contain the following columns in this order:
+  RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
+  For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
+```
+
+Good to go. 
 
 :bulb: The most important part is to prepare the map file `samples.tsv` with these columns, **in this specific order.**
 
 :heavy_exclamation_mark:***Use full paths***!! 
-
-
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/Fungus`.
 * **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
@@ -137,8 +225,7 @@ Instead of specifying `--hom_cov` directly, I will just let use `hifiasm` determ
 * **hic_r2:** Path to HiC R2.
 * **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate if unknown.
 
-***OPTIONAL columns*** 
-*Specify "NA" and the script will skip respective components.*
+***OPTIONAL columns***: *Specify "NA" if not needed! The script will skip respective components if "NA".*
 
 * **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
 * **hom_cov:** Homozygous peak coverage.
@@ -146,53 +233,102 @@ Instead of specifying `--hom_cov` directly, I will just let use `hifiasm` determ
 * **busco_lineage:** Busco odb10 version lineage.
 * **busco_database:** Directory to save busco dbs.
 
+For this example with 4 forks, my file will look like this, where the only difference is `$SAMPLE` (where files are stored) and `$REFERENCE`. 
 
+| sample              | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database | busco_lineage | busco_database                                             |
+| ------------------- | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | ------------- | ------------- | ---------------------------------------------------------- |
+| Fungus_Ref          | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoRef        | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoJuice      | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoRefNoJuice | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
-| sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage | busco_database                                             |
-| ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | ------------- | ---------------------------------------------------------- |
-| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+### Recommended: Juicer & Reference
 
-I set `hom_cov` to "NA", so it won't specify this for `hifiasm`, instead letting it select this level internally. 
+#### Step 1: Draft Assembly
 
-Because the assembly and input files (400K HiFi reads; 310mb file size, 2M paired HiC reads; 373mb each) are small, I simply run this on a compute node with `--threads 4`and `--mem 32`  Gb of memory. 
+Submit: `sbatch -J asm_Fungus_Ref puzzler -s Fungus_Ref -m samples.tsv --threads 12 --mem 64` 
 
 ```bash
 =======================================================================
-__________ ____ _______________________.____     _____________________
+__________ ____ _______________________.____     _____________________ 
 \______   \    |   \____    /\____    /|    |    \_   _____/\______   \
  |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
  |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
  |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
-                           \/        \/        \/        \/         \/
+                           \/        \/        \/        \/         \/ 
 =======================================================================
 
 =======================================================================
-Parameters for sample: Fungus
+Parameters for sample: Fungus_Ref 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif
-WD: /project/90daydata/coffea_pangenome/puzzler_trials/assemblies
-HIFI: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
-HIC_R1: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
-HIC_R2: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
 NUMBER CHRS: 14
-REFERENCE: /project/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
+REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
 HOM_COV: NA
-BLOB_DB: /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
+BLOB_DB: NA
 BUSCO_LINEAGE: fungi_odb10
-BUSCO_DB: /project/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
-Cores Requested: 4
-Cores Available: 4
-RAM Requested: 32
-Memory Available: 327.3 GB
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 64
+Cores Available: 64
+RAM Requested: 512
+Memory Available: 2241.3 GB
 =======================================================================
 
-~~~~ Assembling genome for Fungus ~~~~
-~~~~ Starting hifiasm assembly for Fungus ~~~~
+~~~~ Assembling genome for Fungus_Ref ~~~~
+~~~~ Running juicer, script will stop after .hic files created ~~~~
+~~~~ Starting hifiasm assembly for Fungus_Ref ~~~~
+~~~~ Starting Purge_Dups for Fungus_Ref ~~~~
+~~~~ Mapping HiC reads to Fungus_Ref draft ~~~~
+~~~~ Running HapHiC for Fungus_Ref  ~~~~
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 10 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 11 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 12 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 13 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 14 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 15 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 16 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 17 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref with 14 chrs failed, trying: 18 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_Ref failed, scaffolding with YAHS instead ~~~~
+~~~~ Creating .hic file for juicebox for Fungus_Ref ~~~~
+~~~~ Genome size is 0GB, running default minimap2 command ~~~~
+~~~~ Post curation assembly file missing for Fungus_Ref: Run Juicebox & place in /90daydata/coffea_pangenome/puzzler_trials/assemblies/juicer_files/Fungus_Ref_JBAT.review.assembly ~~~~
 ```
 
 :alarm_clock: This is a good time to check that all of your paths and parameters look appropriate. 
 
- We can then check the output `Fungus/01_hifiasm/Fungus.hifiasm.log` file to ensure an appropriate `--hom_cov` was selected:
+ We can then check the output `Fungus_Ref/01_hifiasm/Fungus_Ref.hifiasm.log` file to ensure an appropriate `--hom_cov` was selected:
 
 ```bash
  1: ****************************************************************************************************> 905745
@@ -298,72 +434,56 @@ Memory Available: 327.3 GB
 
 `hifiasm` automatically selected 35, while `genomescope2` estimated left peak at 18.1 (if assuming diploid, `--hom_cov` =36).
 
-Puzzler continues up until the juicebox curation stage. The output indicates that puzzler was unable to successfully run [HapHiC](https://github.com/zengxiaofei/HapHiC) with the specified number of chromosomes (from `samples.tsv`). Puzzler will automatically atttempt HapHiC with +/- 4 chromosomes, to see if it will successfully run with those chromosomes numbers instead. If that fails, puzzler will instead run [YAHS](https://github.com/c-zhou/yahs), which in my experience has always run successfully. 
+:exclamation: **❌ Command failed:**
+
+The output indicates that puzzler was unable to successfully run [HapHiC](https://github.com/zengxiaofei/HapHiC) with the specified number of chromosomes (from `samples.tsv`). Puzzler will automatically atttempt HapHiC with +/- 4 chromosomes, to see if it will successfully run with those chromosomes numbers instead. If that fails, puzzler will instead run [YAHS](https://github.com/c-zhou/yahs), which in my experience has always run successfully.
+
+As long as you see:
+
+`~~~~ HapHiC for Fungus_Ref failed, scaffolding with YAHS instead ~~~~` 
+
+Afterwards, then everything is fine. 
 
 Of the many genomes I have run so far, Fungus is the only genome not successfully scaffolded with HapHiC, so maybe it has something to do with the small size of chromosomes. 
 
-```bash
-=======================================================================
-__________ ____ _______________________.____     _____________________ 
-\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
- |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
- |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
- |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
-                           \/        \/        \/        \/         \/ 
-=======================================================================
+**Runtime:**
 
-=======================================================================
-Parameters for sample: Fungus 
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.6.sif 
-WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
-PLOIDY: 1 
-NUMBER CHRS: 14
-HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
-HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
-HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
-REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
-HOM_COV: NA
-RUNTIME: apptainer
-=======================================================================
+It completed the assembly in 24 minutes, and of course with this tiny genome we could have dramatically reduced our resources to `--threads 8 --mem 32` 
 
-~~~~ Starting hifiasm assembly for Fungus ~~~~
-~~~~ Starting Purge_Dups for Fungus ~~~~
-~~~~ Mapping HiC reads to Fungus draft ~~~~
-~~~~ Running HapHiC for Fungus  ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 10 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 11 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 12 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 13 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 14 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 15 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 16 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 17 ~~~~
-~~~~ HapHiC for Fungus with 14 chrs failed, trying: 18 ~~~~
-~~~~ HapHiC for Fungus failed, scaffolding with YAHS instead ~~~~
-~~~~ Creating .hic file for juicebox for Fungus  ~~~~
-~~~~ Post curation assembly file doesn't exist for Fungus - Run Juicebox! ~~~~
+``` 
+Nodes: 1
+Cores per node: 64
+CPU Utilized: 04:31:37
+CPU Efficiency: 17.08% of 1-02:30:24 core-walltime
+Job Wall-clock time: 00:24:51
+Memory Utilized: 22.98 GB
+Memory Efficiency: 4.49% of 512.00 GB
 ```
 
 In any case, the pipeline will also run `haphic refsort`, provided a related species is provided, which will align your draft scaffolds in order of the reference genome for juicebox curation. **This is not reference-guided assembly**, and will not rename or otherwise modify the scaffolds. Please see the [HapHiC](https://github.com/zengxiaofei/HapHiC) `refsort` description for more details. 
 
 If you did not provide a `$REFERENCE` file, it will still output the `.hic` and `.assembly` files, just without running `haphic refsort`. 
 
-### Step 2: Juicebox Curation
+#### Step 2: Juicebox Curation
 
-Now we are ready to load the `$WD/juicer_files/Fungus_JBAT.hic` and `$WD/juicer_files/Fungus_JBAT.assembly` file into juicebox. 
+Now we are ready to load the `$WD/juicer_files/Fungus_Ref_JBAT.hic` and `$WD/juicer_files/Fungus_Ref_JBAT.assembly` file into juicebox. 
 
 Perform our edits. Pull in the `.hic` file, import the `.assembly` file with `Assembly > Import Map Assembly`. There's very minimal edits on this genome, I just merge two blocks which originate from one chromosome: 
 
 ![Fungus_Edits_Juicebox]()
 
-Afterwards, save the file with `Assembly > Export Assembly`, and save the  `Fungus_JBAT.review.assembly` to the directory `$WD/juicer_files`, retaining the default file name! 
+Afterwards, save the file with `Assembly > Export Assembly`, and save the  `Fungus_Ref_JBAT.review.assembly` to the directory `$WD/juicer_files`, retaining the default file name! 
 
-### Step 3: Chromosome Renaming, Remapping HiC
+#### Step 3: Chromosome Renaming, Remapping HiC
 
-Simply submit `puzzler` with the same parameters as before, and the script will assign chromosome names, output a final HiC contact map on the final assembly, and output assembly statistics:
+Simply submit `puzzler` with the same parameters as before, and the script will assign chromosome names, output a final HiC contact map on the final assembly, and output assembly statistics. **I skip blobtools, because that will take several hours to blast against the nt database...**. 
+
+We simply resubmit the exact same command, and the script will take up where it left off: 
+
+`sbatch -J asm_Fungus_Ref puzzler -s Fungus_Ref -m samples.tsv` 
 
 ```bash
-puzzler --sample Fungus --map samples.tsv 
+cat slurm-15728608.out
 
 =======================================================================
 __________ ____ _______________________.____     _____________________ 
@@ -375,52 +495,556 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 
 =======================================================================
-Parameters for sample: Fungus 
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.6.sif 
+Parameters for sample: Fungus_Ref 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
-PLOIDY: 1 
-NUMBER CHRS: 14
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
 HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
 REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
-HOM_COV: 
-RUNTIME: apptainer
+HOM_COV: NA
+BLOB_DB: NA
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 64
+Cores Available: 64
+RAM Requested: 512
+Memory Available: 2247.0 GB
 =======================================================================
 
-~~~~ Skipping hifiasm for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~
-~~~~ Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~~
-~~~~ Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/filtered.bam exists ~~~~
-~~~~ Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
-~~~~ Skipping juicer HiC file creation for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/juicer_files/Fungus_JBAT.hic exists ~~~~
-~~~~ Skipping draft-reference mapping for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/05_postjuicebox/map.txt exists ~~~~
-~~~~ Renaming chromosomes for Fungus ~~~~
+~~~~ Assembling genome for Fungus_Ref ~~~~
+~~~~ Running juicer, script will stop after .hic files created ~~~~
+~~~~ Skipping hifiasm for Fungus_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_Ref/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~
+~~~~ Skipping purge for Fungus_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_Ref/02_purge_dups/p_ctg.purged.fa exists ~~~~
+~~~~ Skipping HiC alignment for Fungus_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_Ref/03_haphic/filtered.bam exists ~~~~
+~~~~ Skipping HapHiC for Fungus_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_Ref/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
+~~~~ Skipping juicer HiC file creation for Fungus_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/juicer_files/Fungus_Ref_JBAT.hic exists ~~~~
+~~~~ Extracting post-curation assembly and mapping to reference for Fungus_Ref ~~~~
+~~~~ Renaming chromosomes for Fungus_Ref ~~~~
 ~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~
-~~~~ Single scaffolds corresponding to a single Chr for Fungus ~~~~
-~~~~ Creating final HiC bam for Fungus ~~~~
+~~~~ Single scaffolds corresponding to a single Chr for Fungus_Ref ~~~~
+~~~~ Assessing genome quality for Fungus_Ref ~~~~
+~~~~ Creating final HiC bam for Fungus_Ref ~~~~
+~~~~ Creating final contact map for Fungus_Ref, plotting named chromosomes ~~~~
+~~~~ Running YAK on Fungus_Ref ~~~~
+~~~~ BUSCO lineage dataset already exists, skipping ~~~~
+~~~~ Running BUSCO for Fungus_Ref using lineage: fungi_odb10 ~~~~
+~~~~ Skipping blobtools for Fungus_Ref, not desired ~~~~
+~~~~ Summarizing Assembly for Fungus_Ref ~~~~
+~~~~ Your final assembly for Fungus_Ref is: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_Ref.fa ~~~~
+~~~~ Your final assembly stats for Fungus_Ref are in: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/stats/Fungus_Ref.summary.txt ~~~~
+```
+
+Which only ran for about 10 minutes (note I left off `--threads 12 and --mem 64`, so this would typically take a big longer) 
+
+```
+Cores per node: 64
+CPU Utilized: 02:23:10
+CPU Efficiency: 27.85% of 08:34:08 core-walltime
+Job Wall-clock time: 00:08:02
+Memory Utilized: 53.61 GB
+Memory Efficiency: 10.47% of 512.00 GB
+```
+
+The script skips all the previously run steps, because we have the `.complete` files in the `$WD/Fungus_Ref` dir, as well as any already-completed step-specific files (e.g. `$WD/juicer_files/$SAMPLE_JBAT.review.assembly` for post-curation assembly and renaming). 
+
+```
+ls -l $WD/Fungus_Ref
+01_hifiasm/
+02_purge_dups/
+03_haphic/
+04_juicer/
+05_postjuicebox/
+06_realign_hic_hifi/
+07_busco_yak_blob/
+align_hic.complete
+hifiasm.complete
+juicer.complete
+purge_dups.complete
+qc_align_hic.complete
+scaffolding.complete
+yak.complete
 ```
 
 Which outputs a final HiC contact map at `$WD/primary_asm/stats/$SAMPLE.pdf`: 
 
 ![final hic contacts](/examples/figs/Fungus_Final.png)
 
-### Step 3: If No `$REFERENCE` 
+And the final assembly stats here:
 
-:bomb: If you **DO NOT** have a somewhat-related species to assign chromosomes (note that we only really need weak alignments, I have done this with ~60 MY diverged species), then you can be finished after juicebox curation. 
-
-After Juicebox curation, just run this, which will extract the final assembly:
-
-```bash
-SAMPLE=Fungus
-WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.6.sif"
-
-cd ${WD}/${SAMPLE}/05_postjuicebox
-${PUZZLER} juicer post \
-    -o haphic-refsort-post_JBAT \
-    ${WD}/primary_asm/juicer_files/${SAMPLE}_JBAT.review.assembly \
-    ${WD}/${SAMPLE}/04_juicer/haphic-refsort_JBAT.liftover.agp \
-    ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
+```
+cat primary_asm/stats/Fungus_Ref.summary.txt
+Sample  SizeBP  Sequences       Contigs Gaps    ContigN50       ScafN50 WithinChrsBP    PropWithinChrs  BUSCO_Complete  BUSCO_singlecopy        YAK_CV  YAK_QV
+Fungus_Ref       24817076        22      23     1        1776619         1806824         24324650       0.9802  99.1    99.1    0.999   69.904
 ```
 
-Which will output: `haphic-refsort-post_JBAT.FINAL.fa`. Your final assembly. 
+
+
+### Juicer - No Reference
+
+Submit: `sbatch -J asm_Fungus_NoRef puzzler -s Fungus_NoRef -m samples.tsv --threads 12 --mem 64` 
+
+```
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus_NoRef 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: NA
+HOM_COV: NA
+BLOB_DB: NA
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 64
+Cores Available: 64
+RAM Requested: 512
+Memory Available: 2241.3 GB
+=======================================================================
+
+~~~~ Assembling genome for Fungus_NoRef ~~~~
+~~~~ Running juicer, script will stop after .hic files created ~~~~
+~~~~ Starting hifiasm assembly for Fungus_NoRef ~~~~
+~~~~ Starting Purge_Dups for Fungus_NoRef ~~~~
+~~~~ Mapping HiC reads to Fungus_NoRef draft ~~~~
+~~~~ Running HapHiC for Fungus_NoRef  ~~~~
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 10 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 11 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 12 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 13 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 14 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 15 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 16 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 17 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef with 14 chrs failed, trying: 18 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRef failed, scaffolding with YAHS instead ~~~~
+~~~~ Creating .hic file for juicebox for Fungus_NoRef ~~~~
+~~~~ Post curation assembly file missing for Fungus_NoRef: Run Juicebox & place in /90daydata/coffea_pangenome/puzzler_trials/assemblies/juicer_files/Fungus_NoRef_JBAT.review.assembly ~~~~
+```
+
+Ran in 24 minutes, and of course we didn't need nearly that many resources:
+
+```bash
+Nodes: 1
+Cores per node: 64
+CPU Utilized: 04:34:08
+CPU Efficiency: 17.20% of 1-02:33:36 core-walltime
+Job Wall-clock time: 00:24:54
+Memory Utilized: 19.84 GB
+Memory Efficiency: 3.87% of 512.00 GB
+```
+
+Perform juicebox edits....
+
+![juicebox]()
+
+and then resubmit: `sbatch -J asm_Fungus_NoRef puzzler -s Fungus_NoRef -m samples.tsv --threads 12 --mem 64` 
+
+```
+cat slurm-15728609.out
+
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus_NoRef 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: NA
+HOM_COV: NA
+BLOB_DB: NA
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 12
+Cores Available: 12
+RAM Requested: 64
+Memory Available: 2243.4 GB
+=======================================================================
+
+~~~~ Assembling genome for Fungus_NoRef ~~~~
+~~~~ Running juicer, script will stop after .hic files created ~~~~
+~~~~ Skipping hifiasm for Fungus_NoRef: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRef/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~~
+~~~~ Skipping purge for Fungus_NoRef: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRef/02_purge_dups/p_ctg.purged.fa exists ~~~~
+~~~~ Skipping HiC alignment for Fungus_NoRef: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRef/03_haphic/filtered.bam exists ~~~~
+~~~~ Skipping HapHiC for Fungus_NoRef: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRef/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
+~~~~ Skipping juicer HiC file creation for Fungus_NoRef: /90daydata/coffea_pangenome/puzzler_trials/assemblies/juicer_files/Fungus_NoRef_JBAT.hic exists ~~~~
+~~~~ No reference provided for Fungus_NoRef: simply extracting assembly to: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRef.fa ~~~~
+~~~~ No reference provided for Fungus_NoRef: no chromosome re-naming, so final assembly already: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRef.fa ~~~~
+~~~~ Assessing genome quality for Fungus_NoRef ~~~~
+~~~~ Creating final HiC bam for Fungus_NoRef ~~~~
+~~~~ Creating final contact map for Fungus_NoRef, no ref specified, plotting scaffolds > 2mb ~~~~
+~~~~ Running YAK on Fungus_NoRef ~~~~
+~~~~ BUSCO lineage dataset already exists, skipping ~~~~
+~~~~ Running BUSCO for Fungus_NoRef using lineage: fungi_odb10 ~~~~
+~~~~ Skipping blobtools for Fungus_NoRef, not desired ~~~~
+~~~~ Summarizing Assembly for Fungus_NoRef ~~~~
+~~~~ Your final assembly for Fungus_NoRef is: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRef.fa ~~~~
+~~~~ Your final assembly stats for Fungus_NoRef are in: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/stats/Fungus_NoRef.summary.txt ~~~~
+```
+
+With only 12 cores, took around 15 minutes:
+
+```
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 02:12:31
+CPU Efficiency: 72.81% of 03:02:00 core-walltime
+Job Wall-clock time: 00:15:10
+Memory Utilized: 49.71 GB
+Memory Efficiency: 77.68% of 64.00 GB
+```
+
+
+
+
+
+### No Juicer - With Reference
+
+Just add the `--no_juice` flag to skip juicer. Not recommended! 
+
+Submit: `sbatch -J asm_Fungus_RefNoJuice puzzler --no_juice -s Fungus_RefNoJuice -m samples.tsv --threads 12 --mem 64` 
+
+```
+cat slurm-15728087.out
+
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus_RefNoJuice 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
+HOM_COV: NA
+BLOB_DB: NA
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 12
+Cores Available: 12
+RAM Requested: 64
+Memory Available: 1492.1 GB
+=======================================================================
+
+~~~~ Assembling genome for Fungus_RefNoJuice ~~~~
+~~~~ Skipping juicer, no manual curation (not recommended!) ~~~~
+~~~~ Starting hifiasm assembly for Fungus_RefNoJuice ~~~~
+~~~~ Starting Purge_Dups for Fungus_RefNoJuice ~~~~
+~~~~ Mapping HiC reads to Fungus_RefNoJuice draft ~~~~
+~~~~ Running HapHiC for Fungus_RefNoJuice  ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log" (line 234)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 10 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 11 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 12 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 13 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 14 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 15 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 16 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 17 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice with 14 chrs failed, trying: 18 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_RefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_RefNoJuice failed, scaffolding with YAHS instead ~~~~
+~~~~ Skipping juicer HiC file creation for Fungus_RefNoJuice: --no_juice given, not recommended! ~~~~
+~~~~ Skipping juicer extraction for Fungus_RefNoJuice, --no_juice requested! (not recommended!) ~~~~
+~~~~ Renaming chromosomes for Fungus_RefNoJuice ~~~~
+~~~~ Scaffold sanity check passed for renaming, proceeding! ~~~~
+~~~~ Multiple scaffolds corresponding to single Chr for Fungus_RefNoJuice, Renaming them e.g. Chr1A, Chr1B.. ~~~~
+~~~~ Assessing genome quality for Fungus_RefNoJuice ~~~~
+~~~~ Creating final HiC bam for Fungus_RefNoJuice ~~~~
+~~~~ Creating final contact map for Fungus_RefNoJuice, plotting named chromosomes ~~~~
+~~~~ Running YAK on Fungus_RefNoJuice ~~~~
+~~~~ BUSCO lineage dataset already exists, skipping ~~~~
+~~~~ Running BUSCO for Fungus_RefNoJuice using lineage: fungi_odb10 ~~~~
+~~~~ Skipping blobtools for Fungus_RefNoJuice, not desired ~~~~
+~~~~ Summarizing Assembly for Fungus_RefNoJuice ~~~~
+~~~~ Your final assembly for Fungus_RefNoJuice is: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_RefNoJuice.fa ~~~~
+~~~~ Your final assembly stats for Fungus_RefNoJuice are in: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/stats/Fungus_RefNoJuice.summary.txt ~~~~
+```
+
+Runtime:
+
+```
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 05:27:02
+CPU Efficiency: 51.40% of 10:36:12 core-walltime
+Job Wall-clock time: 00:53:01
+Memory Utilized: 51.74 GB
+Memory Efficiency: 80.85% of 64.00 GB
+```
+
+
+
+
+
+### No Juicer - No Reference
+
+Just add the `--no_juice` flag to skip juicer. Not recommended! 
+
+Submit: `sbatch -J asm_Fungus_NoRefNoJuice puzzler --no_juice -s Fungus_NoRefNoJuice -m samples.tsv --threads 12 --mem 64` 
+
+```
+cat slurm-15728050.out
+
+=======================================================================
+__________ ____ _______________________.____     _____________________ 
+\______   \    |   \____    /\____    /|    |    \_   _____/\______   \
+ |     ___/    |   / /     /   /     / |    |     |    __)_  |       _/
+ |    |   |    |  / /     /_  /     /_ |    |___  |        \ |    |   \
+ |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
+                           \/        \/        \/        \/         \/ 
+=======================================================================
+
+=======================================================================
+Parameters for sample: Fungus_NoRefNoJuice 
+RUNTIME: apptainer
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: NA
+HOM_COV: NA
+BLOB_DB: NA
+BUSCO_LINEAGE: fungi_odb10
+BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 12
+Cores Available: 12
+RAM Requested: 64
+Memory Available: 1494.8 GB
+=======================================================================
+
+~~~~ Assembling genome for Fungus_NoRefNoJuice ~~~~
+~~~~ Skipping juicer, no manual curation (not recommended!) ~~~~
+~~~~ Starting hifiasm assembly for Fungus_NoRefNoJuice ~~~~
+~~~~ Starting Purge_Dups for Fungus_NoRefNoJuice ~~~~
+~~~~ Mapping HiC reads to Fungus_NoRefNoJuice draft ~~~~
+~~~~ Running HapHiC for Fungus_NoRefNoJuice  ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 20.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log" (line 234)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 10 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 11 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 12 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 13 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 14 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 15 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 16 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 17 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice with 14 chrs failed, trying: 18 ~~~~
+
+❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus_NoRefNoJuice/03_haphic/haphic: "${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log" (line 257)
+
+~~~~ HapHiC for Fungus_NoRefNoJuice failed, scaffolding with YAHS instead ~~~~
+~~~~ Skipping juicer HiC file creation for Fungus_NoRefNoJuice: --no_juice given, not recommended! ~~~~
+~~~~ No reference provided for Fungus_NoRefNoJuice: simply extracting assembly to: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRefNoJuice.fa ~~~~
+~~~~ Skipping juicer extraction for Fungus_NoRefNoJuice, --no_juice requested! (not recommended!) ~~~~
+~~~~ No reference provided for Fungus_NoRefNoJuice: no chromosome re-naming, so final assembly already: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRefNoJuice.fa ~~~~
+~~~~ Assessing genome quality for Fungus_NoRefNoJuice ~~~~
+~~~~ Creating final HiC bam for Fungus_NoRefNoJuice ~~~~
+~~~~ Creating final contact map for Fungus_NoRefNoJuice, no ref specified, plotting scaffolds > 2mb ~~~~
+~~~~ Running YAK on Fungus_NoRefNoJuice ~~~~
+~~~~ BUSCO lineage dataset already exists, skipping ~~~~
+~~~~ Running BUSCO for Fungus_NoRefNoJuice using lineage: fungi_odb10 ~~~~
+~~~~ Skipping blobtools for Fungus_NoRefNoJuice, not desired ~~~~
+~~~~ Summarizing Assembly for Fungus_NoRefNoJuice ~~~~
+~~~~ Your final assembly for Fungus_NoRefNoJuice is: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus_NoRefNoJuice.fa ~~~~
+~~~~ Your final assembly stats for Fungus_NoRefNoJuice are in: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/stats/Fungus_NoRefNoJuice.summary.txt ~~~~
+```
+
+Runtime:
+
+```
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 05:20:07
+CPU Efficiency: 51.35% of 10:23:24 core-walltime
+Job Wall-clock time: 00:51:57
+Memory Utilized: 54.41 GB
+Memory Efficiency: 85.01% of 64.00 GB
+```
+
+## Outputs
+
+Within `$WD/primary_asm/stats/`, we have our summary statistics.
+
+The samples which have a `$REFERENCE` have 2 additional columns: `WithinChrsBp` and `PropWithinChrs`, showing how much of the assembly is within named chromosomes:
+
+```bash
+awk 'NR == 1 || FNR > 1' Fungus_Ref*summary.txt
+Sample  SizeBP  Sequences       Contigs Gaps    ContigN50       ScafN50 WithinChrsBP    PropWithinChrs  BUSCO_Complete  BUSCO_singlecopy        YAK_CV  YAK_QV
+Fungus_RefNoJuice        24816976        23      23     0        1776619         1776619         24117944       0.9718  99.1    99.1    0.999   69.904
+Fungus_Ref       24817076        22      23     1        1776619         1806824         24324650       0.9802  99.1    99.1    0.999   69.904
+```
+
+| Sample            | SizeBP   | Sequences | Contigs | Gaps | ContigN50 | ScafN50 | WithinChrsBP | PropWithinChrs | BUSCO_Complete | BUSCO_singlecopy | YAK_CV | YAK_QV |
+| ----------------- | -------- | --------- | ------- | ---- | --------- | ------- | ------------ | -------------- | -------------- | ---------------- | ------ | ------ |
+| Fungus_RefNoJuice | 24816976 | 23        | 23      | 0    | 1776619   | 1776619 | 24117944     | 0.9718         | 99.1           | 99.1             | 0.999  | 69.904 |
+| Fungus_Ref        | 24817076 | 22        | 23      | 1    | 1776619   | 1806824 | 24324650     | 0.9802         | 99.1           | 99.1             | 0.999  | 69.904 |
+
+While the assemblies with no `$REFERENCE` do not have those columns:
+
+```bash
+awk 'NR == 1 || FNR > 1' Fungus_NoRef*summary.txt
+Sample  SizeBP  Sequences       Contigs Gaps    ContigN50       ScafN50 BUSCO_Complete  BUSCO_singlecopy        YAK_CV  YAK_QV
+Fungus_NoRefNoJuice      24816976        23      23     0        1776619         1776619        99.5    99.5    0.999   69.904
+Fungus_NoRef     24817076        22      23     1        1776619         1806824        99.5    99.5    0.999   69.904
+```
+
+| Sample              | SizeBP   | Sequences | Contigs | Gaps | ContigN50 | ScafN50 | BUSCO_Complete | BUSCO_singlecopy | YAK_CV | YAK_QV |
+| ------------------- | -------- | --------- | ------- | ---- | --------- | ------- | -------------- | ---------------- | ------ | ------ |
+| Fungus_NoRefNoJuice | 24816976 | 23        | 23      | 0    | 1776619   | 1776619 | 99.5           | 99.5             | 0.999  | 69.904 |
+| Fungus_NoRef        | 24817076 | 22        | 23      | 1    | 1776619   | 1806824 | 99.5           | 99.5             | 0.999  | 69.904 |
+
+Overall, all assemblies look good. 
+
+![fungus_assemblies](/examples/figs/Fungus_Assemblies_HiC.png)
+
+## Alignments
+
+I will perform a quick WGA and create a dotplot between the assemblies. Since the no `$REFERENCE` assemblies do not have named chromosomes, I will just align any sequences > 200 Kb:
+
+```bash
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.7.sif"
+
+for i in Fungus_Ref Fungus_NoRef Fungus_RefNoJuice Fungus_NoRefNoJuice RhiKalk1.hap1; do 
+
+    echo "Extracting chromosomes for ${i}"
+    $PUZZLER samtools faidx ${i}.fa
+    #egrep 'chr|Chr' ${i}.fa.fai | egrep -v 'SUPER|unloc' | awk '{print $1}' > $i.tmp 
+    awk '$2 > 2e5' $i.fa.fai | awk '{print $1}' > $i.tmp
+    $PUZZLER seqtk subseq ${i}.fa $i.tmp > ../../alignments/fastas/${i}.fa
+
+done
+```
+
+I will compare each assembly to the published reference:
+
+```bash
+for i in Fungus_Ref Fungus_NoRef Fungus_RefNoJuice Fungus_NoRefNoJuice; do 
+
+    echo "Alignment for ${i}"
+    ${PUZZLER} minimap2 -t ${t} -x asm20 --secondary=no -c -D --max-chain-skip 100 --max-chain-iter 1000 --frag yes ${i}.fa RhiKalk1.hap1.fa > fungus_pafs/${i}.paf
+    ${PUZZLER} paf2dotplot.R fungus_pafs/${i}.paf -r 1e4 -m 1e4 
+
+done 
+```
+
+Alignments:
+
+![fungus_alignments](/examples/figs/Fungus_Assemblies_Alignments.png)

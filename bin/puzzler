@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=0-9:00:00   
+#SBATCH --time=4-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=24
-#SBATCH --mem=384Gb
+#SBATCH --ntasks-per-node=2
+#SBATCH --mem=12Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -576,19 +576,20 @@ elif [[ "${BUSCO_LINEAGE}" == "NA" || "${BUSCO_DB}" == "NA" ]]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}, not requested ~~~\e[0m"
 else 
 
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
     # Create a busco download lock in case multiple runs of the same species 
     B_LOCK_FILE="${BUSCO_DB}/${BUSCO_LINEAGE}.lock"
+    export PYTHONWARNINGS="ignore::SyntaxWarning"
 
     if [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ] && [ ! -f "${BUSCO_DB}/${BUSCO_LINEAGE}.lock" ]; then
 
+        cd ${BUSCO_DB}/../
         touch ${B_LOCK_FILE} 
-        echo -e "\e[43m~~~ $(elapsed) Downloading BUSCO Lineage database: ${BUSCO_LINEAGE} ~~~\e[0m"
-        ${PUZZLER} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > busco_download.log 2>&1
+        echo -e "\e[43m~~~ $(elapsed) Downloading BUSCO Lineage database: ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} ~~~\e[0m"
+        ${PUZZLER} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > ${BUSCO_DB}/${BUSCO_LINEAGE}_busco_download.log 2>&1
         rm ${B_LOCK_FILE}
 
     elif [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ] && [ -f "${BUSCO_DB}/${BUSCO_LINEAGE}.lock" ]; then
-        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing busco db. Resubmit puzzler after it's finished. Exiting ~~~\e[0m"
+        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing busco db. Resubmit puzzler after finished or remove ${BUSCO_DB}/${BUSCO_LINEAGE}.lock ~~~\e[0m"
         exit 1 
     else
         echo -e "\e[42m~~~ $(elapsed) BUSCO lineage dataset already exists, skipping ~~~\e[0m"
@@ -596,6 +597,7 @@ else
 
     echo -e "\e[43m~~~ $(elapsed) Running BUSCO for ${SAMPLE} using lineage: ${BUSCO_LINEAGE} ~~~\e[0m"
 
+    cd ${WD}/${SAMPLE}/07_busco_yak_blob
     ${PUZZLER} busco -i ${WD}/primary_asm/${SAMPLE}.fa \
         -l ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} \
         -m genome \
@@ -648,7 +650,8 @@ else
         mkdir -p data out
         # Create lock file to signal database download in progress
         touch "$LOCK_FILE"
-        wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
+        wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
+        #wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1 # You can also try this if the above fails....
         tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp > ncbi_dump.tar.log 2>&1
         rm -f "$LOCK_FILE"
     else
@@ -762,6 +765,7 @@ else
 
     # Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
     if [ "${REFERENCE}" != "NA" ]; then
+        cd ${WD}/${SAMPLE}
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
         egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc|A|B|C|D' | cut -f1 > ${SAMPLE}.chrs
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
@@ -774,6 +778,9 @@ else
 
         HEADER+="\tWithinChrsBP\tPropWithinChrs\tGapsInChrs"
         VALUES+="\t$CHR_SIZE\t$CHR_PROP\t$CHR_GAPS"
+
+        rm ${SAMPLE}.chrs
+        rm ${SAMPLE}.chr.fa
     fi 
 
     # Add BUSCO metrics **only if BUSCO_LINEAGE is not "NA"**

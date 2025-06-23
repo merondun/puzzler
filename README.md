@@ -47,12 +47,23 @@ For installation:
 2) Download the `puzzler` shell script, ideally add to path:
 
 ```
+git clone git@github.com:merondun/puzzler.git
+cd puzzler
+./setup.sh
+"Installation complete! You can now run:
+  puzzler --sample $SAMPLE --map_file examples/samples.tsv
+```
+
+Or, just grab the `.sh` file and add to your path: 
+
+```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
 chmod +x puzzler
 INSTALL_PATH=$(dirname "$(realpath puzzler)")
 grep -qxF "export PATH=\$PATH:$INSTALL_PATH" ~/.bashrc || echo "export PATH=\$PATH:$INSTALL_PATH" >> ~/.bashrc
 export PATH="$PATH:$INSTALL_PATH"
 ```
+
 3) Modify your SLURM/HPC settings within the `puzzler` script to accomodate your scheduler. 
 
 ```
@@ -294,10 +305,6 @@ Below is an exhaustive workflow outline documenting the inputs and outputs for e
 
 [HapHiC](https://github.com/zengxiaofei/HapHiC) is very good at recognizing fragments without specification, I haven't needed to do this - although I have mainly tested with Arima kits. 
 
-> The script fails on the HapHic step. 
-
-This can be difficult to diagnose, so please inspect the `$WD/$SAMPLE/03_haphic/$SAMPLE.haphic.log`, and refer to [HapHiC](https://github.com/zengxiaofei/HapHiC) about e.g. "chromosomes are grouped together". Typically I see that error when there is insufficient or low quality HiC data. 
-
 > I can't launch the container, "FATAL:   container creation failed: failed to resolve session directory /var/apptainer/mnt/session: lstat /var/apptainer: no such file or directory"
 
 I see this warning if you try to run apptainer on a login node, which is typically a setting set by IT. You can try modifying some paths IF NECESSARY, but I really recommend testing on a compute node or submitting to a job scheduler. 
@@ -311,32 +318,42 @@ mkdir -p "$APPTAINER_TMPDIR"
 apptainer exe $SIF hifiasm
 ```
 
-> I receive a warning about minimap2 failing when generating an alignment between the reference and the draft! 
+> I receive an error for downloading busco / taxdump / nt databases!
 
-Your warning might look like this:
-
-```~~~~ Extracting post-curation assembly and mapping to reference for Frog ~~~~
-/var/spool/slurmd/job15728028/slurm_script: line 518: 4097808 Aborted                 ${PUZZLER} minimap2 -x asm20 ${REFERENCE} --max-chain-skip 100 --max-chain-iter 1000 --frag yes post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log
-
-❌ Command failed in in /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/05_postjuicebox: "${PUZZLER} minimap2 -x asm20 ${REFERENCE} --max-chain-skip 100 --max-chain-iter 1000 --frag yes post_juicer_asm.fa --secondary=no -t ${t} -o asmpost_to_paf.paf 2> ${SAMPLE}.minimap.postjuicer.log" (line 423)
-```
-
-This occurs in edge cases with massive chromosomes and is a [limitation of minimap2](https://github.com/lh3/minimap2/issues/755). In my trials, this only occured on the [toad](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_027917425.1/) and [frog](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_048569485.1/) assemblies which have chromosomes > 500 Mb. 
-
-Within `$WD/$SAMPLE/05_postjuicebox/$SAMPLE.minimap.postjuicer.log`, your log will probably end with: *"minimap2: lchain.c:73: mg_chain_backtrack: Assertion `n_v < (2147483647)' failed."* 
-
-We simply need the `.paf` file, so I recommend running [mashmap](https://github.com/marbl/MashMap) instead, e.g.:
+Puzzler will create a `.lock` file when downloading the respective databases for busco and blobtools so that it will not overwrite or interupt on-going downloads. If you submitted Puzzler in parallel, other jobs will exit if they encounter this lock file. This is so that the resources will be freed up, otherwise they might hang for many hours while the `nt` database downloads. Once the databases are finished downloading, simply resubmit those jobs and Puzzler will take back up where needed. 
 
 ```
-SAMPLE=Toad
-WD=/90daydata/coffea_pangenome/puzzler_trials/assemblies
-REFERENCE=/90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_027917425.1_aGasCar1.pri_genomic.fna
-
-mashmap -r ${REFERENCE} -q $WD/$SAMPLE/05_postjuicebox/post_juicer_asm.fa -t 64 -s 10000 --perc_identity 95 -o $WD/$SAMPLE/05_postjuicebox/asmpost_to_paf.paf
+~~~ [+0m] Another instance already dl-ing taxdump db. Resubmit puzzler when finished, or rm /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/download_taxdump.lock! Exiting ~~~
 ```
 
-And then just 
+Depending on your HPC environment, you might run into issues about the compute nodes timing out, or the busco server's being unreachable. This will require manual inspection on your part, either for busco:
 
+```
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.8.sif"
+BUSCO_DB=/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+BUSCO_LINEAGE=fungi_odb10
+cd ${BUSCO_DB}/../
+${PUZZLER} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} 
+```
+
+Refseq taxdump (blobtools requirement):
+
+```
+BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
+cd ${BLOB_DB}
+mkdir -p data
+wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/
+tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp
+```
+
+Or Refseq nt (blobtools requirement): 
+
+```
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.8.sif"
+BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
+cd ${BLOB_DB}/nt
+${PUZZLER} update_blastdb.pl --force_ftp --decompress nt
+```
 
 > I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
 
