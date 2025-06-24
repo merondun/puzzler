@@ -3,7 +3,7 @@ From: continuumio/miniconda3
 
 %files
     /project/coffea_pangenome/Software/Merondun/HapHiC /opt/HapHiC
-    environment_v1.7.yml /opt/environment.yml
+    environment_v1.8.yml /opt/environment.yml
     paf2dotplot.R /usr/local/bin/paf2dotplot.R
 
 %post

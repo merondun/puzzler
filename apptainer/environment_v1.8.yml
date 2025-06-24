@@ -24,10 +24,10 @@ dependencies:
   - bwidget=1.10.1=ha770c72_0
   - bzip2=1.0.8=h4bc722e_7
   - c-ares=1.34.5=hb9d3cd8_0
-  - ca-certificates=2025.4.26=hbd8a1cb_0
+  - ca-certificates=2025.6.15=hbd8a1cb_0
   - cairo=1.18.4=h3394656_0
   - cdbtools=0.99=h077b44d_12
-  - certifi=2025.4.26=pyhd8ed1ab_0
+  - certifi=2025.6.15=pyhd8ed1ab_0
   - cffi=1.17.1=py312h06ac9bb_0
   - charset-normalizer=3.4.2=pyhd8ed1ab_0
   - clustalw=2.1=h9948957_12
@@ -150,6 +150,7 @@ dependencies:
   - lp_solve=5.5.2.11=hd590300_0
   - mafft=7.526=h4bc722e_0
   - make=4.4.1=hb9d3cd8_2
+  - mashmap=3.1.3=pl5321hb4818e0_2
   - matplotlib-base=3.10.3=py312hd3ec401_0
   - metaeuk=7.bba0d80=pl5321hd6d6fdc_2
   - metis=5.1.0=hd0bcaf9_1007
@@ -164,6 +165,7 @@ dependencies:
   - ncbi-vdb=3.2.1=h9948957_0
   - ncurses=6.5=h2d0b736_3
   - numpy=1.26.4=py312heda63a1_0
+  - openblas=0.3.29=pthreads_h6ec200e_0
   - openjdk=23.0.2=h53dfc1b_2
   - openjpeg=2.5.3=h5fbd93e_0
   - openmpi=4.1.6=hc5af2df_101
