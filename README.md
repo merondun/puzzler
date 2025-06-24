@@ -52,6 +52,9 @@ cd puzzler
 ./setup.sh
 "Installation complete! You can now run:
   puzzler --sample $SAMPLE --map_file examples/samples.tsv
+
+# Refresh environment if needed
+source ~/.bashrc
 ```
 
 Or, just grab the `.sh` file and add to your path: 
@@ -173,7 +176,7 @@ Prepare a `samples.tsv` which outlines all necessary pipeline components. An exa
 
 ***Homozygous peak coverage*** is the homozygous peak covewrage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
-If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm log file (in $WD/$SAMPLE/$SAMPLE.hifiasm.log).
+If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm log file (in `$WD/$SAMPLE/$SAMPLE.hifiasm.log`).
 
 For more details about this homozygous coverage and for a full example, see the [Fungus example](/docs/Fungus_Example.md). 
 
@@ -230,6 +233,11 @@ BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 ~~~~ Creating .hic file for juicebox for Fungus, with reference alignment  ~~~~
 ```
 
+:x: If `puzzler` fails, it will print an error like below. This will tell you which directory the command failed in, and the command which caused the failure. 
+
+```
+❌ Command failed in in /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt: "${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1" (line 677)
+```
 
 :one: **Step 1:** `[sbatch] puzzler --sample Fungus --map samples.tsv`
 
@@ -408,11 +416,30 @@ Relative to the `$WD` path, the outputs will be:
 
 Each directory within `$WD/$SAMPLE` corresponds to an assembly step, where all logs for all steps are saved in `.log` files. Please inspect these before opening an issue to see what the problem might be. 
 
+A successful run should look like this within `$WD/$SAMPLE/`:
+
+```
+01_hifiasm/
+02_purge_dups/
+03_haphic/
+04_juicer/
+05_postjuicebox/
+06_realign_hic_hifi/
+07_busco_yak_blob/
+hifiasm.complete
+purge_dups.complete
+align_hic.complete
+scaffolding.complete
+juicer.complete
+qc_align_hic.complete
+yak.complete
+busco.complete
+```
 
 <!-- TOC --><a name="contact"></a>
 ## Contact
 
-Please make a git issue with any problems, no matter how small. Otherwise, email Justin at heritabilities [@] gmail.com 
+Please make a git issue with any problems, no matter how small! I will respond as quickly as possible and it could help others. Otherwise, email Justin at heritabilities [@] gmail.com 
 
 <!-- TOC --><a name="citation"></a>
 ## Citation
