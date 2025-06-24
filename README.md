@@ -6,7 +6,7 @@ Simple check-point aware shell script wrapper for high-throughput genome assembl
 
 Scalable genome assembly. As simple and portable as possible: only requires the `.sif` and a table with file paths. 
 
-Optimized for container-capable SLURM resources. 
+Optimized for container-capable SLURM resources. Puzzler v1.8 archived on Zenodo: [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
