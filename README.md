@@ -140,7 +140,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
-`puzzler` only requires two inputs: `--sample` and `--map`. 
+`puzzler` only requires two inputs: `--sample` and `--map`. Please see a [fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md). 
 
 **1. Make pipeline map file** 
 
@@ -313,6 +313,8 @@ Below is an exhaustive workflow outline documenting the inputs and outputs for e
 
 [HapHiC](https://github.com/zengxiaofei/HapHiC) is very good at recognizing fragments without specification, I haven't needed to do this - although I have mainly tested with Arima kits. 
 
+___
+
 > I can't launch the container, "FATAL:   container creation failed: failed to resolve session directory /var/apptainer/mnt/session: lstat /var/apptainer: no such file or directory"
 
 I see this warning if you try to run apptainer on a login node, which is typically a setting set by IT. You can try modifying some paths IF NECESSARY, but I really recommend testing on a compute node or submitting to a job scheduler. 
@@ -325,6 +327,8 @@ export APPTAINER_CACHEDIR=$HOME/.apptainer_cache
 mkdir -p "$APPTAINER_TMPDIR"
 apptainer exe $SIF hifiasm
 ```
+
+___
 
 > I receive an error for downloading busco / taxdump / nt databases!
 
@@ -363,6 +367,8 @@ cd ${BLOB_DB}/nt
 ${PUZZLER} update_blastdb.pl --force_ftp --decompress nt
 ```
 
+___
+
 > I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
 
 This means that there are multiple scaffolds/chromosomes in your draft which correspond to a single chromosome in the reference genome. The script will automatically rename the duplicates into e.g. `chr1` `chr1A` `chr1B` according to length. 
@@ -395,6 +401,7 @@ scaffold_4      chr2    +       39.75%  31132341
 
 If you did any manual edits and want to re-generate `final_asm.fa`, just fill in these fields and re-run puzzler.
 
+___
 
 > The script gave a warning: HapHiC for Fungus with 14 chrs failed, trying: 10 
 
