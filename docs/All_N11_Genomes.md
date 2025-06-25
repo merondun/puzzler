@@ -34,7 +34,7 @@ wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/964/106/855/GCA_964106855.1_bG
 gunzip GCA_964106855.1_bGruGru1.hap1.1_genomic.fna.gz
 sed -i 's/>.*chromosome: />chr/g' GCA_964106855.1_bGruGru1.hap1.1_genomic.fna
 
-# Fish 
+# Fish (Lanternfish)
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/951/216/825/GCA_951216825.1_fEleAnt2.1/GCA_951216825.1_fEleAnt2.1_genomic.fna.gz
 gunzip GCA_951216825.1_fEleAnt2.1_genomic.fna.gz
 sed -i 's/>.*chromosome: />chr/g' GCA_951216825.1_fEleAnt2.1_genomic.fna
@@ -52,7 +52,7 @@ sed -i 's/>.*chromosome />chr/g' GCA_048569485.1_aAnoBae1.hap1_genomic.fna
 sed -i 's/,.*//g' GCA_048569485.1_aAnoBae1.hap1_genomic.fna
 sed -i 's/ /_/g' GCA_048569485.1_aAnoBae1.hap1_genomic.fna
 
-# Rhodie
+# Rhodie (Rhododendron)
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/030/253/575/GCF_030253575.1_ASM3025357v1/GCF_030253575.1_ASM3025357v1_genomic.fna.gz
 gunzip GCF_030253575.1_ASM3025357v1_genomic.fna.gz
 sed -i 's/>.*chromosome />chr/g' GCF_030253575.1_ASM3025357v1_genomic.fna
@@ -81,7 +81,7 @@ wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/964/341/445/GCA_964341445.1_mM
 gunzip GCA_964341445.1_mMesMir1.hap1.1_genomic.fna.gz
 sed -i 's/>.*chromosome: />chr/g' GCA_964341445.1_mMesMir1.hap1.1_genomic.fna
 
-# Fungus
+# Fungus (Rhizosphaera)
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/964/106/605/GCA_964106605.1_gdRhiKalk1.hap1.1/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna.gz
 gunzip GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna.gz
 sed -i 's/>.*chromosome: />chr/g' GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
@@ -133,37 +133,7 @@ grep '>' GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
 
 
 
-
-
 ## Reads
-
-Alga
-
-```bash
-#!/bin/bash
-
-#SBATCH --time=4-00:00:00   
-#SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=1
-#SBATCH --partition=ceres
-
-WD=/90daydata/coffea_pangenome/puzzler_trials
-
-mkdir alga
-cd alga
-module load sratoolkit/3.2.0
-# ALGA
-#HIFI SRR28420822   HIC SRR28420821
-
-prefetch SRR28420822 --max-size 0
-fasterq-dump --split-files SRR28420822
-gzip -c SRR28420822.fastq > ../concat_reads/Alga.HiFi.fastq.gz
-
-prefetch SRR28420821 --max-size 0
-fasterq-dump --split-files SRR28420821
-gzip -c SRR28420821_1.fastq > ../concat_reads/Alga.HiC.R1.fastq.gz
-gzip -c SRR28420821_2.fastq > ../concat_reads/Alga.HiC.R2.fastq.gz
-```
 
 Beaver
 
@@ -184,7 +154,6 @@ wget https://genomeark.s3.amazonaws.com/species/Castor_canadensis/mCasCan1/genom
 wget https://genomeark.s3.amazonaws.com/species/Castor_canadensis/mCasCan1/genomic_data/arima/mCasCan1_L1_S5_R1_001.fastq.gz
 wget https://genomeark.s3.amazonaws.com/species/Castor_canadensis/mCasCan1/genomic_data/arima/mCasCan1_L1_S5_R2_001.fastq.gz
 ```
-
 
 
 Crane
@@ -209,7 +178,7 @@ bam2fastq m84093_240219_121437_s3.ccs.bc2028.bam -o crane
 samtools fastq -1 crane_R1.fastq.gz -2 crane_R2.fastq.gz -s crane_unpaired.fastq.gz -0 crane_other.fastq.gz "bGruGru1_48542_3-4%237.cram"
 ```
 
-Fish
+Fish (Lanternfish)
 
 ```bash
 #!/bin/bash
@@ -264,7 +233,7 @@ prefetch SRR30045406 --max-size 0
 fasterq-dump --split-files SRR30045406
 ```
 
-Frog:
+Frog
 
 ```
 # Frog
@@ -280,8 +249,7 @@ wget https://genomeark.s3.amazonaws.com/species/Anomaloglossus_baeobatrachus/aAn
 ```
 
 
-
-Rhododendron (rhodie)
+Rhodie (Rhododendron)
 
 ```bash
 #!/bin/bash
@@ -306,7 +274,7 @@ prefetch SRR24501947 --max-size 0
 fasterq-dump --split-files SRR24501947
 ```
 
-Sea squirt:
+Sea squirt
 
 ```bash
 #!/bin/bash
@@ -328,7 +296,7 @@ pbindex m64221e_210705_191039.ccs.bc1015_BAK8B_OA--bc1015_BAK8B_OA.bam
 bam2fastq m64221e_210705_191039.ccs.bc1015_BAK8B_OA--bc1015_BAK8B_OA.bam -o squirt
 ```
 
-Stickleback: 
+Stickleback
 
 ```bash
 #!/bin/bash
@@ -354,7 +322,7 @@ samtools fastq -1 stickleback_R1.fastq.gz -2 stickleback_R2.fastq.gz -s stickleb
 bam2fastq m64178e_230122_111455.ccs.bc1008_BAK8A_OA--bc1008_BAK8A_OA.bam -o stickleback
 ```
 
-Toad:
+Toad
 
 ```bash
 #!/bin/bash

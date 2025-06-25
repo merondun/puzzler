@@ -86,20 +86,23 @@ fi
 HOM_COV="${HOM_COV:-NA}"
 BUSCO_LINEAGE="${BUSCO_LINEAGE:-NA}"
 for option in REFERENCE BLOB_DB BUSCO_DB; do
-    [[ "${!option}" != "NA" && -n "${!option}" ]] && declare "$option=$($PUZZLER realpath "${!option}")" || declare "$option=NA"
+    [[ "${!option}" != "NA" && -n "${!option}" ]] && declare "$option=$(realpath "${!option}")" || declare "$option=NA"
 done
 
 # In case relative paths were provided... extract full paths
-CONTAINER=$($PUZZLER realpath ${CONTAINER})
-WD=$($PUZZLER realpath ${WD})
-HIFI=$($PUZZLER realpath ${HIFI})
-HIC_R1=$($PUZZLER realpath ${HIC_R1})
-HIC_R2=$($PUZZLER realpath ${HIC_R2})
+CONTAINER=$(realpath ${CONTAINER})
+WD=$(realpath ${WD})
+HIFI=$(realpath ${HIFI})
+HIC_R1=$(realpath ${HIC_R1})
+HIC_R2=$(realpath ${HIC_R2})
 
 if [ "$RUNTIME" = "conda" ]; then
     PUZZLER=""  # No runtime needed for Conda
 else
-    PUZZLER="${RUNTIME} exec ${CONTAINER}"
+    #PUZZLER="${RUNTIME} exec ${CONTAINER}"
+    PUZZLER() {
+        apptainer exec --bind "$(realpath .)":/mnt --pwd /mnt "${CONTAINER}" "$@"
+    }
 fi
 
 if [ "$NO_JUICE" = "TRUE" ]; then
@@ -127,8 +130,8 @@ mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminf
 echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\n=======================================================================\n"
 
 set -euo pipefail
-$PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~ $(elapsed) hifiasm not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
-$PUZZLER haphic --version > /dev/null 2>&1 || { -e "\e[40m~~~ $(elapsed) haphic not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
+PUZZLER hifiasm --version > /dev/null 2>&1 || { -e "\e[40m~~~ $(elapsed) hifiasm not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
+PUZZLER haphic --version > /dev/null 2>&1 || { -e "\e[40m~~~ $(elapsed) haphic not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
 
 ### MONITORING ###
 exec 3>&2
@@ -161,7 +164,7 @@ else
         cd "${WD}/${SAMPLE}/01_hifiasm"
 
         # Run hifiasm
-        RUN_ASM="${PUZZLER} hifiasm --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}"
+        RUN_ASM="PUZZLER hifiasm --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}"
         if [[ -z "$HOM_COV" || "$HOM_COV" == "NA" ]]; then
             RUN_ASM="$RUN_ASM --hom-cov ${HOM_COV}"
         fi
@@ -185,9 +188,9 @@ else
         awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa > pri.init.fa
 
         # Purge duplicates
-        ${PUZZLER} split_fa pri.init.fa > pri.split.fa
-        ${PUZZLER} minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa 2> ${SAMPLE}.minimap.purge.log | gzip -c > pri.split.self.paf.gz
-        ${PUZZLER} purge_dups -M1000 -E1000 pri.split.self.paf.gz > pri.dups.bed 2> ${SAMPLE}.purge.log
+        PUZZLER split_fa pri.init.fa > pri.split.fa
+        PUZZLER minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa 2> ${SAMPLE}.minimap.purge.log | gzip -c > pri.split.self.paf.gz
+        PUZZLER purge_dups -M1000 -E1000 pri.split.self.paf.gz > pri.dups.bed 2> ${SAMPLE}.purge.log
 
         # Check if pri.dups.bed is empty
         if [ ! -s pri.dups.bed ]; then
@@ -195,7 +198,7 @@ else
             cp pri.split.fa p_ctg.purged.fa 
         else
             # Continue with purge process if duplicates exist
-            ${PUZZLER} get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
+            PUZZLER get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
             mv purged.fa p_ctg.purged.fa
         fi
         touch ${WD}/${SAMPLE}/purge_dups.complete
@@ -211,14 +214,14 @@ else
         echo -e "\e[43m~~~ $(elapsed) Mapping HiC reads to ${SAMPLE} draft ~~~\e[0m" 
         cd ${WD}/${SAMPLE}/03_haphic
         # Index reference
-        ${PUZZLER} bwa-mem2 index ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa > ${SAMPLE}.alignment.indexing.hic.log 2>&1
+        PUZZLER bwa-mem2 index ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa > ${SAMPLE}.alignment.indexing.hic.log 2>&1
 
         # Align Hi-C reads
-        { ${PUZZLER} bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1} ${HIC_R2} | \
-            ${PUZZLER} samblaster | \
-            ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
-            ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} | \
-            ${PUZZLER} samtools view - -b -@ ${t} -o filtered.bam; } > ${SAMPLE}.alignment.hic.log 2>&1
+        { PUZZLER bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1} ${HIC_R2} | \
+            PUZZLER samblaster | \
+            PUZZLER samtools view - -@ ${t} -S -h -b -F 3340 | \
+            PUZZLER filter_bam - 1 --nm 3 --threads ${t} | \
+            PUZZLER samtools view - -b -@ ${t} -o filtered.bam; } > ${SAMPLE}.alignment.hic.log 2>&1
         touch ${WD}/${SAMPLE}/align_hic.complete
     fi
 
@@ -240,7 +243,7 @@ else
         rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
 
         cd ${WD}/${SAMPLE}/03_haphic/haphic/
-        ${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
+        PUZZLER haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
         cp ${WD}/${SAMPLE}/03_haphic/haphic/01.cluster/HapHiC_cluster.log ${WD}/${SAMPLE}/03_haphic/${SAMPLE}.haphic.cluster_WOULD_CONTAIN_ERRORS.log
 
         # IF HapHic failed with the specified number of chromosomes $NUM_CHRS, then loop from NUM_CHRS - 1, NUM_CHRS - 2, until successful 
@@ -263,7 +266,7 @@ else
             mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic
             cd ${WD}/${SAMPLE}/03_haphic/haphic
             
-            ${PUZZLER} haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log
+            PUZZLER haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${CHR_ATTEMPT} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic_N_chrs${CHR_ATTEMPT}.log
 
             # Check if scaffolds.fa exists
             if [ -s ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ]; then
@@ -284,8 +287,8 @@ else
             rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
             mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic/04.build
 
-            ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-            ${PUZZLER} yahs ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa filtered.bam > yahs.log 2>&1
+            PUZZLER samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
+            PUZZLER yahs ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa filtered.bam > yahs.log 2>&1
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.fa ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
         fi 
@@ -328,18 +331,18 @@ else
             echo -e "\e[42m~~~ $(elapsed) Skipping initial alignment between reference and draft, ${WD}/${SAMPLE}/04_juicer/alignment.agp exists ~~~\e[0m]"
         elif [ "${REFERENCE}" != "NA" ] && [ ! -s "${WD}/${SAMPLE}/04_juicer/asm_to_ref.paf" ]; then
 
-            ${PUZZLER} mashmap -r ${REFERENCE} -q ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa -t ${t} -s 10000 --perc_identity 85 -o asm_to_ref.paf 2> mashmap.ref.log
-            ${PUZZLER} haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > alignment.agp 2> refsort.log
+            PUZZLER mashmap -r ${REFERENCE} -q ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa -t ${t} -s 10000 --perc_identity 85 -o asm_to_ref.paf 2> mashmap.ref.log
+            PUZZLER haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > alignment.agp 2> refsort.log
 
         else
             cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp alignment.agp
         fi
 
         # Otherwise, proceed as usual 
-        ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
-        ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
+        PUZZLER samtools faidx ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
+        PUZZLER samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
         
-        ${PUZZLER} juicer pre \
+        PUZZLER juicer pre \
             -a -q 1 \
             -o haphic_JBAT \
             ${WD}/${SAMPLE}/03_haphic/filtered.bam \
@@ -347,7 +350,7 @@ else
             ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
         grep PRE_C_SIZE haphic_JBAT.log | \
             awk '{print $2" "$3}' > chrom.sizes
-        ${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
+        PUZZLER java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
             -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
             haphic_JBAT.txt \
             haphic_JBAT.hic \
@@ -370,7 +373,7 @@ else
         # If juicebox review file exists, but no reference file, just extract that file for final assembly  
         echo -e "\e[43m~~~ $(elapsed) No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
         cd ${WD}/${SAMPLE}/05_postjuicebox
-        ${PUZZLER} juicer post \
+        PUZZLER juicer post \
             -o haphic-post_JBAT \
             ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly \
             ${WD}/${SAMPLE}/04_juicer/haphic_JBAT.liftover.agp \
@@ -382,7 +385,7 @@ else
         # If juicebox review file exists and reference provided, get ready for chromosome naming 
         echo -e "\e[43m~~~ $(elapsed) Extracting post-curation assembly and mapping to reference for ${SAMPLE} ~~~\e[0m"
         cd ${WD}/${SAMPLE}/05_postjuicebox
-        ${PUZZLER} juicer post \
+        PUZZLER juicer post \
             -o haphic-post_JBAT \
             ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly \
             ${WD}/${SAMPLE}/04_juicer/haphic_JBAT.liftover.agp \
@@ -404,10 +407,10 @@ else
         else
 
             # Renaming: to reference chromosomes 
-            ${PUZZLER} mashmap -r ${REFERENCE} -q post_juicer_asm.fa -t ${t} -s 10000 --perc_identity 85 -o asmpost_to_paf.paf 2> mashmap.postjuicer.log
-            ${PUZZLER} samtools faidx post_juicer_asm.fa
-            ${PUZZLER} samtools faidx ${REFERENCE}
-            ${PUZZLER} map_chromosomes --paf asmpost_to_paf.paf --fai post_juicer_asm.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
+            PUZZLER mashmap -r ${REFERENCE} -q post_juicer_asm.fa -t ${t} -s 10000 --perc_identity 85 -o asmpost_to_paf.paf 2> mashmap.postjuicer.log
+            PUZZLER samtools faidx post_juicer_asm.fa
+            PUZZLER samtools faidx ${REFERENCE}
+            PUZZLER map_chromosomes --paf asmpost_to_paf.paf --fai post_juicer_asm.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
         fi 
 
         # Renaming script 
@@ -437,9 +440,9 @@ else
             # Orient chromosomes in the same strand direction 
             awk '{if ($3 == "-") print $1}' chromosome_naming_map.txt > reverse_list.txt
             awk '{if ($3 == "+") print $1}' chromosome_naming_map.txt > positive_list.txt
-            ${PUZZLER} seqtk subseq post_juicer_asm.fa reverse_list.txt > to_revercomp.fa
-            ${PUZZLER} seqtk subseq post_juicer_asm.fa positive_list.txt > positive.fa
-            ${PUZZLER} seqkit seq --line-width 0 -t DNA -v -r -p to_revercomp.fa > revcomp.fa
+            PUZZLER seqtk subseq post_juicer_asm.fa reverse_list.txt > to_revercomp.fa
+            PUZZLER seqtk subseq post_juicer_asm.fa positive_list.txt > positive.fa
+            PUZZLER seqkit seq --line-width 0 -t DNA -v -r -p to_revercomp.fa > revcomp.fa
             cat positive.fa revcomp.fa > orient.fa
             rm reverse_list.txt positive_list.txt to_revercomp.fa positive.fa revcomp.fa
 
@@ -486,11 +489,11 @@ else
             awk '$2 ~ /^chr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' > sorted_chr.txt
             awk '$2 ~ /^scaffold_/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
 
-            ${PUZZLER} seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
-            ${PUZZLER} samtools faidx haphic_renamed_unord.fa
-            xargs ${PUZZLER} samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final_asm.fa
+            PUZZLER seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
+            PUZZLER samtools faidx haphic_renamed_unord.fa
+            xargs PUZZLER samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final_asm.fa
             cp ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa ${WD}/primary_asm/${SAMPLE}.fa
-            ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
+            PUZZLER samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
 
         fi # exit renaming check 
 
@@ -515,16 +518,16 @@ else
 
     ln -s ${WD}/primary_asm/${SAMPLE}.fa final_asm.fa 2>/dev/null || true
     if [ ! -s "final_asm.fa.0123" ]; then 
-		${PUZZLER} bwa-mem2 index final_asm.fa > alignment.indexing.final_hic.log 2>&1
-		${PUZZLER} samtools faidx final_asm.fa
+		PUZZLER bwa-mem2 index final_asm.fa > alignment.indexing.final_hic.log 2>&1
+		PUZZLER samtools faidx final_asm.fa
 	fi
 
     # Align Hi-C reads
-    { ${PUZZLER} bwa-mem2 mem -5SP -t ${t} final_asm.fa ${HIC_R1} ${HIC_R2} | \
-        ${PUZZLER} samblaster | \
-        ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
-        ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} --remove-dup | \
-        ${PUZZLER} samtools view - -b -@ ${t} -o final_asm.filtered.bam; } > alignment.final_hic.log 2>&1
+    { PUZZLER bwa-mem2 mem -5SP -t ${t} final_asm.fa ${HIC_R1} ${HIC_R2} | \
+        PUZZLER samblaster | \
+        PUZZLER samtools view - -@ ${t} -S -h -b -F 3340 | \
+        PUZZLER filter_bam - 1 --nm 3 --threads ${t} --remove-dup | \
+        PUZZLER samtools view - -b -@ ${t} -o final_asm.filtered.bam; } > alignment.final_hic.log 2>&1
     touch ${WD}/${SAMPLE}/qc_align_hic.complete
 
 fi # exit final hic mapping check 
@@ -536,15 +539,15 @@ elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam ~~~\e[0m"
 else 
     cd ${WD}/${SAMPLE}/06_realign_hic_hifi
-    ${PUZZLER} samtools faidx final_asm.fa
-    ${PUZZLER} mock_agp_file.py final_asm.fa > final_asm.agp
+    PUZZLER samtools faidx final_asm.fa
+    PUZZLER mock_agp_file.py final_asm.fa > final_asm.agp
 	if [ "${REFERENCE}" = "NA" ]; then
 	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, no ref specified, plotting scaffolds > 2mb ~~~\e[0m"
-		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 2> haphic_plot.log
+		PUZZLER haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 2> haphic_plot.log
     else
 	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, plotting named chromosomes ~~~\e[0m"
 		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | egrep -v 'SUPER|unloc' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
-		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
+		PUZZLER haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 	fi 
 
     # Copy over HiC map 
@@ -562,8 +565,8 @@ else
     echo -e "\e[43m~~~ $(elapsed) Running YAK on ${SAMPLE} ~~~\e[0m"
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
 
-    ${PUZZLER} yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
-    ${PUZZLER} yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
+    PUZZLER yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
+    PUZZLER yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
     touch ${WD}/${SAMPLE}/yak.complete
 fi
 
@@ -585,7 +588,7 @@ else
         cd ${BUSCO_DB}/../
         touch ${B_LOCK_FILE} 
         echo -e "\e[43m~~~ $(elapsed) Downloading BUSCO Lineage database: ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} ~~~\e[0m"
-        ${PUZZLER} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > ${BUSCO_DB}/${BUSCO_LINEAGE}_busco_download.log 2>&1
+        PUZZLER busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > ${BUSCO_DB}/${BUSCO_LINEAGE}_busco_download.log 2>&1
         rm ${B_LOCK_FILE}
 
     elif [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ] && [ -f "${BUSCO_DB}/${BUSCO_LINEAGE}.lock" ]; then
@@ -598,7 +601,7 @@ else
     echo -e "\e[43m~~~ $(elapsed) Running BUSCO for ${SAMPLE} using lineage: ${BUSCO_LINEAGE} ~~~\e[0m"
 
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    ${PUZZLER} busco -i ${WD}/primary_asm/${SAMPLE}.fa \
+    PUZZLER busco -i ${WD}/primary_asm/${SAMPLE}.fa \
         -l ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} \
         -m genome \
         -c ${t} \
@@ -630,10 +633,10 @@ else
 
         # Alignment 
         echo -e "\e[43m~~~ $(elapsed) Blobtools need HiFi alignment, starting HiFi Alignment for ${SAMPLE} ~~~\e[0m"
-        { ${PUZZLER} minimap2 -t ${t} -ax map-hifi \
+        { PUZZLER minimap2 -t ${t} -ax map-hifi \
             ${WD}/primary_asm/${SAMPLE}.fa ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
-            ${PUZZLER} samtools sort --threads ${t} -o asm.hifi.bam; } > hifi.alignment.log 2>&1
-        ${PUZZLER} samtools index -c --threads ${t} asm.hifi.bam
+            PUZZLER samtools sort --threads ${t} -o asm.hifi.bam; } > hifi.alignment.log 2>&1
+        PUZZLER samtools index -c --threads ${t} asm.hifi.bam
         touch ${WD}/${SAMPLE}/qc_align_hifi.complete
         
     fi # exit HiFi check
@@ -673,11 +676,11 @@ else
     elif [ ! -f "$NT_LOCK_FILE" ]; then
         echo -e "\e[43m~~~ $(elapsed) Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~\e[0m"
         touch "$NT_LOCK_FILE"
-        ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
+        PUZZLER update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
         
         # If there's an error with the script, stop! 
         if grep -i "not found\|error" nt_check_database.log; then
-            echo -e "\e[41m~~~ $(elapsed) Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~\e[0m"
+            echo -e "\e[41m~~~ $(elapsed) Error detected during BLAST database update! Check running PUZZLER update_blastdb.pl in ${BLOB_DB}  ~~~\e[0m"
             exit 1
         fi
 
@@ -686,7 +689,7 @@ else
         rm "$NT_LOCK_FILE"
         touch ${BLOB_DB}/nt.complete
     else
-        echo -e "\e[42m~~~ $(elapsed) Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~\e[0m"
+        echo -e "\e[42m~~~ $(elapsed) Error detected during BLAST database update! Check running PUZZLER update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~\e[0m"
     fi 
 
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
@@ -694,7 +697,7 @@ else
             echo -e "\e[42m~~~ $(elapsed) Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~\e[0m"
     else
         echo -e "\e[43m~~~ $(elapsed) Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~\e[0m"
-        ${PUZZLER} blastn -task megablast \
+        PUZZLER blastn -task megablast \
             -db ${BLOB_DB}/nt/nt \
             -query ${WD}/primary_asm/${SAMPLE}.fa \
             -outfmt "6 qseqid staxids bitscore std" \
@@ -715,10 +718,10 @@ else
     elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
 
         echo -e "\e[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\e[0m"  
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+        { PUZZLER blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
             --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+            PUZZLER blobtools view -i ${SAMPLE}.blobDB.json && \
+            PUZZLER blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
         cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
         cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
         cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
@@ -726,10 +729,10 @@ else
     elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
 
         echo -e "\e[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\e[0m"
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+        { PUZZLER blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
             --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+            PUZZLER blobtools view -i ${SAMPLE}.blobDB.json && \
+            PUZZLER blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
         cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
         cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
         cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
@@ -749,7 +752,7 @@ else
     echo -e "\e[43m~~~ $(elapsed) Summarizing Assembly for ${SAMPLE} ~~~\e[0m"
     # Get metrics for final assembly
 
-    FINAL_STATS=$(${PUZZLER} assembly_stats ${WD}/primary_asm/${SAMPLE}.fa)
+    FINAL_STATS=$(PUZZLER assembly_stats ${WD}/primary_asm/${SAMPLE}.fa)
     SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
     SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
     CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
@@ -766,12 +769,12 @@ else
     # Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
     if [ "${REFERENCE}" != "NA" ]; then
         cd ${WD}/${SAMPLE}
-        ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
+        PUZZLER samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
         egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc|A|B|C|D' | cut -f1 > ${SAMPLE}.chrs
-        ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
-        CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
+        PUZZLER samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
+        CHR_STATS=$(PUZZLER assembly_stats ${SAMPLE}.chr.fa)
         CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-        CHR_PROP=$(${PUZZLER} perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
+        CHR_PROP=$(PUZZLER perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
         CHR_SEQS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
         CHR_CTGS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
         CHR_GAPS=$((CHR_CTGS - CHR_SEQS))

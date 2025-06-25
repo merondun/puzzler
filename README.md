@@ -496,8 +496,6 @@ If using optional software:
 <!-- TOC --><a name="changelog"></a>
 ## Changelog
 
-`puzzler`
-
 **v1.8**: switch minimap2 to mashmap for draft-reference mapping, magnitudes faster and works with >500mb chromosomes. Add time counter.
 
 **v1.7**: merge puzzler & puzzle_quality. 

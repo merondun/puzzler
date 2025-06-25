@@ -156,8 +156,8 @@ vim puzzler
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=2-00:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=32
-#SBATCH --mem=256Gb
+#SBATCH --ntasks=48
+#SBATCH --mem=384Gb
 #SBATCH --partition=atlas
 #SBATCH --account=coffea_pangenome
 
@@ -237,16 +237,16 @@ For this example with 4 forks, my file will look like this, where the only diffe
 
 | sample              | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database | busco_lineage | busco_database                                             |
 | ------------------- | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | ------------- | ------------- | ---------------------------------------------------------- |
-| Fungus_Ref          | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus_NoRef        | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus_NoJuice      | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus_NoRefNoJuice | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_Ref          | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoRef        | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoJuice      | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus_NoRefNoJuice | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
 ### Recommended: Juicer & Reference
 
 #### Step 1: Draft Assembly
 
-Submit: `sbatch -J asm_Fungus_Ref puzzler -s Fungus_Ref -m samples.tsv --threads 12 --mem 64` 
+Submit: `sbatch -J asm_Fungus_Ref puzzler -s Fungus_Ref -m samples.tsv` 
 
 ```bash
 =======================================================================
@@ -261,7 +261,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_Ref 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -272,9 +272,9 @@ HOM_COV: NA
 BLOB_DB: NA
 BUSCO_LINEAGE: fungi_odb10
 BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
-Cores Requested: 64
-Cores Available: 64
-RAM Requested: 512
+Cores Requested: 48
+Cores Available: 48
+RAM Requested: 384
 Memory Available: 2241.3 GB
 =======================================================================
 
@@ -442,22 +442,22 @@ As long as you see:
 
 `~~~~ HapHiC for Fungus_Ref failed, scaffolding with YAHS instead ~~~~` 
 
-Afterwards, then everything is fine. 
+Afterwards, everything is fine. 
 
 Of the many genomes I have run so far, Fungus is the only genome not successfully scaffolded with HapHiC, so maybe it has something to do with the small size of chromosomes. 
 
 **Runtime:**
 
-It completed the assembly in 24 minutes, and of course with this tiny genome we could have dramatically reduced our resources to `--threads 8 --mem 32` 
+It completed the assembly in 25 minutes, and of course with this tiny genome we could have dramatically reduced our requested resources (probably 12 cores and 36 Gb memory)
 
 ``` 
 Nodes: 1
-Cores per node: 64
+Cores per node: 48
 CPU Utilized: 04:31:37
 CPU Efficiency: 17.08% of 1-02:30:24 core-walltime
 Job Wall-clock time: 00:24:51
 Memory Utilized: 22.98 GB
-Memory Efficiency: 4.49% of 512.00 GB
+Memory Efficiency: 5.98% of 384.00 GB
 ```
 
 In any case, the pipeline will also run `haphic refsort`, provided a related species is provided, which will align your draft scaffolds in order of the reference genome for juicebox curation. **This is not reference-guided assembly**, and will not rename or otherwise modify the scaffolds. Please see the [HapHiC](https://github.com/zengxiaofei/HapHiC) `refsort` description for more details. 
@@ -473,6 +473,8 @@ Perform our edits. Pull in the `.hic` file, import the `.assembly` file with `As
 ![Fungus_Edits_Juicebox]()
 
 Afterwards, save the file with `Assembly > Export Assembly`, and save the  `Fungus_Ref_JBAT.review.assembly` to the directory `$WD/juicer_files`, retaining the default file name! 
+
+Please find videos documenting manual curation for the `$REFRENCE` and reference-free juicer genomes at the Zenodo archive with large files from the manuscript. 
 
 #### Step 3: Chromosome Renaming, Remapping HiC
 
@@ -497,7 +499,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_Ref 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -508,9 +510,9 @@ HOM_COV: NA
 BLOB_DB: NA
 BUSCO_LINEAGE: fungi_odb10
 BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
-Cores Requested: 64
-Cores Available: 64
-RAM Requested: 512
+Cores Requested: 48
+Cores Available: 48
+RAM Requested: 384
 Memory Available: 2247.0 GB
 =======================================================================
 
@@ -537,15 +539,15 @@ Memory Available: 2247.0 GB
 ~~~~ Your final assembly stats for Fungus_Ref are in: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/stats/Fungus_Ref.summary.txt ~~~~
 ```
 
-Which only ran for about 10 minutes (note I left off `--threads 12 and --mem 64`, so this would typically take a big longer) 
+Which only ran for about 10 minutes. 
 
 ```
-Cores per node: 64
+Cores per node: 48
 CPU Utilized: 02:23:10
 CPU Efficiency: 27.85% of 08:34:08 core-walltime
 Job Wall-clock time: 00:08:02
 Memory Utilized: 53.61 GB
-Memory Efficiency: 10.47% of 512.00 GB
+Memory Efficiency: 14.0% of 384.00 GB
 ```
 
 The script skips all the previously run steps, because we have the `.complete` files in the `$WD/Fungus_Ref` dir, as well as any already-completed step-specific files (e.g. `$WD/juicer_files/$SAMPLE_JBAT.review.assembly` for post-curation assembly and renaming). 
@@ -584,7 +586,7 @@ Fungus_Ref       24817076        22      23     1        1776619         1806824
 
 ### Juicer - No Reference
 
-Submit: `sbatch -J asm_Fungus_NoRef puzzler -s Fungus_NoRef -m samples.tsv --threads 12 --mem 64` 
+Submit: `sbatch -J asm_Fungus_NoRef puzzler -s Fungus_NoRef -m samples.tsv` 
 
 ```
 =======================================================================
@@ -599,7 +601,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_NoRef 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -610,9 +612,9 @@ HOM_COV: NA
 BLOB_DB: NA
 BUSCO_LINEAGE: fungi_odb10
 BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
-Cores Requested: 64
-Cores Available: 64
-RAM Requested: 512
+Cores Requested: 48
+Cores Available: 48
+RAM Requested: 384
 Memory Available: 2241.3 GB
 =======================================================================
 
@@ -667,12 +669,12 @@ Ran in 24 minutes, and of course we didn't need nearly that many resources:
 
 ```bash
 Nodes: 1
-Cores per node: 64
+Cores per node: 48
 CPU Utilized: 04:34:08
 CPU Efficiency: 17.20% of 1-02:33:36 core-walltime
 Job Wall-clock time: 00:24:54
 Memory Utilized: 19.84 GB
-Memory Efficiency: 3.87% of 512.00 GB
+Memory Efficiency: 5.17% of 384.00 GB
 ```
 
 Perform juicebox edits....
@@ -696,7 +698,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_NoRef 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -771,7 +773,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_RefNoJuice 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -888,7 +890,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus_NoRefNoJuice 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -1020,13 +1022,12 @@ Overall, all assemblies look good.
 I will perform a quick WGA and create a dotplot between the assemblies. Since the no `$REFERENCE` assemblies do not have named chromosomes, I will just align any sequences > 200 Kb:
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.7.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.8.sif"
 
 for i in Fungus_Ref Fungus_NoRef Fungus_RefNoJuice Fungus_NoRefNoJuice RhiKalk1.hap1; do 
 
     echo "Extracting chromosomes for ${i}"
     $PUZZLER samtools faidx ${i}.fa
-    #egrep 'chr|Chr' ${i}.fa.fai | egrep -v 'SUPER|unloc' | awk '{print $1}' > $i.tmp 
     awk '$2 > 2e5' $i.fa.fai | awk '{print $1}' > $i.tmp
     $PUZZLER seqtk subseq ${i}.fa $i.tmp > ../../alignments/fastas/${i}.fa
 
