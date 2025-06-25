@@ -29,14 +29,14 @@ Optimized for container-capable SLURM resources. Puzzler v1.8 archived on Zenodo
 Only a containerized release is supported because we shouldn't waste our time with software install, and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is is straightforward to install, even without root. 
 
 The singularity / apptainer `.sif` can be yanked with: 
-`apptainer pull --arch amd64 library://merondun/default/puzzler:v1.7` 
+`apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8` 
 
 Depending on your architecture, you might need to update your apptainer libraries:
 
 ```
 apptainer remote add --no-login SylabsCloud cloud.sycloud.io
 apptainer remote use SylabsCloud
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.7
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
 ```
 
 The workhorse script `puzzler` is simply a check-point aware bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Fungus --map samples.tsv`. 
@@ -150,9 +150,9 @@ Prepare a `samples.tsv` which outlines all necessary pipeline components. An exa
 
 | sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage  | busco_database                                             |
 | ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | -------------- | ---------------------------------------------------------- |
-| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Crane  | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R2.fastq.gz | 40       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106855.1_bGruGru1.hap1.1_genomic.fna | 48      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | aves_odb10     | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fish   | apptainer | /home/justin.merondun/apptainer/puzzler_v1.7.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R2.fastq.gz | 24       | NA                                                           | NA      | NA                                                        | NA             | NA                                                         |
+| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Crane  | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Crane.HiC.R2.fastq.gz | 40       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106855.1_bGruGru1.hap1.1_genomic.fna | 48      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | aves_odb10     | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fish   | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fish.HiC.R2.fastq.gz | 24       | NA                                                           | NA      | NA                                                        | NA             | NA                                                         |
 
 :page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
@@ -213,7 +213,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.7.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -312,6 +312,12 @@ Below is an exhaustive workflow outline documenting the inputs and outputs for e
 > Do I need to specify the Hi-C enzyme motifs for HapHiC?
 
 [HapHiC](https://github.com/zengxiaofei/HapHiC) is very good at recognizing fragments without specification, I haven't needed to do this - although I have mainly tested with Arima kits. 
+
+___
+
+> Do I need to trim my reads? 
+
+Current HiFi libraries are predominantly highly accurate and adapter free. Integrate adapter trimming yourself if you would like, perhaps whilst you concatenate your libraries into a single file for Puzzler, using [HiFiAdapterFilt](https://github.com/sheinasim-USDA/HiFiAdapterFilt) or something similar, although I have found this will remove no reads or bases with current libraries. I have also not found this to be necessary for Hi-C reads with internal trials using HapHiC, but of course, feel free to do so. 
 
 ___
 
@@ -423,7 +429,7 @@ Relative to the `$WD` path, the outputs will be:
 
 Each directory within `$WD/$SAMPLE` corresponds to an assembly step, where all logs for all steps are saved in `.log` files. Please inspect these before opening an issue to see what the problem might be. 
 
-A successful run should look like this within `$WD/$SAMPLE/`:
+A successful run should look like this within `$WD/$SAMPLE/` (excluding BlobTools, which dramatically increases runtime!):
 
 ```
 01_hifiasm/
