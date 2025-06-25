@@ -50,6 +50,7 @@ For installation:
 git clone git@github.com:merondun/puzzler.git
 cd puzzler
 ./setup.sh
+
 "Installation complete! You can now run:
   puzzler --sample $SAMPLE --map_file examples/samples.tsv
 
@@ -174,7 +175,7 @@ Prepare a `samples.tsv` which outlines all necessary pipeline components. An exa
 * **busco_lineage:** Busco odb10 version lineage.
 * **busco_database:** Directory to save busco dbs.
 
-***Homozygous peak coverage*** is the homozygous peak covewrage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
+***Homozygous peak coverage*** is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
 If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm log file (in `$WD/$SAMPLE/$SAMPLE.hifiasm.log`).
 
@@ -224,13 +225,17 @@ HOM_COV: NA
 BLOB_DB: /90daydata/coffea_pangenome/puzzler_trials/blob_downloads
 BUSCO_LINEAGE: fungi_odb10
 BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
+Cores Requested: 24
+Cores Available: 24
+RAM Requested: 384
+Memory Available: 2143.8 GB
 =======================================================================
 
-~~~~ Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
-~~~~ Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~~
-~~~~ Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/filtered.bam exists ~~~~
-~~~~ Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
-~~~~ Creating .hic file for juicebox for Fungus, with reference alignment  ~~~~
+~~~~ [+0m] Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
+~~~~ [+0m] Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~~
+~~~~ [+0m] Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/filtered.bam exists ~~~~
+~~~~ [+0m] Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~~
+~~~~ [+1m] Creating .hic file for juicebox for Fungus, with reference alignment  ~~~~
 ```
 
 :x: If `puzzler` fails, it will print an error like below. This will tell you which directory the command failed in, and the command which caused the failure. 
