@@ -162,6 +162,7 @@ declare -A TOOL_CMDS=(
   [yak]="yak version"
   [busco]="busco --version"
   [map_chrs]="map_chromosomes -h"
+  [asm_stats]="assembly_stats -h"
   [juicertools]="java -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre --version"
 )
 

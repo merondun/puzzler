@@ -111,7 +111,34 @@ Options:
 
 1b) As a last resort, create conda environment from `/apptainer/environment.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. 
 
-:exclamation: If you go the conda route, you must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. Simply search for that line in the script and replace the `/opt/` path with the path to your `.jarfile`. 
+For reference:
+
+```
+INSTALL_DIR=$(realpath .)
+git clone git@github.com:merondun/puzzler.git
+mamba env create -f puzzler/apptainer/environment_1.8.yml -y
+
+# Grab HapHic and other tools 
+git clone https://github.com/zengxiaofei/HapHiC.git
+apt-get update && apt-get install -y procps python3-pip git
+pip install assembly_stats docopt pysam matplotlib tqdm pyyaml 
+
+chmod +x puzzler/apptainer/paf2dotplot.R puzzler/bin/* HapHiC/haphic HapHiC/utils/* HapHiC/scripts/*
+
+# Clone and install blobtools, can skip if you don't want to run blobtools
+git clone https://github.com/DRL/blobtools.git
+cd blobtools
+python setup.py install
+
+# Add all the software to your path 
+echo "export PATH=\$PATH:$INSTALL_DIR/puzzler/bin" >> ~/.bashrc
+echo "export PATH=\$PATH:$INSTALL_DIR/puzzler/apptainer" >> ~/.bashrc
+echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/" >> ~/.bashrc
+echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/scripts" >> ~/.bashrc
+echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/utils" >> ~/.bashrc
+```
+
+:exclamation: If you go the conda route, you must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. Simply search for that line in the script (typically around line 393), and replace the `/opt/` path with the path to your `.jarfile`. 
 
 
 <!-- TOC --><a name="workflow"></a>
