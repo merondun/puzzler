@@ -107,7 +107,7 @@ Options:
   For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
 ```
 
-**Conda install**
+:snake: **Conda install**
 
 1b) As a last resort, create conda environment from `/apptainer/environment.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. 
 
@@ -138,7 +138,7 @@ echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/scripts" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/utils" >> ~/.bashrc
 ```
 
-:exclamation: If you go the conda route, you must make sure that `juicer pre` is available on path (included in HapHic installation), and you will need to modify path to `java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar` to the correct path within `puzzler`. Simply search for that line in the script (typically around line 393), and replace the `/opt/` path with the path to your `.jarfile`. 
+:exclamation: If you go the conda route (only conda, apptainer is all set), you must make sure to modify `JARFILE="/path/to/juicer_tools.1.9.9_jcuda.0.8.jar"` to the correct path within `puzzler`. Simply search for `JARFILE` in the script (typically around line 101), and replace with the path to your `.jarfile`. 
 
 
 <!-- TOC --><a name="workflow"></a>

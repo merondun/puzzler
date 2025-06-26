@@ -97,7 +97,8 @@ HIC_R1=$(realpath ${HIC_R1})
 HIC_R2=$(realpath ${HIC_R2})
 
 if [ "$RUNTIME" = "conda" ]; then
-    ${PUZZLER}=""  # No runtime needed for Conda
+    PUZZLER=""  # No runtime needed for Conda
+    JARFILE="/path/to/juicer_tools.1.9.9_jcuda.0.8.jar"
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
@@ -119,6 +120,7 @@ else
     done
 
     PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
+    JARFILE="/opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
 fi
 
 if [ "$NO_JUICE" = "TRUE" ]; then
@@ -163,7 +165,7 @@ declare -A TOOL_CMDS=(
   [busco]="busco --version"
   [map_chrs]="map_chromosomes -h"
   [asm_stats]="assembly_stats -h"
-  [juicertools]="java -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre --version"
+  [juicertools]="java -jar ${JARFILE} pre --version"
 )
 
 for tool in "${!TOOL_CMDS[@]}"; do
@@ -390,7 +392,7 @@ else
             ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
         grep PRE_C_SIZE haphic_JBAT.log | \
             awk '{print $2" "$3}' > chrom.sizes
-        ${PUZZLER} java -Xmx${MEM}G -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre \
+        ${PUZZLER} java -Xmx${MEM}G -jar ${JARFILE} pre \
             -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
             haphic_JBAT.txt \
             haphic_JBAT.hic \
