@@ -118,7 +118,7 @@ else
         bind_flags+=(--bind "$b:$b")
     done
 
-    PUZZLER="apptainer exec ${bind_flags[@]} ${CONTAINER}"
+    PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
 fi
 
 if [ "$NO_JUICE" = "TRUE" ]; then
@@ -146,8 +146,31 @@ mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminf
 echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\nPUZZLER command: ${PUZZLER}\n=======================================================================\n"
 
 set -euo pipefail
-${PUZZLER} hifiasm --version > /dev/null 2>&1 || { echo -e "\e[41m~~~ hifiasm not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
-${PUZZLER} haphic --version > /dev/null 2>&1 || { echo -e "\e[41m~~~ haphic not found, is runtime set and container exists? ~~~\e[0m"; exit 1; } 
+
+echo -e "\e[43m~~~ Checking software availability, this will take about 1 minute ~~~\e[0m"
+
+declare -A TOOL_CMDS=(
+  [hifiasm]="hifiasm --version"
+  [haphic]="haphic --version"
+  [minimap2]="minimap2 --version"
+  [bwa-mem2]="bwa-mem2 version"
+  [samblaster]="samblaster --version"
+  [samtools]="samtools --version"
+  [yahs]="yahs --version"
+  [mashmap]="mashmap --version"
+  [juicer]="juicer pre --version"
+  [yak]="yak version"
+  [busco]="busco --version"
+  [map_chrs]="map_chromosomes -h"
+  [juicertools]="java -jar /opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar pre --version"
+)
+
+for tool in "${!TOOL_CMDS[@]}"; do
+  if ! ${PUZZLER} ${TOOL_CMDS[$tool]} > /dev/null 2>&1; then
+    echo -e "\e[41m~~~ $tool not found, is runtime set and container exists? ~~~\e[0m"
+    #exit 1
+  fi
+done
 
 ### MONITORING ###
 exec 3>&2
