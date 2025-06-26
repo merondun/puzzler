@@ -701,8 +701,8 @@ else
         exit 1
     elif [ ! -s "${BLOB_DB}/data/nodes.dmp" ] && [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
         echo -e "\e[43m~~~ $(elapsed) Grabbing NCBI taxdump files ~~~\e[0m"
+        mkdir -p ${BLOB_DB}/data ${BLOB_DB}/out
         cd ${BLOB_DB}
-        mkdir -p data out
         # Create lock file to signal database download in progress
         touch "$LOCK_FILE"
         wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
