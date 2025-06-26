@@ -107,6 +107,9 @@ mamba env create -f puzzler/apptainer/environment_v1.8.yml -y
 git clone https://github.com/zengxiaofei/HapHiC.git
 pip install assembly_stats docopt pysam matplotlib tqdm pyyaml
 
+# HapHiC has specific versions that will need to be overwritten...
+mamba install portion==2.4.2 scikit-learn==1.5.1 networkx==3.3 scipy=1.14.0=py312hc2bc53b_1 sparse_dot_mkl=0.9.4=pyhd8ed1ab_0 -y
+
 chmod +x puzzler/bin/* HapHiC/haphic HapHiC/utils/* HapHiC/scripts/*
 
 # Clone and install blobtools, can skip if you don't want to run blobtools
