@@ -3,8 +3,8 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=4-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=12
-#SBATCH --mem=36Gb
+#SBATCH --ntasks-per-node=64
+#SBATCH --mem=512Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -151,21 +151,24 @@ echo -e "=======================================================================
 
 set -euo pipefail
 
-echo -e "\e[43m~~~ Checking software availability, this will take about 1 minute ~~~\e[0m"
+### MONITORING ###
+exec 3>&2
+trap 'echo -e "\n❌ \e[41mCommand failed in in $(pwd):\e[0m \"$BASH_COMMAND\" (line $LINENO)\n" >&2' ERR
+SCRIPT_START_TIME=$SECONDS
+elapsed() {
+    local mins=$(( (SECONDS - SCRIPT_START_TIME) / 60 ))
+    printf "[+%dm]" "$mins"
+}
+### END MONITORING ###
+
+echo -e "\e[43m~~~ $(elapsed) Checking software availability, this will take about 1 minute ~~~\e[0m"
 
 declare -A TOOL_CMDS=(
   [hifiasm]="hifiasm --version"
   [haphic]="haphic --version"
-  [minimap2]="minimap2 --version"
-  [bwa-mem2]="bwa-mem2 version"
-  [samblaster]="samblaster --version"
-  [samtools]="samtools --version"
-  [yahs]="yahs --version"
-  [mashmap]="mashmap --version"
   [juicer]="juicer pre --version"
   [yak]="yak version"
   [busco]="busco --version"
-  [map_chrs]="map_chromosomes -h"
   [asm_stats]="assembly_stats -h"
   [juicertools]="java -jar ${JARFILE} pre --version"
 )
@@ -177,19 +180,12 @@ for tool in "${!TOOL_CMDS[@]}"; do
   fi
 done
 
-### MONITORING ###
-exec 3>&2
-trap 'echo -e "\n❌ \e[41mCommand failed in in $(pwd):\e[0m \"$BASH_COMMAND\" (line $LINENO)\n" >&2' ERR
-SCRIPT_START_TIME=$SECONDS
-elapsed() {
-    local mins=$(( (SECONDS - SCRIPT_START_TIME) / 60 ))
-    printf "[+%dm]" "$mins"
-}
-### END MONITORING ###
+echo -e "\e[43m~~~ $(elapsed) Software check complete ~~~\e[0m"
 
 ########## End checks #############
 
-mkdir -p ${WD}/primary_asm/stats ${WD}/juicer_files ${WD}/${SAMPLE}/01_hifiasm ${WD}/${SAMPLE}/02_purge_dups ${WD}/${SAMPLE}/03_haphic ${WD}/${SAMPLE}/04_juicer ${WD}/${SAMPLE}/05_postjuicebox ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob ${BUSCO_DB}
+mkdir -p ${WD}/primary_asm/stats
+
 if [ -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[42m~~~ $(elapsed) Skipping assembly for ${SAMPLE}: ${WD}/primary_asm/${SAMPLE}.fa exists ~~~\e[0m"
 else
@@ -197,13 +193,14 @@ else
     echo -e "\e[43m~~~ $(elapsed) Assembling genome for ${SAMPLE} ~~~\e[0m"
     echo -e "\e[43m~~~ $(elapsed) ${JUICE_PRINT} ~~~\e[0m"
 
-    ##### HIFIASM: Generate Primary Assembly #####
+    ##### HIFIASM: Generate Primary Assembly #####    
     if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ] && [ -f "${WD}/${SAMPLE}/hifiasm.complete" ]; then
         echo -e "\e[42m~~~ $(elapsed) Skipping hifiasm for ${SAMPLE}: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~\e[0m"
     elif [ ! -s "${HIFI}" ]; then
         echo -e "\e[41m~~~ $(elapsed) Skipping hifiasm for ${SAMPLE}, missing input: ${HIFI} ~~~\e[0m"
         exit 1 
     elif [ -s "${HIC_R1}" ]; then
+        mkdir -p ${WD}/${SAMPLE}/01_hifiasm
         echo -e "\e[43m~~~ $(elapsed) Starting hifiasm assembly for ${SAMPLE} ~~~\e[0m"
         cd "${WD}/${SAMPLE}/01_hifiasm"
 
@@ -226,6 +223,7 @@ else
         echo -e "\e[41m~~~ $(elapsed) Skipping Purge_Dups for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa ~~~\e[0m"
         exit 1 
     else
+        mkdir -p ${WD}/${SAMPLE}/02_purge_dups
         echo -e "\e[43m~~~ $(elapsed) Starting Purge_Dups for ${SAMPLE} ~~~\e[0m"
         cd ${WD}/${SAMPLE}/02_purge_dups
         #Ensure fastas have proper contig haplotype names 
@@ -255,6 +253,7 @@ else
         echo -e "\e[41m~~~ $(elapsed) Skipping HiC alignment for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ~~~\e[0m"
         exit 1 
     else
+        mkdir -p ${WD}/${SAMPLE}/03_haphic
         echo -e "\e[43m~~~ $(elapsed) Mapping HiC reads to ${SAMPLE} draft ~~~\e[0m" 
         cd ${WD}/${SAMPLE}/03_haphic
         # Index reference
@@ -367,6 +366,7 @@ else
     else 
         
         ##### Now that checks are in place, RUN JUICER! #####
+        mkdir -p ${WD}/${SAMPLE}/04_juicer ${WD}/juicer_files
         echo -e "\e[43m~~~ $(elapsed) Creating .hic file for juicebox for ${SAMPLE} ~~~\e[0m"
         cd ${WD}/${SAMPLE}/04_juicer
 
@@ -415,6 +415,7 @@ else
     elif [ "${REFERENCE}" = "NA" ]; then
 
         # If juicebox review file exists, but no reference file, just extract that file for final assembly  
+        mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
         echo -e "\e[43m~~~ $(elapsed) No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
         cd ${WD}/${SAMPLE}/05_postjuicebox
         ${PUZZLER} juicer post \
@@ -427,6 +428,7 @@ else
     else 
 
         # If juicebox review file exists and reference provided, get ready for chromosome naming 
+        mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
         echo -e "\e[43m~~~ $(elapsed) Extracting post-curation assembly and mapping to reference for ${SAMPLE} ~~~\e[0m"
         cd ${WD}/${SAMPLE}/05_postjuicebox
         ${PUZZLER} juicer post \
@@ -442,6 +444,7 @@ else
         echo -e "\e[43m~~~ $(elapsed) No reference provided for ${SAMPLE}: no chromosome re-naming, so final assembly already: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
     else
 
+        mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
         # Create draft - reference map file 
         cd ${WD}/${SAMPLE}/05_postjuicebox
         if [ -s "${WD}/${SAMPLE}/05_postjuicebox/map.txt" ]; then
@@ -557,6 +560,7 @@ if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ] && [ -f "
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
 else 
+    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi
     echo -e "\e[43m~~~ $(elapsed) Creating final HiC bam for ${SAMPLE} ~~~\e[0m"
     cd ${WD}/${SAMPLE}/06_realign_hic_hifi
 
@@ -582,6 +586,7 @@ if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf" ]; then
 elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam ~~~\e[0m"
 else 
+    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi
     cd ${WD}/${SAMPLE}/06_realign_hic_hifi
     ${PUZZLER} samtools faidx final_asm.fa
     ${PUZZLER} mock_agp_file.py final_asm.fa > final_asm.agp
@@ -606,6 +611,7 @@ elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
 elif [ ! -s "${HIFI}" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping YAK k-mer QV stats for ${SAMPLE}, missing input: ${HIFI} ~~~\e[0m"
 else 
+    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob
     echo -e "\e[43m~~~ $(elapsed) Running YAK on ${SAMPLE} ~~~\e[0m"
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
 
@@ -622,7 +628,8 @@ elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
 elif [[ "${BUSCO_LINEAGE}" == "NA" || "${BUSCO_DB}" == "NA" ]]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}, not requested ~~~\e[0m"
 else 
-
+    
+    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob ${BUSCO_DB}
     # Create a busco download lock in case multiple runs of the same species 
     B_LOCK_FILE="${BUSCO_DB}/${BUSCO_LINEAGE}.lock"
     export PYTHONWARNINGS="ignore::SyntaxWarning"

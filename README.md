@@ -26,45 +26,29 @@ Optimized for container-capable SLURM resources. Puzzler v1.8 archived on Zenodo
 <!-- TOC --><a name="installation"></a>
 ## Installation
 
-Only a containerized release is supported because we shouldn't waste our time with software install, and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is is straightforward to install, even without root. 
-
-The singularity / apptainer `.sif` can be yanked with: 
-`apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8` 
-
-Depending on your architecture, you might need to update your apptainer libraries:
-
-```
-apptainer remote add --no-login SylabsCloud cloud.sycloud.io
-apptainer remote use SylabsCloud
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
-```
+Only a containerized release is supported because we shouldn't waste our time with software install, and [apptainer](https://apptainer.org/docs/admin/main/installation.html) is is straightforward to install, even without root. `puzzler` will auto-bind all necessary directories. 
 
 The workhorse script `puzzler` is simply a check-point aware bash script. It can be submitted directly with slurm, e.g. `sbatch puzzler --sample Fungus --map samples.tsv`. 
 
 For installation:  
 
-1) Download the container `.sif`
-2) Download the `puzzler` shell script, ideally add to path:
+1) Download the container `.sif`:
 
 ```
-git clone git@github.com:merondun/puzzler.git
-cd puzzler
-./setup.sh
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
 
-"Installation complete! You can now run:
-  puzzler --sample $SAMPLE --map_file examples/samples.tsv
-
-# Refresh environment if needed
-source ~/.bashrc
+# Depending on your architecture, you might need to update your apptainer libraries:
+apptainer remote add --no-login SylabsCloud cloud.sycloud.io
+apptainer remote use SylabsCloud
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
 ```
 
-Or, just grab the `.sh` file and add to your path: 
+2) Download the `puzzler` shell script and add to path:
 
 ```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
 chmod +x puzzler
 INSTALL_PATH=$(dirname "$(realpath puzzler)")
-grep -qxF "export PATH=\$PATH:$INSTALL_PATH" ~/.bashrc || echo "export PATH=\$PATH:$INSTALL_PATH" >> ~/.bashrc
 export PATH="$PATH:$INSTALL_PATH"
 ```
 
@@ -109,21 +93,21 @@ Options:
 
 :snake: **Conda install**
 
-1b) As a last resort, create conda environment from `/apptainer/environment.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. 
+1b) As a last resort, create conda environment from `/apptainer/environment_v1.8.yml`, and install [HapHiC](https://github.com/zengxiaofei/HapHiC) and [assembly_stats](https://github.com/MikeTrizna/assembly_stats). If you go this route, please troubleshoot software and inspect the `.logs` before posting issues. `puzzler` will check that all software is available on path before starting. 
 
-For reference:
+For reference: 
 
 ```
+# Make sure you're in the directory where you want this software installed
 INSTALL_DIR=$(realpath .)
 git clone git@github.com:merondun/puzzler.git
-mamba env create -f puzzler/apptainer/environment_1.8.yml -y
+mamba env create -f puzzler/apptainer/environment_v1.8.yml -y
 
 # Grab HapHic and other tools 
 git clone https://github.com/zengxiaofei/HapHiC.git
-apt-get update && apt-get install -y procps python3-pip git
-pip install assembly_stats docopt pysam matplotlib tqdm pyyaml 
+pip install assembly_stats docopt pysam matplotlib tqdm pyyaml
 
-chmod +x puzzler/apptainer/paf2dotplot.R puzzler/bin/* HapHiC/haphic HapHiC/utils/* HapHiC/scripts/*
+chmod +x puzzler/bin/* HapHiC/haphic HapHiC/utils/* HapHiC/scripts/*
 
 # Clone and install blobtools, can skip if you don't want to run blobtools
 git clone https://github.com/DRL/blobtools.git
@@ -132,11 +116,13 @@ python setup.py install
 
 # Add all the software to your path 
 echo "export PATH=\$PATH:$INSTALL_DIR/puzzler/bin" >> ~/.bashrc
-echo "export PATH=\$PATH:$INSTALL_DIR/puzzler/apptainer" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/scripts" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/utils" >> ~/.bashrc
+source ~/.bashrc
 ```
+
+As above, after install: modify your SLURM / scheduler settings in `~/puzzler/bin/puzzler``. 
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
@@ -146,7 +132,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 :pushpin: **`sbatch puzzler`**
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
-2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. This `puzzler` implementation is not coverage based - only sequence similarity based, which works well in many species with variable ploidy. 
+2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. **This `puzzler` implementation is not coverage based** - only sequence similarity based, which works well in many species (even polyploids) and will not require re-mapping HiFi reads. 
 3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails. 
 4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`). 
 
