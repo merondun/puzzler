@@ -138,9 +138,6 @@ echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/scripts" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/utils" >> ~/.bashrc
 ```
 
-:exclamation: If you go the conda route (only conda, apptainer is all set), you must make sure to modify `JARFILE="/path/to/juicer_tools.1.9.9_jcuda.0.8.jar"` to the correct path within `puzzler`. Simply search for `JARFILE` in the script (typically around line 101), and replace with the path to your `.jarfile`. 
-
-
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
 

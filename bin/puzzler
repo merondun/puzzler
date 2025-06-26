@@ -98,7 +98,9 @@ HIC_R2=$(realpath ${HIC_R2})
 
 if [ "$RUNTIME" = "conda" ]; then
     PUZZLER=""  # No runtime needed for Conda
-    JARFILE="/path/to/juicer_tools.1.9.9_jcuda.0.8.jar"
+    HAPHIC_PATH=$(which haphic)
+    JARDIR=$(dirname "$HAPHIC_PATH")/utils
+    JARFILE="${JARDIR}/juicer_tools.1.9.9_jcuda.0.8.jar"
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
