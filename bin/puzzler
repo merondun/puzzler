@@ -3,21 +3,21 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=4-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=64
-#SBATCH --mem=512Gb
+#SBATCH --ntasks-per-node=16
+#SBATCH --mem=64Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
 module load apptainer &> /dev/null || true
-#module load singularity &> /dev/null || true
 SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
+
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 
 # Default values
-SAMPLE=""
-MAP_FILE=""
 t=64
 MEM=512
+SAMPLE=""
+MAP_FILE=""
 VERSION="v1.8"
 NO_JUICE="FALSE"
 
@@ -176,7 +176,7 @@ declare -A TOOL_CMDS=(
 for tool in "${!TOOL_CMDS[@]}"; do
   if ! ${PUZZLER} ${TOOL_CMDS[$tool]} > /dev/null 2>&1; then
     echo -e "\e[41m~~~ $tool not found, is runtime set and container exists? ~~~\e[0m"
-    #exit 1
+    exit 1
   fi
 done
 
@@ -356,6 +356,7 @@ else
     elif [ "$NO_JUICE" = "TRUE" ] && [ "${REFERENCE}" != "NA" ]; then
 
         # If reference, do the same as if it's been juiced
+        mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
         echo -e "\e[43m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\e[0m"
         cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa
         touch ${WD}/${SAMPLE}/juicer.complete

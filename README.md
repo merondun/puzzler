@@ -1,12 +1,14 @@
 ![Puzzler](/examples/figs/logo.png)
 
-Simple check-point aware shell script wrapper for high-throughput genome assembly.
+Simple check-point aware containerized shell pipeline for high-throughput genome assembly.
 
 > What's it for?!
 
 Scalable genome assembly. As simple and portable as possible: only requires the `.sif` and a table with file paths. 
 
-Optimized for container-capable SLURM resources. Puzzler v1.8 archived on Zenodo: [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) 
+Optimized for container-capable SLURM resources. 
+
+Puzzler v1.8 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -123,9 +125,12 @@ echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/scripts" >> ~/.bashrc
 echo "export PATH=\$PATH:$INSTALL_DIR/HapHiC/utils" >> ~/.bashrc
 source ~/.bashrc
+
+# Recommend checking haphic install:
+haphic check
 ```
 
-As above, after install: modify your SLURM / scheduler settings in `~/puzzler/bin/puzzler``. 
+As above, after install: modify your SLURM / scheduler settings in `~/puzzler/bin/puzzler`. 
 
 <!-- TOC --><a name="workflow"></a>
 ## Workflow
@@ -139,7 +144,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails. 
 4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`). 
 
-:mag: **Manual Curation in Juicebox** 
+:mag: **Manual Curation in Juicebox** [(see brief curation for 11 genomes here)](https://www.youtube.com/watch?v=rMUiNqZwEpA)
 
 :pushpin: **`sbatch puzzler`**
 
@@ -154,7 +159,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
-`puzzler` only requires two inputs: `--sample` and `--map`. Please see a [fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md). 
+`puzzler` only requires two inputs: `--sample` and `--map`. Please see a [fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md), with a small trial dataset (runs in 40 minutes with 16 cores) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
 
 **1. Make pipeline map file** 
 
@@ -171,7 +176,7 @@ Prepare a `samples.tsv` which outlines all necessary pipeline components. An exa
 :page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE`.
-* **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
+* **runtime:** Either "apptainer", "singularity", or "conda". Puzzler will automatically `--bind` necessary paths.
 * **container:** Path to the apptainer `.sif`. If all software available on path, simply write 'conda'. 
 * **wd:** Path to working directory to store all files.
 * **hifi:** Path to HiFi reads.
@@ -242,6 +247,7 @@ Cores Requested: 24
 Cores Available: 24
 RAM Requested: 384
 Memory Available: 2143.8 GB
+PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
 =======================================================================
 
 ~~~~ [+0m] Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
@@ -285,6 +291,8 @@ $WD/$SAMPLE/juicer.complete
 
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
+
+See examples of manual curation [here]([(see brief curation for 11 genomes here)](https://www.youtube.com/watch?v=rMUiNqZwEpA). 
 
 This will create e.g. `$SAMPLE_JBAT.review.assembly`. Maintain that file name, and copy it to `$WD/juicer_files/$SAMPLE_JBAT.review.assembly`. 
 

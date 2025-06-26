@@ -459,6 +459,7 @@ Cores Requested: 32
 Cores Available: 32
 RAM Requested: 256
 Memory Available: 362.8 GB
+PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/assemblies:/90daydata/coffea_pangenome/puzzler_trials/assemblies --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
 =======================================================================
 
 ~~~~ Assembling genome for Stickleback ~~~~
@@ -476,11 +477,13 @@ So at this time, you will need to do juicebox manual curation.
 
 # Juicer Curation
 
-Manual curation files can be found either on Zenodo or at Youtube: https://www.youtube.com/watch?v=rMUiNqZwEpA
+Manual curation files can be found either on Zenodo or on [Youtube](https://www.youtube.com/watch?v=rMUiNqZwEpA). 
+
+Save the Juicebox curation files as default, with `Assembly > Export Assembly`, which will generate e.g. `Stickleback_JBAT.review.assembly`. Pull that back into `$WD/juicer_files/`. 
 
 # Post Juicebox Extraction & QC
 
-Simply resubmit Puzzler:
+Simply resubmit `puzzler`: 
 
 ```bash
 cut -f1 samples.tsv | sed '1d' | xargs -I {} echo sbatch -J asm_{} puzzler -s {} -m samples.tsv 
@@ -516,6 +519,7 @@ Cores Requested: 64
 Cores Available: 64
 RAM Requested: 512
 Memory Available: 2238.4 GB
+PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/assemblies:/90daydata/coffea_pangenome/puzzler_trials/assemblies --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
 =======================================================================
 
 ~~~ [+0m] Assembling genome for Frog ~~~
@@ -583,6 +587,7 @@ Cores Requested: 64
 Cores Available: 64
 RAM Requested: 512
 Memory Available: 2228.6 GB
+PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/assemblies:/90daydata/coffea_pangenome/puzzler_trials/assemblies --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
 =======================================================================
 
 ~~~ [+0m] Skipping assembly for Frog_Ref: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Frog_Ref.fa exists ~~~
@@ -914,14 +919,3 @@ ggarrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11)
 dev.off()
 
 ```
-
-
-
-
-
-
-
-
-
-
-
