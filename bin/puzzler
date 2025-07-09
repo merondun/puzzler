@@ -644,7 +644,7 @@ else
         rm ${B_LOCK_FILE}
 
     elif [ ! -d "${BUSCO_DB}/lineages/${BUSCO_LINEAGE}" ] && [ -f "${BUSCO_DB}/${BUSCO_LINEAGE}.lock" ]; then
-        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing busco db. Resubmit ${puzzler} after finished or remove ${BUSCO_DB}/${BUSCO_LINEAGE}.lock ~~~\e[0m"
+        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing busco db. Resubmit puzzler after finished or remove ${BUSCO_DB}/${BUSCO_LINEAGE}.lock ~~~\e[0m"
         exit 1 
     else
         echo -e "\e[42m~~~ $(elapsed) BUSCO lineage dataset already exists, skipping ~~~\e[0m"
