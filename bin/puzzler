@@ -23,7 +23,7 @@ NO_JUICE="FALSE"
 
 # Display help message
 function show_help {
-    echo "Usage: ${puzzler} [OPTIONS]"
+    echo "Usage: puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name (required)"
@@ -49,7 +49,7 @@ function show_help {
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -h|--help) show_help ;;  
-        -v|--version) echo "${puzzler} version: $VERSION"; exit 0 ;;
+        -v|--version) echo "puzzler version: $VERSION"; exit 0 ;;
         -s|--sample) SAMPLE="$2"; shift ;;
         -m|--map) MAP_FILE="$2"; shift ;;
         --no_juice) NO_JUICE="TRUE" ;;
@@ -170,7 +170,7 @@ declare -A TOOL_CMDS=(
   [yak]="yak version"
   [busco]="busco --version"
   [asm_stats]="assembly_stats -h"
-  [juicertools]="java -jar ${JARFILE} pre --version"
+  [juicertools]="java -Xmx2G -jar ${JARFILE} pre --version"
 )
 
 for tool in "${!TOOL_CMDS[@]}"; do
@@ -592,11 +592,11 @@ else
     ${PUZZLER} samtools faidx final_asm.fa
     ${PUZZLER} mock_agp_file.py final_asm.fa > final_asm.agp
 	if [ "${REFERENCE}" = "NA" ]; then
-	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, no ref specified, plotting scaffolds > 2mb ~~~\e[0m"
-		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 2> haphic_plot.log
+	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, no ref specified, plotting scaffolds > 1mb ~~~\e[0m"
+		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 1 2> haphic_plot.log
     else
 	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, plotting named chromosomes ~~~\e[0m"
-		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | egrep -v 'SUPER|unloc' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
+		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | egrep -v 'SUPER|unloc' | awk '$2 > 1e6' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 	fi 
 
@@ -697,7 +697,7 @@ else
 
     #### Download Refseq Taxdump (small!)
     if [ -f "$LOCK_FILE" ]; then
-        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing taxdump db. Resubmit ${puzzler} when finished, or rm $LOCK_FILE! Exiting ~~~\e[0m"
+        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing taxdump db. Resubmit puzzler when finished, or rm $LOCK_FILE! Exiting ~~~\e[0m"
         exit 1
     elif [ ! -s "${BLOB_DB}/data/nodes.dmp" ] && [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
         echo -e "\e[43m~~~ $(elapsed) Grabbing NCBI taxdump files ~~~\e[0m"
