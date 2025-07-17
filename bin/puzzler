@@ -3,7 +3,7 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=4-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=32
+#SBATCH --cpus-per-task=32
 #SBATCH --mem=256Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome

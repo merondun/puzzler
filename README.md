@@ -62,7 +62,7 @@ vim puzzler
 ########### EDIT THIS BLOCK WITH APPTAINER/SINGULARITY/MODULES ############
 #SBATCH --time=10-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=64
+#SBATCH --cpus-per-task=64
 #SBATCH --mem=512Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
