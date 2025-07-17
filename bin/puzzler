@@ -3,8 +3,8 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=4-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --ntasks-per-node=16
-#SBATCH --mem=64Gb
+#SBATCH --ntasks-per-node=32
+#SBATCH --mem=256Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -556,7 +556,9 @@ fi # exit assembly creation loop, if assembly exists - just skip to quality chec
 echo -e "\e[43m~~~ $(elapsed) Assessing genome quality for ${SAMPLE} ~~~\e[0m"
 
 ###### Final HIC mapping ##### 
-if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hic.complete" ]; then
+if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf"]; then 
+    echo -e "\e[42m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf exists ~~~\e[0m"
+elif [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hic.complete" ]; then
     echo -e "\e[42m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam exists ~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
@@ -622,8 +624,8 @@ else
 fi
 
 ###### BUSCO ######
-if [ -s "${WD}/primary_asm/stats/${SAMPLE}.busco.txt" ] && [ -f "${WD}/${SAMPLE}/busco.complete" ]; then
-    echo -e "\e[42m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.busco.txt exists ~~~\e[0m"
+if [ -s "${WD}/primary_asm/stats/${SAMPLE}.busco.txt" ]; then
+    echo -e "\e[42m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.busco.txt or ${WD}/${SAMPLE}/busco.complete exists ~~~\e[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
 elif [[ "${BUSCO_LINEAGE}" == "NA" || "${BUSCO_DB}" == "NA" ]]; then
