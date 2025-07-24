@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=4-00:00:00   
+#SBATCH --time=10-00:00:00   
 #SBATCH --nodes=1  
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256Gb
@@ -598,7 +598,7 @@ else
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 1 2> haphic_plot.log
     else
 	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, plotting named chromosomes ~~~\e[0m"
-		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | egrep -v 'SUPER|unloc' | awk '$2 > 1e6' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
+		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | awk '$2 > 1e6' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 	fi 
 
@@ -820,11 +820,11 @@ else
     HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tYAK_CV\tYAK_QV"
     VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t$YAK_CV\t$YAK_QV"
 
-    # Add chromosome-specific stats for reference-assigned assemblies. This will remove e.g. chr1_SUPER_Unloc scaffolds! (Just remove the "grep -v 'SUPER' if you want those...")
+    # Add chromosome-specific stats for reference-assigned assemblies. This will only include scaffolds > 1mb!
     if [ "${REFERENCE}" != "NA" ]; then
         cd ${WD}/${SAMPLE}
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
-        egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$1 !~ /A/' | egrep -v 'SUPER|unloc|A|B|C|D' | cut -f1 > ${SAMPLE}.chrs
+        egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$2 > 1e6' | cut -f1 > ${SAMPLE}.chrs
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
         CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
         CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
