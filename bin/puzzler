@@ -3,8 +3,8 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 #SBATCH --time=10-00:00:00   
 #SBATCH --nodes=1  
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=256Gb
+#SBATCH --cpus-per-task=48
+#SBATCH --mem=384Gb
 #SBATCH --partition=ceres
 #SBATCH --account=coffea_pangenome
 
@@ -677,6 +677,7 @@ elif [ ! -s "${HIFI}" ]; then
 elif [ "${BLOB_DB}" = "NA" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, not desired ~~~\e[0m"
 else 
+    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob
     echo -e "\e[43m~~~ $(elapsed) Running blobtools on ${SAMPLE} ~~~\e[0m"
 
     ##### Map HiFi Reads back to Assembly ##### 
@@ -747,7 +748,7 @@ else
     fi 
 
     cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ -s "${SAMPLE}_blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
+    if [ -s "blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
             echo -e "\e[42m~~~ $(elapsed) Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~\e[0m"
     else
         echo -e "\e[43m~~~ $(elapsed) Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~\e[0m"
