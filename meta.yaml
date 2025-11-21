@@ -1,0 +1,75 @@
+package:
+  name: puzzler
+  version: "1.9"
+
+source:
+  path: .
+
+build:
+  number: 0
+  script:  {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+
+requirements:
+  build:
+    - python
+    - pip
+    - setuptools
+    - wheel
+  host:
+    -  python==3.12.4
+  run:
+    - python==3.12.4
+    - bwa-mem2=2.2.1
+    - blobtools=1.1.1 
+    - allhic=0.9.13.1
+    - purge_dups=1.2.6 
+    - juicer=1.6
+    - juicertools
+    - minimap2=2.29 
+    - hifiasm=0.25.0 
+    - samblaster=0.1.26 
+    - samtools=1.21
+    - yahs=1.2.2 
+    - mashmap=3.1.3 
+    - openjdk=23.0.2 
+    - half_merothon 
+    - seqtk=1.4 
+    - seqkit=2.10.0 
+    - yak=0.1 
+    - busco=5.8.3 
+    - blast=2.16.0
+    - mkl
+    - numpy=1.26.4
+    - sparse_dot_mkl
+    - contourpy==1.2.1
+    - fonttools==4.53.1
+    - joblib==1.4.2
+    - kiwisolver==1.4.5
+    - matplotlib==3.9.1
+    - networkx==3.3
+    - packaging==24.1
+    - pillow==10.4.0
+    - portion==2.4.2
+    - pyparsing==3.1.2
+    - pysam==0.22.1
+    - scikit-learn==1.5.1
+    - six==1.16.0
+    - sortedcontainers==2.4.0
+    - threadpoolctl==3.5.0
+
+test:
+  commands:
+    - puzzler -h
+    - haphic -h
+    - haphic pipeline -h
+    - juicer -h
+    - java -jar juicer_tools.1.9.9_jcuda.0.8.jar -h 
+    - allhic -h 
+    - hifiasm -h
+    - filter_bam -h
+    - blobtools -h 
+
+about:
+  home: https://github.com/heritabilities/puzzler
+  summary: "Puzzler pipeline with HapHiC integration"
+  license: MIT

@@ -1,25 +1,17 @@
 #!/bin/bash
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
-#SBATCH --time=10-00:00:00   
-#SBATCH --nodes=1  
-#SBATCH --cpus-per-task=48
-#SBATCH --mem=384Gb
-#SBATCH --partition=ceres
-#SBATCH --account=coffea_pangenome
-
-module load apptainer &> /dev/null || true
-SINGULARITY_TMPDIR=$APPTAINER_TMPDIR
 
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 
 # Default values
-t=64
-MEM=512
+t=16
+MEM=128
 SAMPLE=""
 MAP_FILE=""
-VERSION="v1.8"
+VERSION="v1.9"
 NO_JUICE="FALSE"
+NO_PURGE="FALSE"
 
 # Display help message
 function show_help {
@@ -28,8 +20,9 @@ function show_help {
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name (required)"
     echo "  -m, --map FILE        Path to .tsv/.csv map file (required)"
-    echo "  --threads t           Number of threads (optional; default 64)"
-    echo "  --mem MEM             Memory allocation (optional; default 512)"
+    echo "  --threads t           Number of threads (optional; default 16)"
+    echo "  --mem MEM             Memory allocation (optional; default 128)"
+    echo "  --no_purge            Skip purge duplicates step entirely (optional)"
     echo "  --no_juice            Skip juicer file creation entirely (optional; not recommended!)"
     echo "  -v, --version         Show version and exit"
     echo "  -h, --help            Show help and exit"
@@ -52,6 +45,7 @@ while [[ "$#" -gt 0 ]]; do
         -v|--version) echo "puzzler version: $VERSION"; exit 0 ;;
         -s|--sample) SAMPLE="$2"; shift ;;
         -m|--map) MAP_FILE="$2"; shift ;;
+        --no_purge) NO_PURGE="TRUE" ;;
         --no_juice) NO_JUICE="TRUE" ;;
         --threads) t="$2"; shift ;;
         --mem) MEM="$2"; shift ;;
@@ -101,6 +95,7 @@ if [ "$RUNTIME" = "conda" ]; then
     HAPHIC_PATH=$(which haphic)
     JARDIR=$(dirname "$HAPHIC_PATH")/utils
     JARFILE="${JARDIR}/juicer_tools.1.9.9_jcuda.0.8.jar"
+    RUN_JUICERTOOLS="${PUZZLER} java -Xmx16G -jar ${JARFILE}"
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
@@ -123,12 +118,19 @@ else
 
     PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
     JARFILE="/opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
+    RUN_JUICERTOOLS="${PUZZLER} java -Xmx16G -jar ${JARFILE}"
 fi
 
 if [ "$NO_JUICE" = "TRUE" ]; then
     JUICE_PRINT="Skipping juicer, no manual curation (not recommended!)"
 else
     JUICE_PRINT="Running juicer, script will stop after .hic files created"
+fi
+
+if [ "$NO_PURGE" = "TRUE" ]; then
+    PURGE_PRINT="Skipping purge duplicates entirely."
+else
+    PURGE_PRINT="Will run purge_dups step."
 fi
 
 cat << "EOF"
@@ -216,9 +218,15 @@ else
         exit 1 
     fi
 
-    ##### PURGE_DUPS: Purge duplicates based on sequence #####
+    ##### PURGE_DUPS: Purge duplicates based on sequence - IF requested!  #####
     if [ -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ] && [ -f "${WD}/${SAMPLE}/purge_dups.complete" ]; then
         echo -e "\e[42m~~~ $(elapsed) Skipping purge for ${SAMPLE}: ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa exists ~~~\e[0m"
+    elif [ "$NO_PURGE" = "TRUE" ]; then
+            echo -e "\e[42m~~~ $(elapsed) Skipping purge for ${SAMPLE}: purge_dups not requested! ~~~\e[0m"
+            mkdir -p ${WD}/${SAMPLE}/02_purge_dups
+            touch ${WD}/${SAMPLE}/purge_dups.complete
+            touch ${WD}/${SAMPLE}/NOTE_purge_dups_was_skipped_as_requested.txt
+            awk '/^S/{print ">"$2;print $3}' ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa > ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
     elif [ ! -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ]; then
         echo -e "\e[41m~~~ $(elapsed) Skipping Purge_Dups for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa ~~~\e[0m"
         exit 1 
@@ -232,7 +240,7 @@ else
         # Purge duplicates
         ${PUZZLER} split_fa pri.init.fa > pri.split.fa
         ${PUZZLER} minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa 2> ${SAMPLE}.minimap.purge.log | gzip -c > pri.split.self.paf.gz
-        ${PUZZLER} purge_dups -M1000 -E1000 pri.split.self.paf.gz > pri.dups.bed 2> ${SAMPLE}.purge.log
+        ${PUZZLER} purge_dups pri.split.self.paf.gz > pri.dups.bed 2> ${SAMPLE}.purge.log
 
         # Check if pri.dups.bed is empty
         if [ ! -s pri.dups.bed ]; then
@@ -246,7 +254,7 @@ else
         touch ${WD}/${SAMPLE}/purge_dups.complete
     fi
 
-    ##### ALIGN HIC #####
+    ##### ALIGN HiC Reads to draft for scaffolding #####
     if [ -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ] && [ -f "${WD}/${SAMPLE}/align_hic.complete" ]; then
         echo -e "\e[42m~~~ $(elapsed) Skipping HiC alignment for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/filtered.bam exists ~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa" ]; then
@@ -259,7 +267,7 @@ else
         # Index reference
         ${PUZZLER} bwa-mem2 index ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa > ${SAMPLE}.alignment.indexing.hic.log 2>&1
 
-        # Align Hi-C reads
+        # Align Hi-C reads: recommended values following HapHiC
         { ${PUZZLER} bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1} ${HIC_R2} | \
             ${PUZZLER} samblaster | \
             ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
@@ -268,7 +276,7 @@ else
         touch ${WD}/${SAMPLE}/align_hic.complete
     fi
 
-    ##### SCAFFOLDING #####
+    ##### SCAFFOLDING: Either HapHic (with +/- 4 chromosomes specified), or YAHS if failed #####
     if [ -s "${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa" ] && [ -f "${WD}/${SAMPLE}/scaffolding.complete" ]; then
         echo -e "\e[42m~~~ $(elapsed) Skipping HapHiC for ${SAMPLE}: ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa exists ~~~\e[0m"
     elif [ ! -s "${WD}/${SAMPLE}/03_haphic/filtered.bam" ]; then
@@ -471,11 +479,11 @@ else
             
             cd ${WD}/${SAMPLE}/05_postjuicebox
             # This file has $haphic_scafID \t $ref_chr_ID \t $strand: ONLY WORKS IF THE SCAFFOLDS IN REF ARE NAMED E.G. >chr1 or >Chr1 
-            awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt | egrep 'chr|Chr' > chromosome_naming_map.txt 
+            awk '{OFS="\t"}{print $1, $2, $5, $3, $4}' map.txt | grep -E 'chr|Chr' > chromosome_naming_map.txt 
 
             # Exclude those chromsomes from map, and then add e.g. scaf101405 for the remaining non-chromosome scaffolds 
             awk '{print $1}' chromosome_naming_map.txt > exclude_chr_scafIDs.txt
-            grep -vwf exclude_chr_scafIDs.txt post_juicer_asm.fa.fai | awk '{OFS="\t"}{print $1, $1, "+"}' >> chromosome_naming_map.txt
+            grep -vwf exclude_chr_scafIDs.txt post_juicer_asm.fa.fai | awk '{OFS="\t"}{print $1, "scaffold" NR, "+"}' >> chromosome_naming_map.txt
 
             # Must be the same number of scaffolds
             if [ $(cat chromosome_naming_map.txt | wc -l) -eq $(cat post_juicer_asm.fa.fai | wc -l) ]; then
@@ -535,7 +543,7 @@ else
 
             # Finally, rename the chromosomes
             awk '$2 ~ /^chr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' > sorted_chr.txt
-            awk '$2 ~ /^scaffold_/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
+            awk '$2 ~ /^scaffold/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
 
             ${PUZZLER} seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
             ${PUZZLER} samtools faidx haphic_renamed_unord.fa
@@ -591,6 +599,7 @@ elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
 else 
     mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi
     cd ${WD}/${SAMPLE}/06_realign_hic_hifi
+    echo -e "\e[43m~~~ $(elapsed) Creating final HiC contact map for ${SAMPLE} ~~~\e[0m"
     ${PUZZLER} samtools faidx final_asm.fa
     ${PUZZLER} mock_agp_file.py final_asm.fa > final_asm.agp
 	if [ "${REFERENCE}" = "NA" ]; then
@@ -598,7 +607,7 @@ else
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 1 2> haphic_plot.log
     else
 	    echo -e "\e[43m~~~ $(elapsed) Creating final contact map for ${SAMPLE}, plotting named chromosomes ~~~\e[0m"
-		CHRS=$(egrep 'chr|Chr' final_asm.fa.fai | awk '$2 > 1e6' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
+		CHRS=$(grep -E 'chr|Chr' final_asm.fa.fai | awk '$2 > 1e6' | cut -f1 | tr '\n' ',' | sed 's/,$//g')
 		${PUZZLER} haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --specified_scaffolds ${CHRS} 2> haphic_plot.log
 	fi 
 
@@ -825,7 +834,7 @@ else
     if [ "${REFERENCE}" != "NA" ]; then
         cd ${WD}/${SAMPLE}
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
-        egrep 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$2 > 1e6' | cut -f1 > ${SAMPLE}.chrs
+        grep -E 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$2 > 1e6' | cut -f1 > ${SAMPLE}.chrs
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
         CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
         CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
