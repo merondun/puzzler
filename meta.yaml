@@ -63,7 +63,6 @@ test:
     - haphic -h
     - haphic pipeline -h
     - juicer -h
-    - java -jar juicer_tools.1.9.9_jcuda.0.8.jar -h 
     - allhic -h 
     - hifiasm -h
     - filter_bam -h
