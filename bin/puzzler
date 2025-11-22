@@ -92,7 +92,8 @@ HIC_R2=$(realpath ${HIC_R2})
 
 if [ "$RUNTIME" = "conda" ]; then
     PUZZLER=""  # No runtime needed for Conda
-    RUN_JUICERTOOLS="juicer_tools"
+    JARFILE="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
+    RUN_JUICERTOOLS="java -Xmx16G -jar ${JARFILE}"
     FILTER_BAM="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/filter_bam"
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
@@ -116,7 +117,7 @@ else
 
     PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
     JARFILE="/opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
-    RUN_JUICERTOOLS="${PUZZLER} java -Xmx16G -jar ${JARFILE}"
+    RUN_JUICERTOOLS="java -Xmx16G -jar ${JARFILE}"
     FILTER_BAM="filter_bam"
 fi
 
