@@ -356,7 +356,7 @@ else
     elif [ "$NO_JUICE" = "TRUE" ] && [ "${REFERENCE}" = "NA" ]; then
 
         # If reference is also missing, you're done! 
-        echo -e "\e[43m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\e[0m"
+        echo -e "\e[42m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\e[0m"
         echo -e "\e[43m~~~ $(elapsed) No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
         cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/primary_asm/${SAMPLE}.fa
         touch ${WD}/${SAMPLE}/juicer.complete
@@ -513,26 +513,26 @@ else
                 {
                     chr=$2
                     len=$5
-                    data[chr][len] = $0  # full line indexed by chromosome and length
-                    lengths[chr][len] = len  # track lengths for sorting
-                    count[chr]++  # Count duplicate chromosome
+                    data[chr][len] = $0
+                    lengths[chr][len] = len
+                    count[chr]++
                 }
                 END {
-                    # Sort by chromosome name numerically, then by length descending
                     PROCINFO["sorted_in"] = "@ind_num_asc"
                     for (chr in data) {
                         n = 0
-                        asorti(lengths[chr], sorted_lengths, "@val_num_desc")  # sort in descending order
+                        asorti(lengths[chr], sorted_lengths, "@val_num_desc")
                         for (i in sorted_lengths) {
-                            label = (n == 0) ? chr : chr sprintf("%c", 65 + n - 1)  # Assign e.g. A, B, C labels
-                            split(data[chr][sorted_lengths[i]], line, "\t")  # grab full line
-                            line[2] = label  # Update chromosome name
+                            # First one keeps chr as-is, subsequent ones get chr_unlocN
+                            label = (n == 0) ? chr : chr "_unloc" n
+                            split(data[chr][sorted_lengths[i]], line, "\t")
+                            line[2] = label
                             print line[1], line[2], line[3], line[4], line[5]
                             n++
                         }
                     }
                 }
-                ' OFS='\t' chromosome_naming_map.txt > chromosome_renamed_map.txt
+                ' OFS='\t'  chromosome_naming_map.txt > chromosome_renamed_map.txt
                 cp chromosome_naming_map.txt chromosome_naming_map.ORIGINAL.txt
                 mv chromosome_renamed_map.txt chromosome_naming_map.txt
                 
@@ -684,7 +684,7 @@ elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
 elif [ ! -s "${HIFI}" ]; then
     echo -e "\e[41m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, missing input: ${HIFI} ~~~\e[0m"
 elif [ "${BLOB_DB}" = "NA" ]; then
-    echo -e "\e[41m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, not desired ~~~\e[0m"
+    echo -e "\e[42m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, not desired ~~~\e[0m"
 else 
     mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob
     echo -e "\e[43m~~~ $(elapsed) Running blobtools on ${SAMPLE} ~~~\e[0m"
