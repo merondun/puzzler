@@ -92,10 +92,8 @@ HIC_R2=$(realpath ${HIC_R2})
 
 if [ "$RUNTIME" = "conda" ]; then
     PUZZLER=""  # No runtime needed for Conda
-    HAPHIC_PATH=$(which haphic)
-    JARDIR=$(dirname "$HAPHIC_PATH")/utils
-    JARFILE="${JARDIR}/juicer_tools.1.9.9_jcuda.0.8.jar"
-    RUN_JUICERTOOLS="${PUZZLER} java -Xmx16G -jar ${JARFILE}"
+    RUN_JUICERTOOLS="juicer_tools"
+    FILTER_BAM="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/filter_bam"
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
@@ -119,6 +117,7 @@ else
     PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
     JARFILE="/opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
     RUN_JUICERTOOLS="${PUZZLER} java -Xmx16G -jar ${JARFILE}"
+    FILTER_BAM="filter_bam"
 fi
 
 if [ "$NO_JUICE" = "TRUE" ]; then
@@ -155,7 +154,7 @@ set -euo pipefail
 
 ### MONITORING ###
 exec 3>&2
-trap 'echo -e "\n❌ \e[41mCommand failed in in $(pwd):\e[0m \"$BASH_COMMAND\" (line $LINENO)\n" >&2' ERR
+trap 'echo -e "\n❌ \e[41mCommand failed in in $(pwd):\e[0m \"$BASH_COMMAND\" (line $LINENO)\n" >&3' ERR
 SCRIPT_START_TIME=$SECONDS
 elapsed() {
     local mins=$(( (SECONDS - SCRIPT_START_TIME) / 60 ))
@@ -172,7 +171,8 @@ declare -A TOOL_CMDS=(
   [yak]="yak version"
   [busco]="busco --version"
   [asm_stats]="assembly_stats -h"
-  [juicertools]="java -Xmx2G -jar ${JARFILE} pre --version"
+  [juicertools]="${RUN_JUICERTOOLS} pre --version"
+  [filter_bam]="${FILTER_BAM} -h"
 )
 
 for tool in "${!TOOL_CMDS[@]}"; do
@@ -271,7 +271,7 @@ else
         { ${PUZZLER} bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1} ${HIC_R2} | \
             ${PUZZLER} samblaster | \
             ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
-            ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} | \
+            ${PUZZLER} ${FILTER_BAM} - 1 --nm 3 --threads ${t} | \
             ${PUZZLER} samtools view - -b -@ ${t} -o filtered.bam; } > ${SAMPLE}.alignment.hic.log 2>&1
         touch ${WD}/${SAMPLE}/align_hic.complete
     fi
@@ -403,7 +403,7 @@ else
             ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
         grep PRE_C_SIZE haphic_JBAT.log | \
             awk '{print $2" "$3}' > chrom.sizes
-        ${PUZZLER} java -Xmx${MEM}G -jar ${JARFILE} pre \
+        ${RUN_JUICERTOOLS} \
             -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
             haphic_JBAT.txt \
             haphic_JBAT.hic \
@@ -585,7 +585,7 @@ else
     { ${PUZZLER} bwa-mem2 mem -5SP -t ${t} final_asm.fa ${HIC_R1} ${HIC_R2} | \
         ${PUZZLER} samblaster | \
         ${PUZZLER} samtools view - -@ ${t} -S -h -b -F 3340 | \
-        ${PUZZLER} filter_bam - 1 --nm 3 --threads ${t} --remove-dup | \
+        ${PUZZLER} ${FILTER_BAM} - 1 --nm 3 --threads ${t} --remove-dup | \
         ${PUZZLER} samtools view - -b -@ ${t} -o final_asm.filtered.bam; } > alignment.final_hic.log 2>&1
     touch ${WD}/${SAMPLE}/qc_align_hic.complete
 
@@ -735,7 +735,7 @@ else
     if [ -f "${BLOB_DB}/nt.complete" ]; then
         echo -e "\e[42m~~~ $(elapsed) Refseq nt database appears okay. ${BLOB_DB}/nt/nt.ndb exists ~~~\e[0m"
     elif [ -f "$NT_LOCK_FILE" ]; then
-        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing nt db. Resubmit ${puzzler} when finished, or rm $NT_LOCK_FILE! Exiting ~~~\e[0m"
+        echo -e "\e[41m~~~ $(elapsed) Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~\e[0m"
         exit 1 
     elif [ ! -f "$NT_LOCK_FILE" ]; then
         echo -e "\e[43m~~~ $(elapsed) Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~\e[0m"

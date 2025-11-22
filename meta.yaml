@@ -56,6 +56,7 @@ requirements:
     - six==1.16.0
     - sortedcontainers==2.4.0
     - threadpoolctl==3.5.0
+    - assembly_stats
 
 test:
   commands:
@@ -67,6 +68,9 @@ test:
     - hifiasm -h
     - filter_bam -h
     - blobtools -h 
+    - assembly_stats -h 
+    - juicer_tools -h
+    - mock_agp_file.py -h
 
 about:
   home: https://github.com/heritabilities/puzzler

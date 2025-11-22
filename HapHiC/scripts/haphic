@@ -106,8 +106,10 @@ def check_packages(pkg, pkg_name):
 # commands
 if len(sys.argv) > 1 and sys.argv[1] in param_dict:
 
-    script_realpath = os.path.dirname(os.path.realpath(__file__))
-    sub_program = os.path.join(script_realpath, param_dict[sys.argv[1]])
+    import importlib.resources
+
+    # resolve helper script inside the HapHiC.scripts package
+    sub_program = str(importlib.resources.files("HapHiC.scripts") / param_dict[sys.argv[1]])
 
     if len(sys.argv[2:]) == 0:
         commands = [sub_program, '-h']
