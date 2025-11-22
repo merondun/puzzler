@@ -696,7 +696,7 @@ else
         cd ${WD}/${SAMPLE}/06_realign_hic_hifi
 
         # Alignment 
-        echo -e "\e[43m~~~ $(elapsed) Blobtools need HiFi alignment, starting HiFi Alignment for ${SAMPLE} ~~~\e[0m"
+        echo -e "\e[43m~~~ $(elapsed) Blobtools needs HiFi alignment, starting HiFi Alignment for ${SAMPLE} ~~~\e[0m"
         { ${PUZZLER} minimap2 -t ${t} -ax map-hifi \
             ${WD}/primary_asm/${SAMPLE}.fa ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
             ${PUZZLER} samtools sort --threads ${t} -o asm.hifi.bam; } > hifi.alignment.log 2>&1
@@ -782,10 +782,12 @@ else
     elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
 
         echo -e "\e[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\e[0m"  
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
-            --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+        { 
+            ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+                --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE}
+            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json
+            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf
+            } > blob.log 2>&1
         cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
         cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
         cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
@@ -793,10 +795,12 @@ else
     elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
 
         echo -e "\e[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\e[0m"
-        { ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
-            --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE} && \
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json && \
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf; } > blob.log 2>&1
+        { 
+            ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
+                --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE}
+            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json
+            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf
+            } > blob.log 2>&1
         cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
         cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
         cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
