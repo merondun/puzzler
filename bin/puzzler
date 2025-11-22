@@ -404,7 +404,7 @@ else
             ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
         grep PRE_C_SIZE haphic_JBAT.log | \
             awk '{print $2" "$3}' > chrom.sizes
-        ${RUN_JUICERTOOLS} pre \
+        ${PUZZLER} ${RUN_JUICERTOOLS} pre \
             -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
             haphic_JBAT.txt \
             haphic_JBAT.hic \
