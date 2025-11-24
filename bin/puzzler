@@ -366,7 +366,7 @@ else
 
         # If reference, do the same as if it's been juiced
         mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
-        echo -e "\e[43m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\e[0m"
+        echo -e "\e[42m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\e[0m"
         cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa
         touch ${WD}/${SAMPLE}/juicer.complete
 
