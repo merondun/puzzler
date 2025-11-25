@@ -1,0 +1,1 @@
+# This samples.tsv shows an option for both conda (first line with Fly) and for apptainer runtimes (remaining). Columns after $Reference are optional. Set empty cols to "NA". 

@@ -15,6 +15,7 @@ Puzzler v1.9 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10
 - [Quick Start](#quick-start)
 - [Details](#details)
 - [Visual Workflow](#visual)
+- [Detailed Steps](#steps)
 - [Outputs](#outputs)
 - [FAQ](#faq)
 - [Contact](#contact)
@@ -93,7 +94,7 @@ Options:
 
 The pipeline creates a collapsed completely *de novo* primary genome assembly using **both HiFi and HiC data**. The workflow is: 
 
-:pushpin: **`sbatch puzzler`**
+:pushpin: **`puzzler -s $sample -m samples.tsv`**
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
 2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. **This `puzzler` implementation is not coverage based** - only sequence similarity based, which works well in many species (even polyploids) and will not require re-mapping HiFi reads. This step can be omitted by passing the argument `--no_purge`. 
@@ -102,9 +103,9 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 :mag: **Manual Curation in Juicebox** [(see brief curation for 11 genomes here)](https://www.youtube.com/watch?v=rMUiNqZwEpA)
 
-:pushpin: **`sbatch puzzler`**
+:pushpin: rerun: **`puzzler -s $sample -m samples.tsv`**
 
-5) Finalizing assembly: extract juicer assembly, assign chromosome names based on a related reference, reverse complement according to reverse, using [merothon](https://github.com/merondun/merothon).
+5) Finalizing assembly: extract juicer assembly, assign chromosome names based on a related reference (only scaffolds with >Chr or >chr!), reverse complement according to reverse, using [merothon](https://github.com/merondun/merothon).
 6) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 7) QC: [yak](https://github.com/lh3/yak) base quality check. 
 8) QC: [busco](https://busco.ezlab.org/) check. (optional; if database path specified)
@@ -115,7 +116,9 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 <!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
-`puzzler` only requires two inputs: `--sample` and `--map`. Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md), with a small trial dataset (runs in 40 minutes with 16 cores) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
+`puzzler` only requires two inputs: `--sample` and `--map`. 
+
+Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md), with a small trial dataset (runs in 40 minutes with 16 cores) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
 
 **1. Make pipeline map file** 
 
@@ -134,26 +137,31 @@ Below is an excerpt showing both conda and apptainer runtimes. Columns `Referenc
 :page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE`.
-* **runtime:** Either "apptainer", "singularity", or "conda". Puzzler will automatically `--bind` necessary paths.
-* **container:** Path to the apptainer `.sif`. If installed via conda, write "NA". 
+* **runtime:** Either "apptainer" or "conda". Puzzler will automatically `--bind` necessary paths.
+* **container:** Path to the apptainer `.sif`. If installed via conda, write "NA". Presumably works with Singularity, but untested. 
 * **wd:** Path to working directory to store all files.
 * **hifi:** Path to HiFi reads.
 * **hic_r1:** Path to HiC R1.
 * **hic_r2:** Path to HiC R2.
-* **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate if unknown.
+* **chromosomes:** Chromosome number or best guess. Pipeline will attempt ±4 your estimate.
 
 ***OPTIONAL columns*** 
 *Specify "NA" and the script will skip respective components.*
 
-* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
+* **reference:** Path to related species genome for chromosome naming. 
+
+:bomb: Scaffolds will be renamed to the closest syntenic chromosome **using the reference scaffold naming convention**. 
+*Please ensure that this reference has appropriately named transferable chromosome labels, as only scaffold names containing 'Chr' or 'chr' will be renamed!*
+For NCBI RefSeq genomes, this typically does the trick: `sed -i -e 's/>.*chromosome />chr/g; s/,.*//g' $reference.fna`
+
 * **hom_cov:** Homozygous peak coverage, used for `hifiasm` if provided, otherwise write "NA".
-* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours with 64 cores*. 
+* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours even with 64 cores*. 
 * **busco_lineage:** Busco odb10 version lineage.
 * **busco_database:** Directory to save busco dbs.
 
 ***Homozygous peak coverage*** is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
-If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm log file (in `$WD/$SAMPLE/$SAMPLE.hifiasm.log`).
+If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm histogram within the log file to ensure it matches the provided homozygous peak (within `$WD/$SAMPLE/$SAMPLE.hifiasm.log`, line: `[M::purge_dups] homozygous read coverage threshold: X`).
 
 For more details about this homozygous coverage and for a full example, see the [Fungus example](/docs/Fungus_Example.md). 
 
@@ -221,7 +229,7 @@ PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trial
 ❌ Command failed in in /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt: "${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1" (line 677)
 ```
 
-If you reach an error like this, please navigate to the specified directory (`/project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt`) and inspect the most recent log file for errors! 
+If you reach an error like this, please navigate to the specified directory (e.g. `/project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt`) and inspect the most recent log file for errors! 
 
 :one: **Step 1:** `[sbatch] puzzler --sample Fungus --map samples.tsv`
 
@@ -252,9 +260,9 @@ $WD/$SAMPLE/juicer.complete
 
 Open Juicebox, and drag the `.hic` file into the window. Import the `.assembly` file using `Assembly > Import Map Assembly`. Make any adjustments if necessary (only about 50% of my genomes need it), and then export the file with `Assembly > Export Assembly`. 
 
-See examples of manual curation [here]([(see brief curation for 11 genomes here)](https://www.youtube.com/watch?v=rMUiNqZwEpA). 
+See example videos of manual curation on the 11 assembled videos on Youtube [here](https://www.youtube.com/watch?v=rMUiNqZwEpA). 
 
-This will create e.g. `$SAMPLE_JBAT.review.assembly`. Maintain that file name, and copy it to `$WD/juicer_files/$SAMPLE_JBAT.review.assembly`. 
+This will create e.g. `$SAMPLE_JBAT.review.assembly`. Copy that file as-is to `$WD/juicer_files/$SAMPLE_JBAT.review.assembly`. 
 
 <br/>
 
@@ -271,8 +279,7 @@ This script will check for these files, and create them if they do not exist in 
 | $WD/$SAMPLE/07_busco_yak_blob/sr.qv.txt                   | $WD/$SAMPLE/yak.complete           | YAK base quality file           | yak             |
 | $WD/primary_asm/stats/$SAMPLE.busco.txt                   | $WD/$SAMPLE/busco.complete         | BUSCO stats                     | busco           |
 | $WD/$SAMPLE/06_realign_hic_hifi/asm.hifi.bam              | $WD/$SAMPLE/qc_align_hifi.complete | Final HiFi re-mapped file       | minimap2        |
-| $WD/$SAMPLE/07_busco_yak_blob/diamond_1mb.out             | $WD/$SAMPLE/blastx.complete        | Run diamond blastx              | diamond         |
-| $BLOB_DB/uniprot/reference_proteomes.dmnd                 | $BLOB_DB/uniprot_db.complete       | Create diamond uniprot database | diamond         |
+| $WD/$SAMPLE/07_busco_yak_blob/blast.out                   | $WD/$SAMPLE/blastn.complete        | Run blastn                      | blastn          |
 | $WD/primary_asm/stats/$SAMPLE.blob.stats.txt              |                                    | Blobtools contaminants          | blobtools       |
 | $WD/primary_asm/stats/$SAMPLE.summary.txt                 |                                    | Summarize assembly statistics   | assembly_stats  |
 
