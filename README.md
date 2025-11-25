@@ -134,11 +134,11 @@ Below is an excerpt showing both conda and apptainer runtimes. Columns `Referenc
 | Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 | Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
-:page_with_curl: Map file descriptions (:exclamation: Use full paths!!!)
+:page_with_curl: Map file descriptions (:exclamation: **Use full paths!!!**)
 
 * **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE`.
-* **runtime:** Either "apptainer" or "conda". Puzzler will automatically `--bind` necessary paths.
-* **container:** Path to the apptainer `.sif`. If installed via conda, write "NA". Presumably works with Singularity, but untested. 
+* **runtime:** Either "apptainer" or "conda". Puzzler will automatically `--bind` necessary paths for apptainer.
+* **container:** If conda, "NA", otherwise path to the apptainer `.sif`. Presumably works with Singularity (untested). 
 * **wd:** Path to working directory to store all files.
 * **hifi:** Path to HiFi reads.
 * **hic_r1:** Path to HiC R1.
@@ -151,19 +151,22 @@ Below is an excerpt showing both conda and apptainer runtimes. Columns `Referenc
 * **reference:** Path to related species genome for chromosome naming. 
 
 :bomb: Scaffolds will be renamed to the closest syntenic chromosome **using the reference scaffold naming convention**. 
+
 *Please ensure that this reference has appropriately named transferable chromosome labels, as only scaffold names containing 'Chr' or 'chr' will be renamed!*
+
 For NCBI RefSeq genomes, this typically does the trick: `sed -i -e 's/>.*chromosome />chr/g; s/,.*//g' $reference.fna`
 
 * **hom_cov:** Homozygous peak coverage, used for `hifiasm` if provided, otherwise write "NA".
-* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours even with 64 cores*. 
-* **busco_lineage:** Busco odb10 version lineage.
-* **busco_database:** Directory to save busco dbs.
 
-***Homozygous peak coverage*** is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
+This value is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
 
 If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm histogram within the log file to ensure it matches the provided homozygous peak (within `$WD/$SAMPLE/$SAMPLE.hifiasm.log`, line: `[M::purge_dups] homozygous read coverage threshold: X`).
 
 For more details about this homozygous coverage and for a full example, see the [Fungus example](/docs/Fungus_Example.md). 
+
+* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours even with 64 cores*. 
+* **busco_lineage:** Busco odb10 version lineage.
+* **busco_database:** Directory to save busco dbs.
 
 
 <!-- TOC --><a name="details"></a>
