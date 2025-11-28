@@ -35,6 +35,8 @@ installation:
 
 **With Conda** :snake: 
 
+This includes all dependencies and the `puzzler` binary. 
+
 ```bash
 mamba create -n puzzler -c bioconda -c heritabilities -c conda-forge -c hcc puzzler -y
 # add --channel-priority flexible if needed
@@ -43,20 +45,23 @@ mamba activate puzzler
 
 :wrench: Note: this conda build depends on internal packaging of [HapHiC](https://github.com/zengxiaofei/HapHiC) v1.0.6 and bundled juicer/juicertools files. Please report issues with these steps here first so I can determine if they stem from my conda packaging or the external software.
 
-**With apptainer** (safest). `puzzler` will auto-bind all necessary directories specified within `samples.tsv`. 
+**With apptainer** (safest). 
+
+All dependencies are within the `.sif`. 
 
 1) Download the container `.sif`:
 
 ```
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9
 
 # Depending on your architecture, you might need to update your apptainer libraries:
 apptainer remote add --no-login SylabsCloud cloud.sycloud.io
 apptainer remote use SylabsCloud
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.8
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9
 ```
+Note that Puzzler v1.8 and v1.9 have the same required dependencies. 
 
-2) Download the `puzzler` shell script and add to path:
+2) Download the `puzzler` shell script and add to path. `puzzler` automatically binds the directories listed in `samples.tsv`` and runs Apptainer. No manual commands required!
 
 ```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
@@ -118,7 +123,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 `puzzler` only requires two inputs: `--sample` and `--map`. 
 
-Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example with [N = 11 species](/docs/All_N11_Genomes.md), with a small trial dataset (runs in 40 minutes with 16 cores) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
+Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example tutorial with [N = 12 species](/docs/All_N12_Genomes.md), with a small haploid fungal trial dataset (runs in 40 minutes with 8 cores and 64 Gb RAM) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
 
 **1. Make pipeline map file** 
 
@@ -535,7 +540,7 @@ Puzzler will create a `.lock` file when downloading the respective databases for
 Depending on your HPC environment, you might run into issues about the compute nodes timing out, or the busco server's being unreachable. This will require manual inspection on your part, either for busco:
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.8.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.sif"
 # for conda, busco is already on $PATH! 
 BUSCO_DB=/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 BUSCO_LINEAGE=fungi_odb10
