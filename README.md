@@ -123,7 +123,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 `puzzler` only requires two inputs: `--sample` and `--map`. 
 
-Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example tutorial with [N = 12 species](/docs/All_N12_Genomes.md), with a small haploid fungal trial dataset (runs in 40 minutes with 8 cores and 64 Gb RAM) available on [Zenodo](https://doi.org/10.5281/zenodo.15693025). 
+Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example tutorial with [N = 12 species](/docs/All_N12_Genomes.md), with a small haploid fungal trial dataset (runs in 40 minutes with 8 cores and 64 Gb RAM) available on [Zenodo](https://doi.org/10.5281/zenodo.17756307). 
 
 **1. Make pipeline map file** 
 
