@@ -593,41 +593,50 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 
 =======================================================================
-Parameters for sample: Frog 
-RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.8.sif 
-WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
-HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Frog.HiFi.fastq.gz
-HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Frog.HiC.R1.fastq.gz
-HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Frog.HiC.R2.fastq.gz
-NUMBER CHRS: 12
-REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_048569485.1_aAnoBae1.hap1_genomic.fna
+Parameters for sample: Fungus 
+RUNTIME: conda
+CONTAINER: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/NA 
+WD: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer 
+HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
+HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
+HIC_R2: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz
+NUMBER CHRS: 14
+REFERENCE: /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna
 HOM_COV: NA
 BLOB_DB: NA
-BUSCO_LINEAGE: tetrapoda_odb10
+BUSCO_LINEAGE: fungi_odb10
 BUSCO_DB: /90daydata/coffea_pangenome/puzzler_trials/busco_downloads
-Cores Requested: 64
-Cores Available: 64
-RAM Requested: 512
-Memory Available: 2238.4 GB
-PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/assemblies:/90daydata/coffea_pangenome/puzzler_trials/assemblies --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
+Cores Requested: 8
+Cores Available: 8
+RAM Requested: 128
+Memory Available: 615.4 GB
+PUZZLER command: 
 =======================================================================
 
-~~~ [+0m] Assembling genome for Frog ~~~
+~~~ [+0m] Checking software availability, this will take about 1 minute ~~~
+~~~ [+0m] Software check complete ~~~
+~~~ [+0m] Assembling genome for Fungus ~~~
 ~~~ [+0m] Running juicer, script will stop after .hic files created ~~~
-~~~ [+0m] Skipping hifiasm for Frog: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~
-~~~ [+0m] Skipping purge for Frog: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/02_purge_dups/p_ctg.purged.fa exists ~~~
-~~~ [+0m] Skipping HiC alignment for Frog: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/03_haphic/filtered.bam exists ~~~
-~~~ [+0m] Skipping HapHiC for Frog: /90daydata/coffea_pangenome/puzzler_trials/assemblies/Frog/03_haphic/haphic/04.build/scaffolds.fa exists ~~~
-~~~ [+0m] Skipping juicer HiC file creation for Frog: /90daydata/coffea_pangenome/puzzler_trials/assemblies/juicer_files/Frog_JBAT.hic exists ~~~
-~~~ [+0m] Extracting post-curation assembly and mapping to reference for Frog ~~~
-~~~ [+62m] Renaming chromosomes for Frog ~~~
-~~~ [+62m] Scaffold sanity check passed for renaming, proceeding! ~~~
-~~~ [+63m] Multiple scaffolds corresponding to single Chr for Frog, Renaming them e.g. Chr1A, Chr1B.. ~~~
-~~~ [+66m] Assessing genome quality for Frog ~~~
-~~~ [+66m] Creating final HiC bam for Frog ~~~
-~~~ [+672m] Creating final contact map for Frog, plotting named chromosomes ~~~
-~~~ [+705m] Running YAK on Frog ~~~
+~~~ [+0m] Skipping hifiasm for Fungus: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/Fungus/01_hifiasm/asm.hic.p_ctg.gfa exists ~~~
+~~~ [+0m] Skipping purge for Fungus: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/Fungus/02_purge_dups/p_ctg.purged.fa exists ~~~
+~~~ [+0m] Skipping HiC alignment for Fungus: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/Fungus/03_haphic/filtered.bam exists ~~~
+~~~ [+0m] Skipping HapHiC for Fungus: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/Fungus/03_haphic/haphic/04.build/scaffolds.fa exists ~~~
+~~~ [+0m] Skipping juicer HiC file creation for Fungus: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/juicer_files/Fungus_JBAT.hic exists ~~~
+~~~ [+0m] Extracting post-curation assembly and mapping to reference for Fungus ~~~
+~~~ [+0m] Renaming chromosomes for Fungus ~~~
+~~~ [+0m] Scaffold sanity check passed for renaming, proceeding! ~~~
+~~~ [+0m] Multiple scaffolds corresponding to single Chr for Fungus, Renaming them e.g. Chr1A, Chr1B.. ~~~
+~~~ [+0m] Assessing genome quality for Fungus ~~~
+~~~ [+0m] Creating final HiC bam for Fungus ~~~
+~~~ [+2m] Creating final HiC contact map for Fungus ~~~
+~~~ [+2m] Creating final contact map for Fungus, plotting named chromosomes ~~~
+~~~ [+3m] Running YAK on Fungus ~~~
+~~~ [+3m] BUSCO lineage dataset already exists, skipping ~~~
+~~~ [+3m] Running BUSCO for Fungus using lineage: fungi_odb10 ~~~
+~~~ [+23m] Skipping blobtools for Fungus, not desired ~~~
+~~~ [+23m] Summarizing Assembly for Fungus ~~~
+~~~ [+23m] Your final assembly for Fungus is: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/primary_asm/Fungus.fa ~~~
+~~~ [+23m] Your final assembly stats for Fungus are in: /90daydata/coffea_pangenome/puzzler_trials/rerun_juicer/primary_asm/stats/Fungus.summary.txt ~~~
 ```
 
 Finished! 
