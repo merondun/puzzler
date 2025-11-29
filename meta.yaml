@@ -73,6 +73,6 @@ test:
     - mock_agp_file.py -h
 
 about:
-  home: https://github.com/heritabilities/puzzler
+  home: https://github.com/merondun/puzzler
   summary: "Puzzler pipeline with HapHiC integration"
   license: MIT

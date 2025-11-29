@@ -6,7 +6,7 @@ Check-point aware containerized shell pipeline for high-throughput genome assemb
 
 Scalable genome assembly. As simple and portable as possible: only requires conda install or `.sif` and a table with file paths. 
 
-Puzzler v1.9 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler)
+Puzzler v1.9 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
