@@ -39,7 +39,7 @@ installation:
 This includes all dependencies and the `puzzler` binary. 
 
 ```bash
-mamba create -n puzzler -c bioconda -c heritabilities -c conda-forge -c hcc puzzler -y
+mamba create -n puzzler -c conda-forge -c bioconda -c hcc -c heritabilities puzzler -y
 # add --channel-priority flexible if needed
 mamba activate puzzler
 ```
