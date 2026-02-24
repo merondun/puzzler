@@ -18,7 +18,7 @@ function show_help {
     echo "Usage: puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -s, --sample SAMPLE   Sample name (required)"
+    echo "  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)"
     echo "  -m, --map FILE        Path to .tsv/.csv map file (required)"
     echo "  --threads t           Number of threads (optional; default 16)"
     echo "  --mem MEM             Memory allocation (optional; default 128)"
@@ -28,8 +28,8 @@ function show_help {
     echo "  -h, --help            Show help and exit"
     echo ""
     echo "  Required --map Structure:"
-    echo "  The provided map file (e.g., samples.txt) must contain the following columns in this order:"
-    echo "  RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB"
+    echo "  The provided map file (e.g., samples.tsv) must contain the following columns in this order:"
+    echo "  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB"
     echo "  For optional columns (REFERENCE - BUSCO_DB), write "NA" if undesired."
     echo ""
 
@@ -56,12 +56,12 @@ done
 
 # Validate required arguments
 if [ -z "$SAMPLE" ]; then
-    echo "Error: --sample argument is required."
+    echo -e "\n❌ \033[41mError: --sample argument is required.\033[0m\n"
     exit 1
 fi
 
 if [ -z "$MAP_FILE" ]; then
-    echo "Error: --map argument is required."
+    echo -e "\n❌ \033[41mError: --map argument is required.\033[0m\n"
     exit 1
 fi
 
@@ -69,6 +69,22 @@ fi
 IFS=$'\t,' read -r _ RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB < <(
     awk -F'[\t,]' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}"
 )
+
+# Add check for ensuring sample exists in the first 1 column and that there are no duplicates 
+awk -F'[\t,]' -v sample="$SAMPLE" '
+  NR==1 { next }
+  { gsub(/^[ \t]+|[ \t]+$/, "", $1) }
+  $1==sample { n++ }
+  END {
+    if (n==0) exit 2
+    if (n>1) exit 3
+    exit 0
+  }
+' "$MAP_FILE"
+case $? in
+  2) echo -e "\n❌ \033[41mError: sample \"$SAMPLE\" not found in first column of $MAP_FILE\033[0m\n"; exit 1 ;;
+  3) echo -e "\n❌ \033[41mError: sample \"$SAMPLE\" occurs multiple times in $MAP_FILE; sample IDs must be unique\033[0m\n"; exit 1 ;;
+esac
 
 # Check if mandatory fields (RUNTIME - NUM_CHRS) are empty
 if [[ -z "$RUNTIME" || -z "$CONTAINER" || -z "$WD" || -z "$HIFI" || -z "$HIC_R1" || -z "$HIC_R2" || -z "$NUM_CHRS" ]]; then
@@ -115,7 +131,7 @@ else
         bind_flags+=(--bind "$b:$b")
     done
 
-    PUZZLER="${RUNTIME} exec ${bind_flags[@]} ${CONTAINER}"
+    PUZZLER="${RUNTIME} exec --cleanenv ${bind_flags[@]} ${CONTAINER}"
     JARFILE="/opt/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
     RUN_JUICERTOOLS="java -Xmx16G -jar ${JARFILE}"
     FILTER_BAM="filter_bam"
@@ -507,10 +523,10 @@ else
             # Detect if there are duplicate scaffolds
             awk '{print $2}' chromosome_naming_map.txt | sort | uniq -d > duplicates.txt
 
-            ##### THIS WILL DEAL WITH DUPLICATES, IN CASE THERE ARE 2 SCAFFOLDS CORRESPONDING TO A CHR! eg. Chr1A  
+            ##### THIS WILL DEAL WITH DUPLICATES, IN CASE THERE ARE 2 SCAFFOLDS CORRESPONDING TO A CHR! eg. Chr1_unloc1
             if [ -s duplicates.txt ]; then
                 
-                echo -e "\033[41m~~~ $(elapsed) Multiple scaffolds corresponding to single Chr for ${SAMPLE}, Renaming them e.g. Chr1A, Chr1B.. ~~~\033[0m"
+                echo -e "\033[41m~~~ $(elapsed) Multiple scaffolds corresponding to single Chr for ${SAMPLE}, Renaming them e.g. Chr1_unloc1, Chr1_unloc2.. ~~~\033[0m"
                 awk '
                 {
                     chr=$2

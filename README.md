@@ -4,9 +4,11 @@ Check-point aware containerized shell pipeline for high-throughput genome assemb
 
 > What's it for?!
 
-Scalable genome assembly. As simple and portable as possible: only requires conda install or `.sif` and a table with file paths. 
+Scalable genome assembly, especially for pangenomics. Only requires conda install or apptainer `.sif` and a tsv with file paths. 
 
-Puzzler v1.9 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
+Puzzler v1.9.1 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
+
+![miniworkflow](/examples/figs/Mini_workflow.png)
 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
@@ -34,7 +36,7 @@ The workhorse script `puzzler` is a check-point aware bash script: `puzzler --sa
 
 installation:  
 
-**With Conda** :snake: 
+**With Conda (recommended)** :snake: 
 
 This includes all dependencies and the `puzzler` binary. 
 
@@ -46,23 +48,22 @@ mamba activate puzzler
 
 :wrench: Note: this conda build depends on internal packaging of [HapHiC](https://github.com/zengxiaofei/HapHiC) v1.0.6 and bundled juicer/juicertools files. Please report issues with these steps here first so I can determine if they stem from my conda packaging or the external software.
 
-**With apptainer** (safest). 
+**With apptainer** 
 
 All dependencies are within the `.sif`. 
 
 1) Download the container `.sif`:
 
 ```
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.1
 
 # Depending on your architecture, you might need to update your apptainer libraries:
 apptainer remote add --no-login SylabsCloud cloud.sycloud.io
 apptainer remote use SylabsCloud
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.1
 ```
-Note that Puzzler v1.8 and v1.9 have the same required dependencies. 
 
-2) Download the `puzzler` shell script and add to path. `puzzler` automatically binds the directories listed in `samples.tsv`` and runs Apptainer. No manual commands required!
+2) Download the `puzzler` shell script and optionally add to path. `puzzler` automatically binds the directories listed in `samples.tsv`` and runs Apptainer.
 
 ```
 wget https://raw.githubusercontent.com/merondun/puzzler/main/bin/puzzler
@@ -80,7 +81,7 @@ puzzler -h
 Usage: puzzler -s sample -m samples.tsv [OPTIONS]
 
 Options:
-  -s, --sample SAMPLE   Sample name (required)
+  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)
   -m, --map FILE        Path to .tsv/.csv map file (required)
   --threads t           Number of threads (optional; default 16)
   --mem MEM             Memory allocation (optional; default 128)
@@ -90,8 +91,8 @@ Options:
   -h, --help            Show help and exit
 
   Required --map Structure:
-  The provided map file (e.g., samples.txt) must contain the following columns in this order:
-  RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
+  The provided map file (e.g., samples.tsv) must contain the following columns in this order:
+  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
   For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
 ```
 
@@ -132,17 +133,21 @@ Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an exampl
 
 Prepare a `samples.tsv` which outlines all necessary pipeline components. An example template is found in [/examples/samples.tsv](/examples/samples.tsv)
 
+:exclamation: **IMPORTANT:**
+
+The first column of your map file must contain the exact sample name that you pass with `--sample``. If the name does not match exactly, the script will fail!
+
 Below is an excerpt showing both conda and apptainer runtimes. Columns `Reference` and later are optional. 
 
 | sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage  | busco_database                                             |
 | ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | -------------- | ---------------------------------------------------------- |
 | Fly    | conda     | NA                                               | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R2.fastq.gz | 7        | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_028408465.1_idAnaLude1.1_genomic.fna | 44      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | diptera_odb10  | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.8.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.1.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.1.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
 :page_with_curl: Map file descriptions (:exclamation: **Use full paths!!!**)
 
-* **sample:** Sample ID, all assembly work will be saved in `$WD/$SAMPLE`.
+* **sample:** Sample ID matching the first column of the map file, all assembly work will be saved in `$WD/$SAMPLE`.
 * **runtime:** Either "apptainer" or "conda". Puzzler will automatically `--bind` necessary paths for apptainer.
 * **container:** If conda, "NA", otherwise path to the apptainer `.sif`. Presumably works with Singularity (untested). 
 * **wd:** Path to working directory to store all files.
@@ -164,7 +169,7 @@ For NCBI RefSeq genomes, this typically does the trick: `sed -i -e 's/>.*chromos
 
 * **hom_cov:** Homozygous peak coverage, used for `hifiasm` if provided, otherwise write "NA".
 
-This value is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, which you can multiple by ploidy to get `--hom_cov`. 
+This value is the homozygous peak coverage identified from k-mer coverage in the HiFi library. I prefer to quickly run genomescope2, where the `*_linear_plot.png` indicates the left peak with `kcov:`, **which you can multiple by ploidy** to get `--hom_cov`. 
 
 If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm histogram within the log file to ensure it matches the provided homozygous peak (within `$WD/$SAMPLE/$SAMPLE.hifiasm.log`, line: `[M::purge_dups] homozygous read coverage threshold: X`).
 
@@ -207,7 +212,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.9.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.9.1.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -222,7 +227,7 @@ Cores Requested: 24
 Cores Available: 24
 RAM Requested: 384
 Memory Available: 2143.8 GB
-PUZZLER command: apptainer exec --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.8.sif
+PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.9.1.sif
 =======================================================================
 
 ~~~~ [+0m] Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
@@ -541,7 +546,7 @@ Puzzler will create a `.lock` file when downloading the respective databases for
 Depending on your HPC environment, you might run into issues about the compute nodes timing out, or the busco server's being unreachable. This will require manual inspection on your part, either for busco:
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.1.sif"
 # for conda, busco is already on $PATH! 
 BUSCO_DB=/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 BUSCO_LINEAGE=fungi_odb10
@@ -562,7 +567,7 @@ tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp
 Or Refseq nt (blobtools requirement): 
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.8.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.1.sif"
 BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
 cd ${BLOB_DB}/nt
 ${PUZZLER} update_blastdb.pl --force_ftp --decompress nt
@@ -652,6 +657,8 @@ Please make a git issue with any problems, no matter how small! I will respond a
 <!-- TOC --><a name="citation"></a>
 ## Citation
 
+If you find `puzzler` useful, please cite our [Bioinformatics Advances](https://doi.org/10.1093/bioadv/vbaf329) paper: https://doi.org/10.1093/bioadv/vbaf329
+
 Please ensure you cite the developers of software within `puzzler`:
 
 * [apptainer/singularity](https://github.com/apptainer/apptainer): https://doi.org/10.1371/journal.pone.0177459
@@ -685,6 +692,9 @@ If using optional software:
 
 <!-- TOC --><a name="changelog"></a>
 ## Changelog
+
+**v1.9.1**: 
+- increased clarity on `-s` usage and its connection to map file `-m`. Add `--cleanenv` flag to apptainer implementation in attempt to reduce host env influence. 
 
 **v1.9**: 
 - added optional `--no_purge` to skip purge dups. 
