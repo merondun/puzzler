@@ -8,8 +8,6 @@ Scalable genome assembly, especially for pangenomics. Only requires conda instal
 
 Puzzler v1.9.1 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
 
-![miniworkflow](/examples/figs/Mini_workflow.png)
-
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -26,6 +24,14 @@ Puzzler v1.9.1 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/
 - [Changelog](#changelog)
 
 <!-- TOC end --> 
+
+___
+
+**In a nutshell:** 
+
+![miniworkflow](/examples/figs/Mini_workflow.png)
+
+___
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
