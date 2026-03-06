@@ -65,27 +65,6 @@ grep '>' GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | head -n 2
 
 Puzzler relies on a `.tsv` tab-separated metadata file which organizes all the sample read-specific information. You can either create this in excel, or for single-genome studies, simply fill out the required info below and the `printf` command will create the necessary file: 
 
-Details:
-
-:heavy_exclamation_mark:***Use full paths***!! 
-
-* **sample:** Sample ID, all assembly work will be saved in `$WD/Fungus`.
-* **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
-* **container:** Path to the apptainer `.sif`. If all software available on path, simply write 'conda'. 
-* **wd:** Path to working directory to store all files.
-* **hifi:** Path to HiFi reads.
-* **hic_r1:** Path to HiC R1.
-* **hic_r2:** Path to HiC R2.
-* **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate if unknown.
-
-***OPTIONAL columns***: *Specify "NA" if not needed! The script will skip respective components if "NA".*
-
-* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
-* **hom_cov:** Homozygous peak coverage.
-* **blob_database:** Directory to save all blobtools databases.
-* **busco_lineage:** Busco odb10 version lineage.
-* **busco_database:** Directory to save busco dbs.
-
 ```
 
 # --- REQUIRED inputs (must be provided) ---
@@ -111,6 +90,27 @@ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
   "$SAMPLE" "$RUNTIME" "$CONTAINER" "$WD" "$HIFI" "$HIC_R1" "$HIC_R2" "$NUM_CHRS" "$REF" "$HOM_COV" "$BLOB_DB" "$BUSCO_LINEAGE" "$BUSCO_DB" >> ${WD}/samples.tsv
 
 ```
+
+Details:
+
+:heavy_exclamation_mark:***Use full paths***!! 
+
+* **sample:** Sample ID, all assembly work will be saved in `$WD/Fungus`.
+* **runtime:** Either "apptainer", "singularity", or "conda". If other runtime, ensure `$runtime exec puzzler.sif` works.
+* **container:** Path to the apptainer `.sif`. If all software available on path, simply write 'conda'. 
+* **wd:** Path to working directory to store all files.
+* **hifi:** Path to HiFi reads.
+* **hic_r1:** Path to HiC R1.
+* **hic_r2:** Path to HiC R2.
+* **chromosomes:** Number of chromosomes, or best guess. The pipeline will attempt +/- 4 your estimate if unknown.
+
+***OPTIONAL columns***: *Specify "NA" if not needed! The script will skip respective components if "NA".*
+
+* **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
+* **hom_cov:** Homozygous peak coverage.
+* **blob_database:** Directory to save all blobtools databases.
+* **busco_lineage:** Busco odb10 version lineage.
+* **busco_database:** Directory to save busco dbs.
 
 ## OPTIONAL Determine homozygous coverage
 
@@ -616,7 +616,8 @@ PUZZLER command:  (blank if using conda)
 ~~~ [+32m] Skipping blobtools for Fungus_NoRef, not desired ~~~
 ~~~ [+32m] Summarizing Assembly for Fungus_NoRef ~~~
 ~~~ [+32m] Your final assembly for Fungus_NoRef is: /project/coffea_pangenome/Artocarpus/puzzler_trials/primary_asm/Fungus_NoRef.fa ~~~
-~~~ [+32m] Your final assembly stats for Fungus_NoRef are in: /project/coffea_pangenome/Artocarpus/puzzler_trials/primary_asm/stats/Fungus_NoRef.summary.txt ~~~```
+~~~ [+32m] Your final assembly stats for Fungus_NoRef are in: /project/coffea_pangenome/Artocarpus/puzzler_trials/primary_asm/stats/Fungus_NoRef.summary.txt ~~~
+```
 
 With only 8 cores, the second step only took 32 minutes - most of that was BUSCO. 
 

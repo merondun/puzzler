@@ -31,6 +31,7 @@ ___
 
 ![miniworkflow](/examples/figs/Mini_workflow.png)
 
+Please see a [24 Mb fungus example](/docs/Fungus_Example.md) you can try out here. 
 ___
 
 <!-- TOC --><a name="installation"></a>
