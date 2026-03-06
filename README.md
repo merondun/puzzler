@@ -6,7 +6,7 @@ Check-point aware containerized shell pipeline for high-throughput genome assemb
 
 Scalable genome assembly, especially for pangenomics. Only requires conda install or apptainer `.sif` and a tsv with file paths. 
 
-Puzzler v1.9.1 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
+Puzzler v1.9.2 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
@@ -61,12 +61,12 @@ All dependencies are within the `.sif`.
 1) Download the container `.sif`:
 
 ```
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.1
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.2
 
 # Depending on your architecture, you might need to update your apptainer libraries:
 apptainer remote add --no-login SylabsCloud cloud.sycloud.io
 apptainer remote use SylabsCloud
-apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.1
+apptainer pull --arch amd64 library://merondun/default/puzzler:v1.9.2
 ```
 
 2) Download the `puzzler` shell script and optionally add to path. `puzzler` automatically binds the directories listed in `samples.tsv`` and runs Apptainer.
@@ -84,7 +84,7 @@ Test:
 
 ```bash
 puzzler -h
-Usage: puzzler -s sample -m samples.tsv [OPTIONS]
+Usage (v1.9.2): puzzler -s sample -m samples.tsv [OPTIONS]
 
 Options:
   -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)
@@ -93,6 +93,7 @@ Options:
   --mem MEM             Memory allocation (optional; default 128)
   --no_purge            Skip purge duplicates step entirely (optional)
   --no_juice            Skip juicer file creation entirely (optional; not recommended!)
+  --yahs                Run scaffolding with YAHS directly instead of HapHiC (optional)
   -v, --version         Show version and exit
   -h, --help            Show help and exit
 
@@ -111,7 +112,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
 2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. **This `puzzler` implementation is not coverage based** - only sequence similarity based, which works well in many species (even polyploids) and will not require re-mapping HiFi reads. This step can be omitted by passing the argument `--no_purge`. 
-3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails. 
+3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails (skip directly to YAHS with `--yahs`). 
 4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`), or skipping if `--no_juice` is given. 
 
 :mag: **Manual Curation in Juicebox** [(see brief curation for 11 genomes here)](https://www.youtube.com/watch?v=rMUiNqZwEpA)
@@ -148,8 +149,8 @@ Below is an excerpt showing both conda and apptainer runtimes. Columns `Referenc
 | sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage  | busco_database                                             |
 | ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | -------------- | ---------------------------------------------------------- |
 | Fly    | conda     | NA                                               | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R2.fastq.gz | 7        | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_028408465.1_idAnaLude1.1_genomic.fna | 44      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | diptera_odb10  | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.1.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.1.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.2.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.2.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
 :page_with_curl: Map file descriptions (:exclamation: **Use full paths!!!**)
 
@@ -218,7 +219,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.9.1.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.9.2.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -233,7 +234,7 @@ Cores Requested: 24
 Cores Available: 24
 RAM Requested: 384
 Memory Available: 2143.8 GB
-PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.9.1.sif
+PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.9.2.sif
 =======================================================================
 
 ~~~~ [+0m] Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
@@ -251,7 +252,7 @@ PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/pu
 
 If you reach an error like this, please navigate to the specified directory (e.g. `/project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt`) and inspect the most recent log file for errors! 
 
-:one: **Step 1:** `[sbatch] puzzler --sample Fungus --map samples.tsv`
+:one: **Step 1:** `puzzler --sample Fungus --map samples.tsv`
 
 This script will check for these files, and create them if they do not exist in these directories:
 
@@ -286,7 +287,7 @@ This will create e.g. `$SAMPLE_JBAT.review.assembly`. Copy that file as-is to `$
 
 <br/>
 
-:two: **Step 2:** resubmit `[sbatch] puzzler --sample Fungus --map samples.tsv`
+:two: **Step 2:** resubmit `puzzler --sample Fungus --map samples.tsv`
 
 This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file or if you do not have a related reference genome. 
 
@@ -305,11 +306,11 @@ This script will check for these files, and create them if they do not exist in 
 
 <br/>
 
-:one: **Step 1(B):** `[sbatch] puzzler --sample Fungus --map samples.tsv --no_juice`
+:one: **Step 1(B):** `puzzler --sample Fungus --map samples.tsv --no_juice`
 
 If you are feeling reckless, you can run the entire process in one command without juicebox manual curation. **I do not recommend this, as juicebox is essential, at least for fixing obvious misassemblies or merged chromosomes**. The command above would run the entire process from `hifiasm` to `assembly_stats`, using only the scaffolded assembly instead of the juicebox curated assembly. 
 
-:one: **Step 1(C):** `[sbatch] puzzler --sample Fungus --map samples.tsv --no_purge`
+:one: **Step 1(C):** `puzzler --sample Fungus --map samples.tsv --no_purge`
 
 If you would like to skip the `purge_dups` steps entirely, add this flag. It can of course be combined with `--no_juice`. 
 
@@ -361,7 +362,7 @@ bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1
 
 **3A.**: `$sample/03_haphic/` 
 
-Attempt [HapHiC](https://github.com/zengxiaofei/HapHiC) with specified `$NUM_CHRS` from `samples.tsv`. If fails, try +/- 4 from that number. 
+Attempt [HapHiC](https://github.com/zengxiaofei/HapHiC) with specified `$NUM_CHRS` from `samples.tsv`. If fails, try ±4 from that number. If you added the `--yahs` flag to `puzzler`, then it will skip directly to YAHS scaffolding. 
 
 Default recommended 2 rounds of correction. Test `--max_inflation` up to 10 which accomodates a huge variation of genomes. 
 
@@ -371,7 +372,7 @@ haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${
 
 **3B.**: `$sample/03_haphic/` 
 
-If `3A` scaffolding fails, scaffold with YAHS. Default settings. 
+If `3A` scaffolding fails, scaffold with YAHS. Default settings.
 
 ```bash
 samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
@@ -552,7 +553,7 @@ Puzzler will create a `.lock` file when downloading the respective databases for
 Depending on your HPC environment, you might run into issues about the compute nodes timing out, or the busco server's being unreachable. This will require manual inspection on your part, either for busco:
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.1.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.2.sif"
 # for conda, busco is already on $PATH! 
 BUSCO_DB=/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 BUSCO_LINEAGE=fungi_odb10
@@ -573,7 +574,7 @@ tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp
 Or Refseq nt (blobtools requirement): 
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.1.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.2.sif"
 BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
 cd ${BLOB_DB}/nt
 ${PUZZLER} update_blastdb.pl --force_ftp --decompress nt
@@ -617,7 +618,7 @@ ___
 
 > The script gave a warning: HapHiC for Fungus with 14 chrs failed, trying: 10 
 
-If HapHic does not succeed with the specified chromosome numbers, it will re-run it with +/- 4 chromsomes. If you specified n = 14 chromosomes, `puzzler` will re-run HapHic with 10 - 18 chromoomes. If all of those fail, it will run scaffolding with YAHS instead. **Please ensure that the script is entirely finished running and isn't continuing attempts with HapHiC +/- 4 chrs before resubmitting it! Strange errors may occur if you submit the sample $sample simultaneously**. 
+If HapHic does not succeed with the specified chromosome numbers, it will re-run it with ±4 chromsomes. If you specified n = 14 chromosomes, `puzzler` will re-run HapHic with 10 - 18 chromoomes. If all of those fail, it will run scaffolding with YAHS instead. **Please ensure that the script is entirely finished running and isn't continuing attempts with HapHiC ±4 chrs before resubmitting it! Strange errors may occur if you submit the sample $sample simultaneously**. 
 
 <!-- TOC --><a name="outputs"></a>
 ## Outputs 
@@ -699,13 +700,16 @@ If using optional software:
 <!-- TOC --><a name="changelog"></a>
 ## Changelog
 
+**v1.9.2**: 
+- added a check to ensure hifi, hic, and reference fastas exist. Added `--yahs`, allowing direct invocation of YAHS instead of HapHic for scaffolding. 
+
 **v1.9.1**: 
 - increased clarity on `-s` usage and its connection to map file `-m`. Add `--cleanenv` flag to apptainer implementation in attempt to reduce host env influence. 
 
 **v1.9**: 
 - added optional `--no_purge` to skip purge dups. 
 - Created a complete conda install for puzzler including a HapHic v1.0.6 and juicer jar files bundle. 
-- Removed inherent SLURM blocks. If users want to submit directly `sbatch puzzler -s $sample -m $sample_file.tsv`, they can add the slurm block to the script, and find it with `which puzzler` if installed with conda. 
+- Removed inherent SLURM blocks embedded in `puzzler`. 
 - Changed smaller scaffold naming scheme from e.g. Chr1 (largest), Chr1A, Chr1B.. etc, to Chr1, Chr1_unloc1, Chr1_unloc2, in case more than 26 unlocalized scaffolds exist.  
 
 **v1.8**: switch minimap2 to mashmap for draft-reference mapping, magnitudes faster and works with >500mb chromosomes. Add time counter.

@@ -1,5 +1,9 @@
 # Genome Assembly for N=12 species with **`puzzler`**
 
+**Please note that this tutorial invokes puzzler v1.8, see a small [Fungus example](/docs/Fungus_Examples.md) for a current version tutorial.**
+
+___
+
 I will create Puzzler assemblies for 12 species which have HiC and HiFi data from the NCBI:
 
 | Sample      | Species                     | Species Name                 | Bioproject                                                   | Link                                                         |

@@ -9,13 +9,14 @@ t=16
 MEM=128
 SAMPLE=""
 MAP_FILE=""
-VERSION="v1.9"
+VERSION="v1.9.2"
 NO_JUICE="FALSE"
 NO_PURGE="FALSE"
+YAHS="FALSE"
 
 # Display help message
 function show_help {
-    echo "Usage: puzzler -s sample -m samples.tsv [OPTIONS]"
+    echo "Usage (v1.9.2): puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)"
@@ -24,6 +25,7 @@ function show_help {
     echo "  --mem MEM             Memory allocation (optional; default 128)"
     echo "  --no_purge            Skip purge duplicates step entirely (optional)"
     echo "  --no_juice            Skip juicer file creation entirely (optional; not recommended!)"
+    echo "  --yahs                Run scaffolding with YAHS directly instead of HapHiC (optional)"
     echo "  -v, --version         Show version and exit"
     echo "  -h, --help            Show help and exit"
     echo ""
@@ -47,6 +49,7 @@ while [[ "$#" -gt 0 ]]; do
         -m|--map) MAP_FILE="$2"; shift ;;
         --no_purge) NO_PURGE="TRUE" ;;
         --no_juice) NO_JUICE="TRUE" ;;
+        --yahs) YAHS="TRUE" ;;
         --threads) t="$2"; shift ;;
         --mem) MEM="$2"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -106,6 +109,18 @@ HIFI=$(realpath ${HIFI})
 HIC_R1=$(realpath ${HIC_R1})
 HIC_R2=$(realpath ${HIC_R2})
 
+# Ensure those files exist and are not empty!
+for REQ_FILE in "$HIFI" "$HIC_R1" "$HIC_R2"; do
+    [[ -s "${REQ_FILE}" ]] || {     echo -e "\033[41m~~~ ERROR: Error: ${REQ_FILE} missing or empty. Exiting. ~~~\033[0m"; exit 1; }
+done
+
+for REQ_FILE in REFERENCE; do
+    val="${!REQ_FILE}"
+    if [[ "$val" != "NA" && -n "$val" ]]; then
+        [[ -s "$val" ]] || { echo -e "\033[41m~~~ ERROR: ${REQ_FILE} file missing or empty: $val ~~~\033[0m"; exit 1; }
+    fi
+done
+
 if [ "$RUNTIME" = "conda" ]; then
     PUZZLER=""  # No runtime needed for Conda
     JARFILE="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
@@ -143,10 +158,16 @@ else
     JUICE_PRINT="Running juicer, script will stop after .hic files created"
 fi
 
-if [ "$NO_PURGE" = "TRUE" ]; then
-    PURGE_PRINT="Skipping purge duplicates entirely."
+if [ "$YAHS" = "TRUE" ]; then
+    YAHS_PRINT="Skipping HapHic and scaffolding with YAHS directly"
 else
-    PURGE_PRINT="Will run purge_dups step."
+    YAHS_PRINT="Scaffolding with HapHiC, using YAHS only as a fallback"
+fi
+
+if [ "$NO_PURGE" = "TRUE" ]; then
+    PURGE_PRINT="Skipping purge duplicates entirely"
+else
+    PURGE_PRINT="Running purge_dups step"
 fi
 
 cat << "EOF"
@@ -159,14 +180,14 @@ __________ ____ _______________________.____     _____________________
  |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
                            \/        \/        \/        \/         \/ 
 =======================================================================
-                         ~~~ v1.9 ~~~
+                         ~~~ v1.9.2 ~~~
 
 EOF
 
 core_avail=$(nproc)
 mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminfo)
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} \nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\nPUZZLER command: ${PUZZLER}\n=======================================================================\n"
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} (ignore if using conda)\nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\nPUZZLER command: ${PUZZLER} (blank if using conda)\n=======================================================================\n"
 
 set -euo pipefail
 
@@ -212,6 +233,8 @@ else
 
     echo -e "\033[43m~~~ $(elapsed) Assembling genome for ${SAMPLE} ~~~\033[0m"
     echo -e "\033[43m~~~ $(elapsed) ${JUICE_PRINT} ~~~\033[0m"
+    echo -e "\033[43m~~~ $(elapsed) ${PURGE_PRINT} ~~~\033[0m"
+    echo -e "\033[43m~~~ $(elapsed) ${YAHS_PRINT} ~~~\033[0m"
 
     ##### HIFIASM: Generate Primary Assembly #####    
     if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ] && [ -f "${WD}/${SAMPLE}/hifiasm.complete" ]; then
@@ -303,6 +326,18 @@ else
     elif [[ -z "$NUM_CHRS" || "$NUM_CHRS" == "NA" ]]; then
         echo -e "\033[41m~~~ $(elapsed) Skipping HapHiC for ${SAMPLE}, must specify chromosome number estimate or guess ~~~\033[0m"
         exit 1 
+    elif [ "$YAHS" = "TRUE" ]; then
+            echo -e "\033[42m~~~ $(elapsed) Running YAHS directly on ${SAMPLE}: skipping HapHiC ~~~\033[0m"
+            mkdir -p ${WD}/${SAMPLE}/03_haphic
+            cd ${WD}/${SAMPLE}/03_haphic
+            rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/*
+            mkdir -p ${WD}/${SAMPLE}/03_haphic/haphic/04.build
+
+            ${PUZZLER} samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
+            ${PUZZLER} yahs ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa filtered.bam > yahs.log 2>&1
+            cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.fa ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
+            cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
+            touch ${WD}/${SAMPLE}/scaffolding.complete
     else
 
         echo -e "\033[43m~~~ $(elapsed) Running HapHiC for ${SAMPLE}  ~~~\033[0m" 
