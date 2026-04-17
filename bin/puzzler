@@ -9,14 +9,14 @@ t=16
 MEM=128
 SAMPLE=""
 MAP_FILE=""
-VERSION="v1.9.2"
+VERSION="v1.9.3"
 NO_JUICE="FALSE"
 NO_PURGE="FALSE"
 YAHS="FALSE"
 
 # Display help message
 function show_help {
-    echo "Usage (v1.9.2): puzzler -s sample -m samples.tsv [OPTIONS]"
+    echo "Usage (v1.9.3): puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)"
@@ -180,7 +180,7 @@ __________ ____ _______________________.____     _____________________
  |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
                            \/        \/        \/        \/         \/ 
 =======================================================================
-                         ~~~ v1.9.2 ~~~
+                         ~~~ v1.9.3 ~~~
 
 EOF
 
@@ -221,7 +221,7 @@ for tool in "${!TOOL_CMDS[@]}"; do
   fi
 done
 
-echo -e "\033[43m~~~ $(elapsed) Software check complete ~~~\033[0m"
+echo -e "\033[42m~~~ $(elapsed) Software check complete ~~~\033[0m"
 
 ########## End checks #############
 
@@ -232,9 +232,9 @@ if [ -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
 else
 
     echo -e "\033[43m~~~ $(elapsed) Assembling genome for ${SAMPLE} ~~~\033[0m"
-    echo -e "\033[43m~~~ $(elapsed) ${JUICE_PRINT} ~~~\033[0m"
-    echo -e "\033[43m~~~ $(elapsed) ${PURGE_PRINT} ~~~\033[0m"
-    echo -e "\033[43m~~~ $(elapsed) ${YAHS_PRINT} ~~~\033[0m"
+    echo -e "\033[45m~~~ $(elapsed) ${JUICE_PRINT} ~~~\033[0m"
+    echo -e "\033[45m~~~ $(elapsed) ${PURGE_PRINT} ~~~\033[0m"
+    echo -e "\033[45m~~~ $(elapsed) ${YAHS_PRINT} ~~~\033[0m"
 
     ##### HIFIASM: Generate Primary Assembly #####    
     if [ -s "${WD}/${SAMPLE}/01_hifiasm/asm.hic.p_ctg.gfa" ] && [ -f "${WD}/${SAMPLE}/hifiasm.complete" ]; then
@@ -409,7 +409,7 @@ else
     elif [ "$NO_JUICE" = "TRUE" ] && [ "${REFERENCE}" = "NA" ]; then
 
         # If reference is also missing, you're done! 
-        echo -e "\033[42m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\033[0m"
+        echo -e "\033[45m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\033[0m"
         echo -e "\033[43m~~~ $(elapsed) No reference provided for ${SAMPLE}: simply extracting assembly to: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
         cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/primary_asm/${SAMPLE}.fa
         touch ${WD}/${SAMPLE}/juicer.complete
@@ -418,7 +418,7 @@ else
 
         # If reference, do the same as if it's been juiced
         mkdir -p ${WD}/${SAMPLE}/05_postjuicebox
-        echo -e "\033[42m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\033[0m"
+        echo -e "\033[45m~~~ $(elapsed) Skipping juicer HiC file creation for ${SAMPLE}: --no_juice given, not recommended! ~~~\033[0m"
         cp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa ${WD}/${SAMPLE}/05_postjuicebox/post_juicer_asm.fa
         touch ${WD}/${SAMPLE}/juicer.complete
 
@@ -470,7 +470,7 @@ else
 
     ##### Extract post juicebox assembly
     if [ "$NO_JUICE" = "TRUE" ]; then
-        echo -e "\033[42m~~~ $(elapsed) Skipping juicer extraction for ${SAMPLE}, --no_juice requested! (not recommended!) ~~~\033[0m"
+        echo -e "\033[45m~~~ $(elapsed) Skipping juicer extraction for ${SAMPLE}, --no_juice requested! (not recommended!) ~~~\033[0m"
     elif [ ! -s "${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly" ]; then
         echo -e "\033[41m~~~ $(elapsed) Post curation assembly file missing for ${SAMPLE}: Run Juicebox & place in ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly ~~~\033[0m"
         exit 1 
@@ -685,6 +685,23 @@ else
     touch ${WD}/${SAMPLE}/yak.complete
 fi
 
+##### MERQURY completeness  ##### 
+if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats" ] && [ -f "${WD}/${SAMPLE}/merq.complete" ]; then
+    echo -e "\033[42m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}: ${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats exists ~~~\033[0m"
+elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
+    echo -e "\033[41m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
+elif [ ! -s "${HIFI}" ]; then
+    echo -e "\033[41m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}, missing input: ${HIFI} ~~~\033[0m"
+else 
+    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob
+    echo -e "\033[43m~~~ $(elapsed) Running Merqury completeness on ${SAMPLE} ~~~\033[0m"
+    cd ${WD}/${SAMPLE}/07_busco_yak_blob
+
+    ${PUZZLER} meryl k=21 threads=${t} memory=${MEM} count output reads.meryl ${HIFI} > meryl.kmer.log 2>&1
+    ${PUZZLER} merqury.sh reads.meryl ${WD}/primary_asm/${SAMPLE}.fa merq > merq.log 2>&1
+    touch ${WD}/${SAMPLE}/merq.complete
+fi
+
 ###### BUSCO ######
 if [ -s "${WD}/primary_asm/stats/${SAMPLE}.busco.txt" ]; then
     echo -e "\033[42m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.busco.txt or ${WD}/${SAMPLE}/busco.complete exists ~~~\033[0m"
@@ -884,8 +901,11 @@ else
     YAK_CV=$(awk '$1 == "CV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
     YAK_QV=$(awk '$1 == "QV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
 
-    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tYAK_CV\tYAK_QV"
-    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t$YAK_CV\t$YAK_QV"
+    MERQ_COMP=$(cut -f5 ${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats)
+    MERQ_QV=$(cut -f4 ${WD}/${SAMPLE}/07_busco_yak_blob/merq.qv)
+
+    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tYAK_CV\tYAK_QV\tMerqury_Complete\tMerqury_QV"
+    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t$YAK_CV\t$YAK_QV\t$MERQ_COMP\t$MERQ_QV"
 
     # Add chromosome-specific stats for reference-assigned assemblies. This will only include scaffolds > 1mb!
     if [ "${REFERENCE}" != "NA" ]; then

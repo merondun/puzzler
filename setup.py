@@ -8,7 +8,7 @@ scripts=[
 
 setup(
     name="puzzler",
-    version="1.9.2",
+    version="1.9.3",
     scripts=scripts,
     description="Puzzler pipeline with HapHiC integration",
     packages=find_packages(include=["HapHiC", "HapHiC.*"]),
