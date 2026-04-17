@@ -123,9 +123,10 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 5) Finalizing assembly: extract juicer assembly, assign chromosome names based on a related reference (only scaffolds with >Chr or >chr!), reverse complement according to reverse, using [merothon](https://github.com/merondun/merothon).
 6) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 7) QC: [yak](https://github.com/lh3/yak) base quality check. 
-8) QC: [busco](https://busco.ezlab.org/) check. (optional; if database path specified)
-9) QC: [blobtools](https://blobtools.readme.io/docs/what-is-blobtools) contaminant check against uniprot. (optional; if database path specified)
-10) QC: [assembly_stats](https://github.com/MikeTrizna/assembly_stats) assembly statistic metrics. 
+8) QC: [merqury](https://github.com/marbl/merqury) genome completeness check using kmers. 
+9) QC: [busco](https://busco.ezlab.org/) check. (optional; if database path specified)
+10) QC: [blobtools](https://blobtools.readme.io/docs/what-is-blobtools) contaminant check against uniprot. (optional; if database path specified)
+11) QC: [assembly_stats](https://github.com/MikeTrizna/assembly_stats) assembly statistic metrics. 
 
 
 <!-- TOC --><a name="quick-start"></a>
@@ -299,6 +300,7 @@ This script will check for these files, and create them if they do not exist in 
 | $WD/$SAMPLE/06_realign_hic_hifi/final_asm.filtered.bam    | $WD/$SAMPLE/qc_align_hic.complete  | Final HiC re-mapped file        | bwa mem2        |
 | $WD/primary_asm/stats/$SAMPLE.pdf                         |                                    | Final contact map               | haphic plot     |
 | $WD/$SAMPLE/07_busco_yak_blob/sr.qv.txt                   | $WD/$SAMPLE/yak.complete           | YAK base quality file           | yak             |
+| $WD/$SAMPLE/07_busco_yak_blob/merq.completeness.stats     | $WD/$SAMPLE/merq.complete          | Merqury completeness            | merqury         |
 | $WD/primary_asm/stats/$SAMPLE.busco.txt                   | $WD/$SAMPLE/busco.complete         | BUSCO stats                     | busco           |
 | $WD/$SAMPLE/06_realign_hic_hifi/asm.hifi.bam              | $WD/$SAMPLE/qc_align_hifi.complete | Final HiFi re-mapped file       | minimap2        |
 | $WD/$SAMPLE/07_busco_yak_blob/blast.out                   | $WD/$SAMPLE/blastn.complete        | Run blastn                      | blastn          |
@@ -452,7 +454,7 @@ haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 
 
 **7.**: `$sample/07_busco_yak_blob/`
 
-Final QC. Run YAK, and then optionally run BUSCO and BlobTools if db paths are given in `samples.tsv`. 
+Final QC. Run YAK, Merqury, and then optionally run BUSCO and BlobTools if db paths are given in `samples.tsv`. 
 
 Developer tutorial settings for [YAK](https://github.com/lh3/yak) and [BlobTools](https://blobtoolkit.genomehubs.org/blobtools2/blobtools2-tutorials/getting-started-with-blobtools2/), BUSCO default settings.
 
@@ -460,6 +462,10 @@ Developer tutorial settings for [YAK](https://github.com/lh3/yak) and [BlobTools
 # YAK
 yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
 yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
+
+# Merqury with kmer=21
+meryl k=21 threads=${t} memory=${MEM} count output reads.meryl ${HIFI} > meryl.kmer.log 2>&1
+merqury.sh reads.meryl ${WD}/primary_asm/${SAMPLE}.fa merq > merq.log 2>&1
 
 # BUSCO
 busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > ${BUSCO_DB}/${BUSCO_LINEAGE}_busco_download.log 2>&1
@@ -653,6 +659,7 @@ align_hic.complete
 scaffolding.complete
 juicer.complete
 qc_align_hic.complete
+merqury.complete
 yak.complete
 busco.complete
 ```
