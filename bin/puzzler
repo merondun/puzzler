@@ -126,6 +126,7 @@ if [ "$RUNTIME" = "conda" ]; then
     JARFILE="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/juicer_tools.1.9.9_jcuda.0.8.jar"
     RUN_JUICERTOOLS="java -Xmx16G -jar ${JARFILE}"
     FILTER_BAM="${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/utils/filter_bam"
+    [ -f "${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/scripts/allhic" ] || (wget -q -O "${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/scripts/allhic" "https://raw.githubusercontent.com/zengxiaofei/HapHiC/main/scripts/allhic" && chmod +x "${CONDA_PREFIX}/lib/python3.12/site-packages/HapHiC/scripts/allhic")
 else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
@@ -595,14 +596,22 @@ else
             fi # Exit duplicate scaffold check 
 
             # Finally, rename the chromosomes
-            awk '$2 ~ /^chr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' > sorted_chr.txt
-            awk '$2 ~ /^scaffold/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
+            awk '$2 ~ /^[Cc]hr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' > sorted_chr.txt
+            awk '$2 !~ /[Cc]hr/ {print $0}' chromosome_naming_map.txt | sort -k2,2V | awk '{print $2}' >> sorted_chr.txt
 
             ${PUZZLER} seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
             ${PUZZLER} samtools faidx haphic_renamed_unord.fa
             xargs ${PUZZLER} samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final_asm.fa
             cp ${WD}/${SAMPLE}/05_postjuicebox/final_asm.fa ${WD}/primary_asm/${SAMPLE}.fa
             ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
+
+            count1=$(grep '>' haphic_renamed_unord.fa | wc -l)
+            count2=$(grep '>' final_asm.fa | wc -l)
+            count3=$(grep '>' post_juicer_asm.fa | wc -l)
+
+            if [ "$count1" -ne "$count2" ] || [ "$count1" -ne "$count3" ]; then
+                echo -e "\033[41m~~~ $(elapsed) Scaffold number mismatch between post_juicer_asm.fa and final_asm.fa in ${SAMPLE}/05_postjuicebox/ INSPECT ~~~\033[0m"
+            fi
 
         fi # exit renaming check 
 
