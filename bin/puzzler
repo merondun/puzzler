@@ -5,24 +5,24 @@
 ########### EDIT THIS BLOCK WITH SLURM & APPTAINER/SINGULARITY SETTINGS ############
 
 # Default values
-t=16
-MEM=128
+t=48
+MEM=512
 SAMPLE=""
 MAP_FILE=""
-VERSION="v1.9.3"
+VERSION="v2.0.0"
 NO_JUICE="FALSE"
 NO_PURGE="FALSE"
 YAHS="FALSE"
 
 # Display help message
 function show_help {
-    echo "Usage (v1.9.3): puzzler -s sample -m samples.tsv [OPTIONS]"
+    echo "Usage (v2.0.0): puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)"
     echo "  -m, --map FILE        Path to .tsv/.csv map file (required)"
-    echo "  --threads t           Number of threads (optional; default 16)"
-    echo "  --mem MEM             Memory allocation (optional; default 128)"
+    echo "  --threads t           Number of threads (optional; default 48)"
+    echo "  --mem MEM             Memory allocation (optional; default 512)"
     echo "  --no_purge            Skip purge duplicates step entirely (optional)"
     echo "  --no_juice            Skip juicer file creation entirely (optional; not recommended!)"
     echo "  --yahs                Run scaffolding with YAHS directly instead of HapHiC (optional)"
@@ -31,7 +31,7 @@ function show_help {
     echo ""
     echo "  Required --map Structure:"
     echo "  The provided map file (e.g., samples.tsv) must contain the following columns in this order:"
-    echo "  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB"
+    echo "  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV FCS_DB FCS_TAXID BUSCO_LINEAGE BUSCO_DB"
     echo "  For optional columns (REFERENCE - BUSCO_DB), write "NA" if undesired."
     echo ""
 
@@ -69,7 +69,7 @@ if [ -z "$MAP_FILE" ]; then
 fi
 
 # Read either tsv or csv and assign variables from map file
-IFS=$'\t,' read -r _ RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB < <(
+IFS=$'\t,' read -r _ RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV FCS_DB FCS_TAXID BUSCO_LINEAGE BUSCO_DB < <(
     awk -F'[\t,]' -v sample="$SAMPLE" '$1 == sample {print $0}' "${MAP_FILE}"
 )
 
@@ -98,7 +98,7 @@ fi
 # Set REFERENCE - BUSCO_DB to "NA" if empty, otherwise extract full path
 HOM_COV="${HOM_COV:-NA}"
 BUSCO_LINEAGE="${BUSCO_LINEAGE:-NA}"
-for option in REFERENCE BLOB_DB BUSCO_DB; do
+for option in REFERENCE FCS_DB BUSCO_DB; do
     [[ "${!option}" != "NA" && -n "${!option}" ]] && declare "$option=$(realpath "${!option}")" || declare "$option=NA"
 done
 
@@ -113,6 +113,14 @@ HIC_R2=$(realpath ${HIC_R2})
 for REQ_FILE in "$HIFI" "$HIC_R1" "$HIC_R2"; do
     [[ -s "${REQ_FILE}" ]] || {     echo -e "\033[41m~~~ ERROR: Error: ${REQ_FILE} missing or empty. Exiting. ~~~\033[0m"; exit 1; }
 done
+
+# Enforce pair requirement: FCS_DB and FCS_TAXID must be set together
+have_db=$([[ "$FCS_DB"   != "NA" && -n "$FCS_DB"   ]] && echo 1 || echo 0)
+have_tax=$([[ "$FCS_TAXID" != "NA" && -n "$FCS_TAXID" ]] && echo 1 || echo 0)
+if (( have_db ^ have_tax )); then
+    echo -e "\033[41m~~~ $(elapsed) Provide BOTH FCS_DB and FCS_TAXID (or neither). ~~~\033[0m"
+    exit 2
+fi 
 
 for REQ_FILE in REFERENCE; do
     val="${!REQ_FILE}"
@@ -131,7 +139,7 @@ else
     # On some cluster architecture, you need to specify which directories to bind.... we will simply bind all paths. 
     binds=()
 
-    for varname in CONTAINER WD HIFI HIC_R1 HIC_R2 REFERENCE BLOB_DB BUSCO_DB; do
+    for varname in CONTAINER WD HIFI HIC_R1 HIC_R2 REFERENCE FCS_DB BUSCO_DB; do
         val="${!varname}"
         if [[ -n "$val" && ( -e "$val" || -d "$val" ) ]]; then
             dir=$(realpath "$val" | xargs dirname)
@@ -181,14 +189,14 @@ __________ ____ _______________________.____     _____________________
  |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
                            \/        \/        \/        \/         \/ 
 =======================================================================
-                         ~~~ v1.9.3 ~~~
+                         ~~~ v2.0.0 ~~~
 
 EOF
 
 core_avail=$(nproc)
 mem_avail=$(awk '/MemAvailable/ {printf "%.1f GB\n", $2/1024/1024}' /proc/meminfo)
 
-echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} (ignore if using conda)\nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nBLOB_DB: ${BLOB_DB}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\nPUZZLER command: ${PUZZLER} (blank if using conda)\n=======================================================================\n"
+echo -e "=======================================================================\nParameters for sample: ${SAMPLE} \nRUNTIME: ${RUNTIME}\nCONTAINER: ${CONTAINER} (ignore if using conda)\nWD: ${WD} \nHIFI: ${HIFI}\nHIC_R1: ${HIC_R1}\nHIC_R2: ${HIC_R2}\nNUMBER CHRS: ${NUM_CHRS}\nREFERENCE: ${REFERENCE}\nHOM_COV: ${HOM_COV}\nFCS_DB: ${FCS_DB}\nFCS_TAXID: ${FCS_TAXID}\nBUSCO_LINEAGE: ${BUSCO_LINEAGE}\nBUSCO_DB: ${BUSCO_DB}\nCores Requested: ${t}\nCores Available: ${core_avail}\nRAM Requested: ${MEM}\nMemory Available: ${mem_avail}\nPUZZLER command: ${PUZZLER} (blank if using conda)\n=======================================================================\n"
 
 set -euo pipefail
 
@@ -397,6 +405,7 @@ else
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.fa ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.fa
             cp ${WD}/${SAMPLE}/03_haphic/yahs.out_scaffolds_final.agp ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp
         fi 
+        rm -rf ${WD}/${SAMPLE}/03_haphic/haphic/01.cluster ${WD}/${SAMPLE}/03_haphic/haphic/02.reassign ${WD}/${SAMPLE}/03_haphic/haphic/03.sort
         touch ${WD}/${SAMPLE}/scaffolding.complete
         set -euo pipefail
     fi
@@ -619,23 +628,90 @@ else
 
 fi # exit assembly creation loop, if assembly exists - just skip to quality checks 
 
-##################################################
-###### OPTIONAL: ASSEMBLY QUALITY CHECKS!!! ######
-##################################################
+echo -e "\033[43m~~~ $(elapsed) Assessing contaminants / quality for ${SAMPLE} ~~~\033[0m"
 
-echo -e "\033[43m~~~ $(elapsed) Assessing genome quality for ${SAMPLE} ~~~\033[0m"
+##### NCBI fcs-gx contamination search ##### 
+if  [ -s "${WD}/primary_asm/stats/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt" ] && [ -f "${WD}/${SAMPLE}/fcs.complete" ]; then
+    echo -e "\033[42m~~~ $(elapsed) Skipping NCBI fcs-gx for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt exists ~~~\033[0m"
+elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
+    echo -e "\033[41m~~~ $(elapsed) Skipping NCBI fcs-gx for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
+elif [ "${FCS_DB}" = "NA" ]; then
+    echo -e "\033[42m~~~ $(elapsed) Skipping NCBI fcs-gx for ${SAMPLE}, not desired ~~~\033[0m"
+else 
+    mkdir -p ${WD}/${SAMPLE}/06_fcs
+    cd ${WD}/${SAMPLE}/06_fcs
+    echo -e "\033[43m~~~ $(elapsed) Running NCBI fcs-gx on ${SAMPLE} ~~~\033[0m"
+
+    #### Download the required fcs database (~500 gb) 
+    mkdir -p ${FCS_DB}
+    FCS_LOCK_FILE="${FCS_DB}/downloading_in_progress.lock"
+
+    # Capture output and errors
+    OUT=$(${PUZZLER} sync_files.py --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "${FCS_DB}" check 2>&1)
+    STATUS=$?
+
+    if [[ $STATUS -eq 0 ]]; then
+        echo -e "\033[42m~~~ $(elapsed) FCS database appears okay. ${FCS_DB}/all.gxi,all.gxs were completed ~~~\033[0m"
+    elif [ -f "$FCS_LOCK_FILE" ]; then
+        echo -e "\033[41m~~~ $(elapsed) Another instance already dl-ing db. Resubmit puzzler when finished, or rm $FCS_LOCK_FILE! Exiting ~~~\033[0m"
+        exit 1 
+    elif [ ! -f "$FCS_LOCK_FILE" ]; then
+        echo -e "\033[43m~~~ $(elapsed) Checking/Downloading fcs database (500gb!).... will take hours if non-existent ~~~\033[0m"
+        touch "${FCS_LOCK_FILE}"
+        ${PUZZLER} sync_files.py --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "${FCS_DB}" &> ${FCS_DB}/fcs_download.log
+
+        # now, sanity check! 
+        OUT=$(${PUZZLER} sync_files.py --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "${FCS_DB}" check 2>&1)
+        STATUS=$?
+        if [[ $STATUS -eq 0 ]]; then
+            echo -e "\033[42m~~~ $(elapsed) new FCS database appears okay. ${FCS_DB}/all.gxi,all.gxs were completed ~~~\033[0m"
+        else
+            echo -e "\033[41m~~~ $(elapsed) FCS database issues, inspect ${FCS_DB}/all.gxi,all.gxs ~~~\033[0m"
+            rm -f "$FCS_LOCK_FILE"
+            exit 1
+        fi
+        rm -f "$FCS_LOCK_FILE"
+    fi 
+
+    # Now... run FCS screen
+    echo -e "\033[43m~~~ $(elapsed) Screening contaminants with NCBI fcs-gx, will take some time... ~~~\033[0m"
+    ${PUZZLER} run_gx.py --fasta ${WD}/primary_asm/${SAMPLE}.fa \
+        --out-dir ${WD}/${SAMPLE}/06_fcs \
+        --gx-db ${FCS_DB} \
+        --tax-id ${FCS_TAXID} &> ${WD}/${SAMPLE}/06_fcs/fcs_screen.log
+    
+    # and output a cleaned fasta
+    cat ${WD}/primary_asm/${SAMPLE}.fa | \
+        ${PUZZLER} gx clean-genome \
+            --action-report ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt \
+            --output ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.no_contams.fa \
+            --contam-fasta-out ${WD}/${SAMPLE}/06_fcs/contaminants.fasta &> ${WD}/${SAMPLE}/06_fcs/fcs_clean.log
+
+    # now that we have a contam-free genome... create a backup of the original, move it, and replace it with this one, ensuring previous stats file also deleted 
+    if [ -s "${WD}/${SAMPLE}/06_fcs/${SAMPLE}.no_contams.fa" ]; then 
+        echo -e "\033[43m~~~ $(elapsed) Replacing ${WD}/primary_asm/${SAMPLE}.fa with ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.no_contams.fa; pre-contam fasta in ${WD}/primary_asm/pre_fcs_screening ~~~\033[0m"
+        mkdir -p ${WD}/primary_asm/pre_fcs_screening
+        mv ${WD}/primary_asm/${SAMPLE}.fa ${WD}/primary_asm/pre_fcs_screening/${SAMPLE}.fa
+        cp ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.no_contams.fa ${WD}/primary_asm/${SAMPLE}.fa
+        mv ${WD}/primary_asm/stats/${SAMPLE}* ${WD}/primary_asm/pre_fcs_screening/
+    fi 
+
+    cp ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt ${WD}/primary_asm/stats/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt
+    touch ${WD}/${SAMPLE}/fcs.complete
+
+fi
 
 ###### Final HIC mapping ##### 
 if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf" ]; then 
     echo -e "\033[42m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf exists ~~~\033[0m"
-elif [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hic.complete" ]; then
-    echo -e "\033[42m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam exists ~~~\033[0m"
+elif [ -s "${WD}/${SAMPLE}/07_realign_hic/final_asm.filtered.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hic.complete" ]; then
+    echo -e "\033[42m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}: ${WD}/${SAMPLE}/07_realign_hic/final_asm.filtered.bam exists ~~~\033[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\033[41m~~~ $(elapsed) Skipping alignment for final HiC map ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
 else 
-    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi
+    mkdir -p ${WD}/${SAMPLE}/07_realign_hic
     echo -e "\033[43m~~~ $(elapsed) Creating final HiC bam for ${SAMPLE} ~~~\033[0m"
-    cd ${WD}/${SAMPLE}/06_realign_hic_hifi
+    cd ${WD}/${SAMPLE}/07_realign_hic
 
     ln -s ${WD}/primary_asm/${SAMPLE}.fa final_asm.fa 2>/dev/null || true
     if [ ! -s "final_asm.fa.0123" ]; then 
@@ -656,11 +732,11 @@ fi # exit final hic mapping check
 ##### Final HIC Plotting ##### 
 if [ -s "${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf" ]; then
     echo -e "\033[42m~~~ $(elapsed) Skipping final contact map generating for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.pdf exists ~~~\033[0m"
-elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam" ]; then
-    echo -e "\033[41m~~~ $(elapsed) Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/06_realign_hic_hifi/final_asm.filtered.bam ~~~\033[0m"
+elif [ ! -s "${WD}/${SAMPLE}/07_realign_hic/final_asm.filtered.bam" ]; then
+    echo -e "\033[41m~~~ $(elapsed) Skipping final contact map generating for ${SAMPLE}, missing input: ${WD}/${SAMPLE}/07_realign_hic/final_asm.filtered.bam ~~~\033[0m"
 else 
-    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi
-    cd ${WD}/${SAMPLE}/06_realign_hic_hifi
+    mkdir -p ${WD}/${SAMPLE}/07_realign_hic
+    cd ${WD}/${SAMPLE}/07_realign_hic
     echo -e "\033[43m~~~ $(elapsed) Creating final HiC contact map for ${SAMPLE} ~~~\033[0m"
     ${PUZZLER} samtools faidx final_asm.fa
     ${PUZZLER} mock_agp_file.py final_asm.fa > final_asm.agp
@@ -674,37 +750,20 @@ else
 	fi 
 
     # Copy over HiC map 
-    cp ${WD}/${SAMPLE}/06_realign_hic_hifi/contact_map.pdf ${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf
+    cp ${WD}/${SAMPLE}/07_realign_hic/contact_map.pdf ${WD}/primary_asm/stats/${SAMPLE}.HiC_contacts.pdf
 fi # exit final hic plotting check 
 
-##### YAK k-mer QV ##### 
-if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt" ] && [ -f "${WD}/${SAMPLE}/yak.complete" ]; then
-    echo -e "\033[42m~~~ $(elapsed) Skipping YAK k-mer QV for ${SAMPLE}: ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt exists ~~~\033[0m"
-elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
-    echo -e "\033[41m~~~ $(elapsed) Skipping YAK k-mer QV for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
-elif [ ! -s "${HIFI}" ]; then
-    echo -e "\033[41m~~~ $(elapsed) Skipping YAK k-mer QV stats for ${SAMPLE}, missing input: ${HIFI} ~~~\033[0m"
-else 
-    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob
-    echo -e "\033[43m~~~ $(elapsed) Running YAK on ${SAMPLE} ~~~\033[0m"
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
-
-    ${PUZZLER} yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
-    ${PUZZLER} yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
-    touch ${WD}/${SAMPLE}/yak.complete
-fi
-
 ##### MERQURY completeness  ##### 
-if [ -s "${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats" ] && [ -f "${WD}/${SAMPLE}/merq.complete" ]; then
-    echo -e "\033[42m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}: ${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats exists ~~~\033[0m"
+if [ -s "${WD}/${SAMPLE}/08_merqury/merq.completeness.stats" ] && [ -f "${WD}/${SAMPLE}/merq.complete" ]; then
+    echo -e "\033[42m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}: ${WD}/${SAMPLE}/08_merqury/merq.completeness.stats exists ~~~\033[0m"
 elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
     echo -e "\033[41m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
 elif [ ! -s "${HIFI}" ]; then
     echo -e "\033[41m~~~ $(elapsed) Skipping Merqury completeness for ${SAMPLE}, missing input: ${HIFI} ~~~\033[0m"
 else 
-    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob
+    mkdir -p ${WD}/${SAMPLE}/08_merqury
     echo -e "\033[43m~~~ $(elapsed) Running Merqury completeness on ${SAMPLE} ~~~\033[0m"
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    cd ${WD}/${SAMPLE}/08_merqury
 
     ${PUZZLER} meryl k=21 threads=${t} memory=${MEM} count output reads.meryl ${HIFI} > meryl.kmer.log 2>&1
     ${PUZZLER} merqury.sh reads.meryl ${WD}/primary_asm/${SAMPLE}.fa merq > merq.log 2>&1
@@ -720,7 +779,7 @@ elif [[ "${BUSCO_LINEAGE}" == "NA" || "${BUSCO_DB}" == "NA" ]]; then
     echo -e "\033[41m~~~ $(elapsed) Skipping BUSCO for ${SAMPLE}, not requested ~~~\033[0m"
 else 
     
-    mkdir -p ${WD}/${SAMPLE}/07_busco_yak_blob ${BUSCO_DB}
+    mkdir -p ${WD}/${SAMPLE}/09_busco ${BUSCO_DB}
     # Create a busco download lock in case multiple runs of the same species 
     B_LOCK_FILE="${BUSCO_DB}/${BUSCO_LINEAGE}.lock"
     export PYTHONWARNINGS="ignore::SyntaxWarning"
@@ -742,7 +801,7 @@ else
 
     echo -e "\033[43m~~~ $(elapsed) Running BUSCO for ${SAMPLE} using lineage: ${BUSCO_LINEAGE} ~~~\033[0m"
 
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
+    cd ${WD}/${SAMPLE}/09_busco
     ${PUZZLER} busco -i ${WD}/primary_asm/${SAMPLE}.fa \
         -l ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} \
         -m genome \
@@ -751,142 +810,9 @@ else
         -f \
         --offline > busco.log 2>&1
 
-    cp ${WD}/${SAMPLE}/07_busco_yak_blob/${SAMPLE}/short_summary.specific*.txt ${WD}/primary_asm/stats/${SAMPLE}.busco.txt
+    cp ${WD}/${SAMPLE}/09_busco/${SAMPLE}/short_summary.specific*.txt ${WD}/primary_asm/stats/${SAMPLE}.busco.txt
+    rm -rf ${WD}/${SAMPLE}/09_busco/${SAMPLE}/run_${BUSCO_LINEAGE}/hmmer_output ${WD}/${SAMPLE}/09_busco/${SAMPLE}/run_${BUSCO_LINEAGE}/miniprot_output ${WD}/${SAMPLE}/09_busco/${SAMPLE}/run_${BUSCO_LINEAGE}/busco_sequences
     touch ${WD}/${SAMPLE}/busco.complete
-fi
-
-##### Blobtools contamination search ##### 
-if [ -s "${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt" ]; then 
-    echo -e "\033[42m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}: ${WD}/primary_asm/stats/${SAMPLE}.stats.txt exists ~~~\033[0m"
-elif [ ! -s "${WD}/primary_asm/${SAMPLE}.fa" ]; then
-    echo -e "\033[41m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, missing input: ${WD}/primary_asm/${SAMPLE}.fa ~~~\033[0m"
-elif [ ! -s "${HIFI}" ]; then
-    echo -e "\033[41m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, missing input: ${HIFI} ~~~\033[0m"
-elif [ "${BLOB_DB}" = "NA" ]; then
-    echo -e "\033[42m~~~ $(elapsed) Skipping blobtools for ${SAMPLE}, not desired ~~~\033[0m"
-else 
-    mkdir -p ${WD}/${SAMPLE}/06_realign_hic_hifi ${WD}/${SAMPLE}/07_busco_yak_blob
-    echo -e "\033[43m~~~ $(elapsed) Running blobtools on ${SAMPLE} ~~~\033[0m"
-
-    ##### Map HiFi Reads back to Assembly ##### 
-    if [ -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ] && [ -f "${WD}/${SAMPLE}/qc_align_hifi.complete" ]; then
-        echo -e "\033[42m~~~ $(elapsed) Skipping HiFi alignment for ${SAMPLE}: ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam exists ~~~\033[0m"
-    else 
-        cd ${WD}/${SAMPLE}/06_realign_hic_hifi
-
-        # Alignment 
-        echo -e "\033[43m~~~ $(elapsed) Blobtools needs HiFi alignment, starting HiFi Alignment for ${SAMPLE} ~~~\033[0m"
-        { ${PUZZLER} minimap2 -t ${t} -ax map-hifi \
-            ${WD}/primary_asm/${SAMPLE}.fa ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
-            ${PUZZLER} samtools sort --threads ${t} -o asm.hifi.bam; } > hifi.alignment.log 2>&1
-        ${PUZZLER} samtools index -c --threads ${t} asm.hifi.bam
-        touch ${WD}/${SAMPLE}/qc_align_hifi.complete
-        
-    fi # exit HiFi check
-
-    LOCK_FILE="${BLOB_DB}/download_taxdump.lock"
-
-    #### Download Refseq Taxdump (small!)
-    if [ -f "$LOCK_FILE" ]; then
-        echo -e "\033[41m~~~ $(elapsed) Another instance already dl-ing taxdump db. Resubmit puzzler when finished, or rm $LOCK_FILE! Exiting ~~~\033[0m"
-        exit 1
-    elif [ ! -s "${BLOB_DB}/data/nodes.dmp" ] && [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then
-        echo -e "\033[43m~~~ $(elapsed) Grabbing NCBI taxdump files ~~~\033[0m"
-        mkdir -p ${BLOB_DB}/data ${BLOB_DB}/out
-        cd ${BLOB_DB}
-        # Create lock file to signal database download in progress
-        touch "$LOCK_FILE"
-        wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1
-        #wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/ > ncbi_dump.wget.log 2>&1 # You can also try this if the above fails....
-        tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp > ncbi_dump.tar.log 2>&1
-        rm -f "$LOCK_FILE"
-    else
-        echo -e "\033[42m~~~ $(elapsed) Skipping NCBI taxdump, ${BLOB_DB}/data/nodes.dmp exists ~~~\033[0m"
-    fi 
-
-    #### Download refseq nt databases (MASSIVE!) 
-    mkdir -p ${BLOB_DB}/nt
-    cd ${BLOB_DB}/nt
-    
-    NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
-
-    # Capture output and errors
-    if [ -f "${BLOB_DB}/nt.complete" ]; then
-        echo -e "\033[42m~~~ $(elapsed) Refseq nt database appears okay. ${BLOB_DB}/nt/nt.ndb exists ~~~\033[0m"
-    elif [ -f "$NT_LOCK_FILE" ]; then
-        echo -e "\033[41m~~~ $(elapsed) Another instance already dl-ing nt db. Resubmit puzzler when finished, or rm $NT_LOCK_FILE! Exiting ~~~\033[0m"
-        exit 1 
-    elif [ ! -f "$NT_LOCK_FILE" ]; then
-        echo -e "\033[43m~~~ $(elapsed) Checking/Downloading RefSeq nt database.... will take hours if non-existent ~~~\033[0m"
-        touch "$NT_LOCK_FILE"
-        ${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
-        
-        # If there's an error with the script, stop! 
-        if grep -i "not found\|error" nt_check_database.log; then
-            echo -e "\033[41m~~~ $(elapsed) Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB}  ~~~\033[0m"
-            exit 1
-        fi
-
-        # Otherwise, database is ready, so remove the lock file 
-        echo -e "\033[43m~~~ $(elapsed) RefSeq nt database exists successfully ~~~\033[0m"
-        rm "$NT_LOCK_FILE"
-        touch ${BLOB_DB}/nt.complete
-    else
-        echo -e "\033[42m~~~ $(elapsed) Error detected during BLAST database update! Check running ${PUZZLER} update_blastdb.pl in ${BLOB_DB} or rm ${BLOB_DB}/download_nt.lock~~~\033[0m"
-    fi 
-
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ -s "blast.out" ] && [ -f "${WD}/${SAMPLE}/blastn.complete" ]; then
-            echo -e "\033[42m~~~ $(elapsed) Skipping blast, ${WD}/${SAMPLE}/07_busco_yak_blob/blast.out exists ~~~\033[0m"
-    else
-        echo -e "\033[43m~~~ $(elapsed) Blasting ${SAMPLE} against nt... will take hours and huge RAM ~~~\033[0m"
-        ${PUZZLER} blastn -task megablast \
-            -db ${BLOB_DB}/nt/nt \
-            -query ${WD}/primary_asm/${SAMPLE}.fa \
-            -outfmt "6 qseqid staxids bitscore std" \
-            -max_target_seqs 10 \
-            -max_hsps 1 \
-            -evalue 1e-25 \
-            -num_threads ${t} \
-            -out blast.out > blast.log 2>&1
-        touch ${WD}/${SAMPLE}/blastn.complete
-    fi 
-
-    cd ${WD}/${SAMPLE}/07_busco_yak_blob
-    if [ ! -s "blast.out" ] && [ ! -s "${WD}/${SAMPLE}/blastn.complete" ]; then
-        echo -e "\033[41m~~~ $(elapsed) Blast file is empty for ${SAMPLE}, check ${WD}/${SAMPLE}/07_busco_yak_blob/blast.log ~~~\033[0m"
-        exit 1 
-    elif [ ! -s "${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam" ]; then
-	     echo -e "\033[41m~~~ $(elapsed) Alignment file missing for ${SAMPLE}, check ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam ~~~\033[0m"
-    elif [ -s "${BLOB_DB}/data/nodesDB.txt" ]; then
-
-        echo -e "\033[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\033[0m"  
-        { 
-            ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
-                --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE}
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf
-            } > blob.log 2>&1
-        cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
-        cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
-        cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
-
-    elif [ ! -s "${BLOB_DB}/data/nodesDB.txt" ]; then 
-
-        echo -e "\033[43m~~~ $(elapsed) Creating blobplot for ${SAMPLE} ~~~\033[0m"
-        { 
-            ${PUZZLER} blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
-                --nodes ${BLOB_DB}/data/nodes.dmp --names ${BLOB_DB}/data/names.dmp --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE}
-            ${PUZZLER} blobtools view -i ${SAMPLE}.blobDB.json
-            ${PUZZLER} blobtools plot -i ${SAMPLE}.blobDB.json --format pdf
-            } > blob.log 2>&1
-        cp ${SAMPLE}*blobplot.bam0.pdf ${WD}/primary_asm/stats/${SAMPLE}.blob.pdf
-        cp ${SAMPLE}.*blobplot.stats.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.stats.txt
-        cp ${SAMPLE}.*table.txt ${WD}/primary_asm/stats/${SAMPLE}.blob.contaminants.txt
-
-    else
-        echo -e "\033[42m~~~ $(elapsed) Skipping blobtools, ${BLOB_DB}/data/nodesDB.txt is missing ~~~\033[0m"
-    fi 
 fi
 
 ##### Basic Assembly Stats ##### 
@@ -898,23 +824,21 @@ else
 
     echo -e "\033[43m~~~ $(elapsed) Summarizing Assembly for ${SAMPLE} ~~~\033[0m"
     # Get metrics for final assembly
+    BBSTATS=$(${PUZZLER} stats.sh in="${WD}/primary_asm/${SAMPLE}.fa" format=3)
 
-    FINAL_STATS=$(${PUZZLER} assembly_stats ${WD}/primary_asm/${SAMPLE}.fa)
-    SIZE=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-    SEQS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
-    CTGS=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
-    SCAF_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | tail -n1 | sed 's/,//g')
-    CONT_N50=$(echo "$FINAL_STATS" | tr ':' '\n' | grep -A 1 'N50' | head -n2 | tail -n1 | sed 's/,//g')
+    SEQS=$(awk 'NR==2{print $1}' <<< "$BBSTATS")  
+    CTGS=$(awk 'NR==2{print $2}' <<< "$BBSTATS")       
+    SIZE=$(awk 'NR==2{print $3}' <<< "$BBSTATS")       
+    SCAF_N50=$(awk 'NR==2{print $7}' <<< "$BBSTATS")    
+    CONT_N50=$(awk 'NR==2{print $9}' <<< "$BBSTATS")     
+    GC=$(awk 'NR==2{print $18}' <<< "$BBSTATS")      
     GAPS=$((CTGS - SEQS))
 
-    YAK_CV=$(awk '$1 == "CV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
-    YAK_QV=$(awk '$1 == "QV"' ${WD}/${SAMPLE}/07_busco_yak_blob/sr.qv.txt | cut -f2)
+    MERQ_COMP=$(cut -f5 ${WD}/${SAMPLE}/08_merqury/merq.completeness.stats)
+    MERQ_QV=$(cut -f4 ${WD}/${SAMPLE}/08_merqury/merq.qv)
 
-    MERQ_COMP=$(cut -f5 ${WD}/${SAMPLE}/07_busco_yak_blob/merq.completeness.stats)
-    MERQ_QV=$(cut -f4 ${WD}/${SAMPLE}/07_busco_yak_blob/merq.qv)
-
-    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tYAK_CV\tYAK_QV\tMerqury_Complete\tMerqury_QV"
-    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t$YAK_CV\t$YAK_QV\t$MERQ_COMP\t$MERQ_QV"
+    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\t${GC}\tMerqury_Complete\tMerqury_QV"
+    VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t${GC}\t$MERQ_COMP\t$MERQ_QV"
 
     # Add chromosome-specific stats for reference-assigned assemblies. This will only include scaffolds > 1mb!
     if [ "${REFERENCE}" != "NA" ]; then
@@ -922,12 +846,12 @@ else
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
         grep -E 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$2 > 1e6' | cut -f1 > ${SAMPLE}.chrs
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
-        CHR_STATS=$(${PUZZLER} assembly_stats ${SAMPLE}.chr.fa)
-        CHR_SIZE=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'total_bps' | tail -n1 | sed 's/,//g')
-        CHR_PROP=$(${PUZZLER} perl -e "print sprintf('%.4f', $CHR_SIZE / $SIZE)")
-        CHR_SEQS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | tail -n1 | sed 's/,//g')
-        CHR_CTGS=$(echo "$CHR_STATS" | tr ':' '\n' | grep -A 1 'sequence' | head -n2 | tail -n1 | sed 's/,//g')
+        CHR_STATS=$(${PUZZLER} stats.sh in="${SAMPLE}.chr.fa" format=3)
+        CHR_SEQS=$(awk 'NR==2{print $1}' <<< "$CHR_STATS")  
+        CHR_CTGS=$(awk 'NR==2{print $2}' <<< "$CHR_STATS")  
+        CHR_SIZE=$(awk 'NR==2{print $3}' <<< "$CHR_STATS") 
         CHR_GAPS=$((CHR_CTGS - CHR_SEQS))
+        CHR_PROP=$(awk -v a="$CHR_SIZE" -v b="$SIZE" 'BEGIN{printf("%.4f", a/b)}')
 
         HEADER+="\tWithinChrsBP\tPropWithinChrs\tGapsInChrs"
         VALUES+="\t$CHR_SIZE\t$CHR_PROP\t$CHR_GAPS"
@@ -944,6 +868,16 @@ else
 
         HEADER+="\tBUSCO_Complete\tBUSCO_singlecopy"
         VALUES+="\t$BUSCO_COMPLETE\t$BUSCO_SINGLE"
+    fi
+
+    # Add FCS metrics **only if FCS_DB/FCS_TAXID is not "NA"**
+    if [ "$FCS_DB" != "NA" ]; then
+        # Parse BUSCO results
+        CONTAMS=$(awk '!/^\[/ && !/^#/ && !/FCS genome report/ && !/agg_cont/ && NF>0 {c++} END{print c+0}' "$WD/$SAMPLE/06_fcs/$SAMPLE.$FCS_TAXID.fcs_gx_report.txt" 2>/dev/null || echo 0)
+        CONTAM_SUM_LEN=$(awk '!/^\[/ && !/FCS genome report/ && !/^#/ && !/agg_cont/ {s+=($3-$2)} END{print s+0}' "$WD/$SAMPLE/06_fcs/$SAMPLE.$FCS_TAXID.fcs_gx_report.txt" 2>/dev/null || echo 0)
+        
+        HEADER+="\tFCS_Contaminants\tContaminant_BP"
+        VALUES+="\t$CONTAMS\t${CONTAM_SUM_LEN}"
     fi
 
     # Write to summary file

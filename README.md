@@ -6,7 +6,7 @@ Check-point aware containerized shell pipeline for high-throughput genome assemb
 
 Scalable genome assembly, especially for pangenomics. Only requires conda install or apptainer `.sif` and a tsv with file paths. 
 
-Puzzler v1.9.4 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
+Puzzler v2.0.0 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
@@ -29,7 +29,7 @@ ___
 
 **In a nutshell:** 
 
-![miniworkflow](/examples/figs/Miniworkflow_v1.9.3.png)
+![miniworkflow](/examples/figs/Miniworkflow_v2.0.0.png)
 
 Please see a [24 Mb fungus example](/docs/Fungus_Example.md) you can try out here. 
 ___
@@ -84,14 +84,13 @@ Afterwards:
 Test: 
 
 ```bash
-puzzler -h
-Usage (v1.9.4): puzzler -s sample -m samples.tsv [OPTIONS]
+Usage (v2.0.0): puzzler -s sample -m samples.tsv [OPTIONS]
 
 Options:
   -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)
   -m, --map FILE        Path to .tsv/.csv map file (required)
-  --threads t           Number of threads (optional; default 16)
-  --mem MEM             Memory allocation (optional; default 128)
+  --threads t           Number of threads (optional; default 48)
+  --mem MEM             Memory allocation (optional; default 512)
   --no_purge            Skip purge duplicates step entirely (optional)
   --no_juice            Skip juicer file creation entirely (optional; not recommended!)
   --yahs                Run scaffolding with YAHS directly instead of HapHiC (optional)
@@ -100,7 +99,7 @@ Options:
 
   Required --map Structure:
   The provided map file (e.g., samples.tsv) must contain the following columns in this order:
-  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
+  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV FCS_DB FCS_TAXID BUSCO_LINEAGE BUSCO_DB
   For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
 ```
 
@@ -112,7 +111,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 :pushpin: **`puzzler -s $sample -m samples.tsv`**
 
 1) [Hifiasm](https://github.com/chhylp123/hifiasm) assembly using HiFi + HiC reads.
-2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. **This `puzzler` implementation is not coverage based** - only sequence similarity based, which works well in many species (even polyploids) and will not require re-mapping HiFi reads. This step can be omitted by passing the argument `--no_purge`. 
+2) Purging of haplotigs using [purge_dups](https://github.com/dfguan/purge_dups). Typically with sufficient HiFi data for diploid organisms, `hifiasm` adequately purges most coverage-based diplotigs. **This `puzzler` implementation is not coverage based** - only sequence similarity based, which works well in many species (even polyploids) and will not require re-mapping HiFi reads. This step can be omitted by passing the argument `--no_purge`. This tends to only affect small contigs, not chr-level scaffolds. 
 3) Scaffolding with [HapHiC](https://github.com/zengxiaofei/HapHiC), or [YAHS](https://github.com/c-zhou/yahs) if HapHic fails (skip directly to YAHS with `--yahs`). 
 4) Creating [Juicebox](https://github.com/aidenlab/Juicebox) manual curation inputs (`.hic`, `.assembly`), or skipping if `--no_juice` is given. 
 
@@ -121,12 +120,11 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 :pushpin: rerun: **`puzzler -s $sample -m samples.tsv`**
 
 5) Finalizing assembly: extract juicer assembly, assign chromosome names based on a related reference (only scaffolds with >Chr or >chr!), reverse complement according to reverse, using [merothon](https://github.com/merondun/merothon).
-6) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
-7) QC: [yak](https://github.com/lh3/yak) base quality check. 
+6) QC: [fcs-gx](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart) NCBI contaminant screening and removal. (optional; if ~500gb path for database specified)
+7) QC: Re-map HiC for final assembly check with [HapHiC](https://github.com/zengxiaofei/HapHiC). 
 8) QC: [merqury](https://github.com/marbl/merqury) genome completeness check using kmers. 
 9) QC: [busco](https://busco.ezlab.org/) check. (optional; if database path specified)
-10) QC: [blobtools](https://blobtools.readme.io/docs/what-is-blobtools) contaminant check against uniprot. (optional; if database path specified)
-11) QC: [assembly_stats](https://github.com/MikeTrizna/assembly_stats) assembly statistic metrics. 
+10) QC: [bbstats.sh](https://github.com/bbushnell/BBTools) assembly statistic metrics. 
 
 
 <!-- TOC --><a name="quick-start"></a>
@@ -134,7 +132,7 @@ The pipeline creates a collapsed completely *de novo* primary genome assembly us
 
 `puzzler` only requires two inputs: `--sample` and `--map`. 
 
-Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example tutorial with [N = 12 species](/docs/All_N12_Genomes.md), with a small haploid fungal trial dataset (runs in 40 minutes with 8 cores and 64 Gb RAM) available on [Zenodo](https://doi.org/10.5281/zenodo.17756307). 
+Please see a small [24 Mb fungus example](/docs/Fungus_Example.md) and an example tutorial with [N = 12 species](/docs/All_N12_Genomes.md), with a small haploid fungal trial dataset (runs in 40 minutes with 8 cores and 64 Gb RAM excluding ncbi-fcs) available on [Zenodo](https://doi.org/10.5281/zenodo.17756307). 
 
 **1. Make pipeline map file** 
 
@@ -148,11 +146,11 @@ The first column of your map file must contain the exact sample name that you pa
 
 Below is an excerpt showing both conda and apptainer runtimes. Columns `Reference` and later are optional. 
 
-| sample | runtime   | container                                        | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database                                             | busco_lineage  | busco_database                                             |
-| ------ | --------- | ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | --------------------------------------------------------- | -------------- | ---------------------------------------------------------- |
-| Fly    | conda     | NA                                               | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R2.fastq.gz | 7        | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_028408465.1_idAnaLude1.1_genomic.fna | 44      | /90daydata/coffea_pangenome/puzzler_trials/blob_downloads | diptera_odb10  | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.4.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | NA                                                        | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
-| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v1.9.4.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA                                                        | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| sample | runtime   | container                                          | wd                                                    | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | fcs_database                                      | fcs_taxid | busco_lineage  | busco_database                                             |
+| ------ | --------- | -------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | ------------------------------------------------- | --------- | -------------- | ---------------------------------------------------------- |
+| Fly    | conda     | NA                                                 | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fly.HiC.R2.fastq.gz | 7        | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_028408465.1_idAnaLude1.1_genomic.fna | 44      | /90daydata/coffea_pangenome/puzzler_trials/fcs_db | 28586     | diptera_odb12  | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Beaver | apptainer | /home/justin.merondun/apptainer/puzzler_v2.0.0.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Beaver.HiC.R2.fastq.gz | 20       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCF_047511655.1_mCasCan1.hap1v2_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/fcs_db | 51338     | mammalia_odb10 | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
+| Fungus | apptainer | /home/justin.merondun/apptainer/puzzler_v2.0.0.sif | /90daydata/coffea_pangenome/puzzler_trials/assemblies | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz | /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R2.fastq.gz | 14       | /90daydata/coffea_pangenome/puzzler_trials/raw_data/references/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | /90daydata/coffea_pangenome/puzzler_trials/fcs_db | 57485     | fungi_odb10    | /90daydata/coffea_pangenome/puzzler_trials/busco_downloads |
 
 :page_with_curl: Map file descriptions (:exclamation: **Use full paths!!!**)
 
@@ -184,8 +182,9 @@ If you do not run `genomescope2`, I **highly** recommend you inspect the hifiasm
 
 For more details about this homozygous coverage and for a full example, see the [Fungus example](/docs/Fungus_Example.md). 
 
-* **blob_database:** Directory to save all blobtools databases. *Note that this will add SIGNIFICANT time to your run, the database to download is > 200 Gb, and large genomes will run for > 24 hours even with 64 cores*. 
-* **busco_lineage:** Busco odb10 version lineage.
+* **fcs_database:** Directory to save ~500gb fcs database. *if specified, ensure you have at least 500 gb RAM*. 
+* **fcs_taxid:** For contaminant screening, write NCBI [taxonid](https://www.ncbi.nlm.nih.gov/taxonomy/), integer. 
+* **busco_lineage:** Busco lineage (odb10/odb12).
 * **busco_database:** Directory to save busco dbs.
 
 
@@ -221,7 +220,7 @@ __________ ____ _______________________.____     _____________________
 =======================================================================
 Parameters for sample: Fungus 
 RUNTIME: apptainer
-CONTAINER: /home/justin.merondun/apptainer/puzzler_v1.9.4.sif 
+CONTAINER: /home/justin.merondun/apptainer/puzzler_v2.0.0.sif 
 WD: /90daydata/coffea_pangenome/puzzler_trials/assemblies 
 HIFI: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiFi.fastq.gz
 HIC_R1: /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads/Fungus.HiC.R1.fastq.gz
@@ -236,7 +235,7 @@ Cores Requested: 24
 Cores Available: 24
 RAM Requested: 384
 Memory Available: 2143.8 GB
-PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v1.9.4.sif
+PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/puzzler_trials:/90daydata/coffea_pangenome/puzzler_trials --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads:/90daydata/coffea_pangenome/puzzler_trials/raw_data/concat_reads --bind /90daydata/coffea_pangenome/puzzler_trials/raw_data/references:/90daydata/coffea_pangenome/puzzler_trials/raw_data/references --bind /home/justin.merondun/apptainer:/home/justin.merondun/apptainer /home/justin.merondun/apptainer/puzzler_v2.0.0.sif
 =======================================================================
 
 ~~~~ [+0m] Skipping assembly for Fungus: /90daydata/coffea_pangenome/puzzler_trials/assemblies/primary_asm/Fungus.fa exists ~~~~
@@ -249,10 +248,10 @@ PUZZLER command: apptainer exec --cleanenv --bind /90daydata/coffea_pangenome/pu
 :x: If `puzzler` fails, it will print an error like below. This will tell you which directory the command failed in, and the command which caused the failure. 
 
 ```
-❌ Command failed in in /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt: "${PUZZLER} update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1" (line 677)
+❌ Command failed in in /project/90daydata/coffea_pangenome/puzzler_trials/Fungus/06_fcs: "$PUZZLER sync_files.py get --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "$FCS_DB" &> $FCS_DB/fcs_download.log" (line 659)
 ```
 
-If you reach an error like this, please navigate to the specified directory (e.g. `/project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/nt`) and inspect the most recent log file for errors! 
+If you reach an error like this, please navigate to the specified directory (e.g. `/project/90daydata/coffea_pangenome/puzzler_trials/Fungus/06_fcs`) and inspect the most recent log file for errors! 
 
 :one: **Step 1:** `puzzler --sample Fungus --map samples.tsv`
 
@@ -293,25 +292,23 @@ This will create e.g. `$SAMPLE_JBAT.review.assembly`. Copy that file as-is to `$
 
 This script will check for these files, and create them if they do not exist in these directories. The script will not start if you haven't added the Juicebox `.review` file or if you do not have a related reference genome. 
 
-| File                                                      | Completion?                        | Description                     | If missing, run |
-| --------------------------------------------------------- | ---------------------------------- | ------------------------------- | --------------- |
-| $WD/primary_asm/juicer_files/$SAMPLE_JBAT.review.assembly |                                    | Juicebox output file            | NOTHING!        |
-| $WD/$SAMPLE/05_postjuicebox/final_asm.fa                  |                                    | Renamed scaffold file           | seqkit renaming |
-| $WD/$SAMPLE/06_realign_hic_hifi/final_asm.filtered.bam    | $WD/$SAMPLE/qc_align_hic.complete  | Final HiC re-mapped file        | bwa mem2        |
-| $WD/primary_asm/stats/$SAMPLE.pdf                         |                                    | Final contact map               | haphic plot     |
-| $WD/$SAMPLE/07_busco_yak_blob/sr.qv.txt                   | $WD/$SAMPLE/yak.complete           | YAK base quality file           | yak             |
-| $WD/$SAMPLE/07_busco_yak_blob/merq.completeness.stats     | $WD/$SAMPLE/merq.complete          | Merqury completeness            | merqury         |
-| $WD/primary_asm/stats/$SAMPLE.busco.txt                   | $WD/$SAMPLE/busco.complete         | BUSCO stats                     | busco           |
-| $WD/$SAMPLE/06_realign_hic_hifi/asm.hifi.bam              | $WD/$SAMPLE/qc_align_hifi.complete | Final HiFi re-mapped file       | minimap2        |
-| $WD/$SAMPLE/07_busco_yak_blob/blast.out                   | $WD/$SAMPLE/blastn.complete        | Run blastn                      | blastn          |
-| $WD/primary_asm/stats/$SAMPLE.blob.stats.txt              |                                    | Blobtools contaminants          | blobtools       |
-| $WD/primary_asm/stats/$SAMPLE.summary.txt                 |                                    | Summarize assembly statistics   | assembly_stats  |
+| File                                                       | Completion?                       | Description                               | If missing, run             |
+| ---------------------------------------------------------- | --------------------------------- | ----------------------------------------- | --------------------------- |
+| $WD/primary_asm/juicer_files/$SAMPLE_JBAT.review.assembly  |                                   | Juicebox  output file                     | NOTHING!                    |
+| $WD/$SAMPLE/05_postjuicebox/final_asm.fa                   |                                   | Renamed  scaffold file                    | seqkit  renaming            |
+| $FCS_DB/all.gxi, all.gxs, all.manifest                     |                                   | Download  FCS database (500gb)            | sync_files.py  get          |
+| $WD/primary_asm/stats/$SAMPLE.$FCS_TAXID.fcs_gx_report.txt | $WD/$SAMPLE/fcs.complete          | Screen  and clean genome for contaminants | run_gx.py,  gx clean-genome |
+| $WD/$SAMPLE/07_realign_hic/final_asm.filtered.bam          | $WD/$SAMPLE/qc_align_hic.complete | Final  HiC re-mapped file                 | bwa  mem2                   |
+| $WD/primary_asm/stats/$SAMPLE.pdf                          |                                   | Final  contact map                        | haphic  plot                |
+| $WD/$SAMPLE/08_merqury/merq.completeness.stats             | $WD/$SAMPLE/merq.complete         | Merqury  completeness                     | merqury                     |
+| $WD/primary_asm/stats/$SAMPLE.busco.txt                    | $WD/$SAMPLE/busco.complete        | BUSCO  stats                              | busco                       |
+| $WD/primary_asm/stats/$SAMPLE.summary.txt                  |                                   | Summarize  assembly statistics            | bbstats.sh              |
 
 <br/>
 
 :one: **Step 1(B):** `puzzler --sample Fungus --map samples.tsv --no_juice`
 
-If you are feeling reckless, you can run the entire process in one command without juicebox manual curation. **I do not recommend this, as juicebox is essential, at least for fixing obvious misassemblies or merged chromosomes**. The command above would run the entire process from `hifiasm` to `assembly_stats`, using only the scaffolded assembly instead of the juicebox curated assembly. 
+If you are feeling reckless, you can run the entire process in one command without juicebox manual curation. **I do not recommend this, as juicebox is essential, at least for fixing obvious misassemblies or merged chromosomes**. The command above would run the entire process from `hifiasm` to `stats.sh`, using only the scaffolded assembly instead of the juicebox curated assembly. 
 
 :one: **Step 1(C):** `puzzler --sample Fungus --map samples.tsv --no_purge`
 
@@ -325,7 +322,7 @@ If you would like to skip the `purge_dups` steps entirely, add this flag. It can
 
 Below is an exhaustive workflow outline documenting the inputs and outputs for each `puzzler` step. Only three steps are required from raw reads to assembly summary statistics. 
 
-![workflow](/examples/figs/Workflow_v1.9.3.png)
+![workflow](/examples/figs/Workflow_v2.0.0.png)
 
 <!-- TOC --><a name="steps"></a>
 ## Step Breakdown 
@@ -335,7 +332,7 @@ Below is an exhaustive workflow outline documenting the inputs and outputs for e
 Assembly. Default settings. 
 
 ```bash
-hifiasm --primary -t ${t} -o asm --h1 ${HIC_R1} --h2 ${HIC_R2} ${HIFI}
+hifiasm --primary -t $t -o asm --h1 $HIC_R1 --h2 $HIC_R2 $HIFI
 ```
 If provided in `samples.tsv`, `--hom-cov` is given.
 
@@ -345,9 +342,9 @@ Purge duplicates, skip if `--no_purge` is given. Default settings, no coverage m
 
 ```bash
 split_fa pri.init.fa > pri.split.fa
-minimap2 -t ${t} -xasm5 -DP pri.split.fa pri.split.fa 2> ${SAMPLE}.minimap.purge.log | gzip -c > pri.split.self.paf.gz
-purge_dups pri.split.self.paf.gz > pri.dups.bed 2> ${SAMPLE}.purge.log
-get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
+minimap2 -t $t -xasm5 -DP pri.split.fa pri.split.fa 2> $SAMPLE.minimap.purge.log | gzip -c > pri.split.self.paf.gz
+purge_dups pri.split.self.paf.gz > pri.dups.bed 2> $SAMPLE.purge.log
+get_seqs pri.dups.bed pri.init.fa 2> "$SAMPLE.getseqs.log"
 ```
 
 **3.**: `$sample/03_haphic/` 
@@ -355,12 +352,12 @@ get_seqs pri.dups.bed pri.init.fa 2> "${SAMPLE}.getseqs.log"
 Align HiC reads. Default filtering recommended by HapHiC.
 
 ```bash
-bwa-mem2 index ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa > ${SAMPLE}.alignment.indexing.hic.log 2>&1
-bwa-mem2 mem -5SP -t ${t} ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ${HIC_R1} ${HIC_R2} | \
+bwa-mem2 index $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa > $SAMPLE.alignment.indexing.hic.log 2>&1
+bwa-mem2 mem -5SP -t $t $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa $HIC_R1 $HIC_R2 | \
   samblaster | \
-  samtools view - -@ ${t} -S -h -b -F 3340 | \
-  ${FILTER_BAM} - 1 --nm 3 --threads ${t} | \
-  samtools view - -b -@ ${t} -o filtered.bam; } > ${SAMPLE}.alignment.hic.log 2>&1
+  samtools view - -@ $t -S -h -b -F 3340 | \
+  $FILTER_BAM - 1 --nm 3 --threads $t | \
+  samtools view - -b -@ $t -o filtered.bam;  > $SAMPLE.alignment.hic.log 2>&1
 ```
 
 **3A.**: `$sample/03_haphic/` 
@@ -370,7 +367,7 @@ Attempt [HapHiC](https://github.com/zengxiaofei/HapHiC) with specified `$NUM_CHR
 Default recommended 2 rounds of correction. Test `--max_inflation` up to 10 which accomodates a huge variation of genomes. 
 
 ```bash
-haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${NUM_CHRS} --correct_nrounds 2 --max_inflation 10.0 --threads ${t} --processes ${t} 2> ../${SAMPLE}.haphic.log
+haphic pipeline $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa ../filtered.bam $NUM_CHRS --correct_nrounds 2 --max_inflation 10.0 --threads $t --processes $t
 ```
 
 **3B.**: `$sample/03_haphic/` 
@@ -378,8 +375,8 @@ haphic pipeline ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa ../filtered.bam ${
 If `3A` scaffolding fails, scaffold with YAHS. Default settings.
 
 ```bash
-samtools faidx ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa
-yahs ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa filtered.bam > yahs.log 2>&1
+samtools faidx $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa
+yahs $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa filtered.bam
 ```
 
 **4.**: `$sample/04_juicer/`
@@ -388,22 +385,22 @@ Prepare juicer input files (skipped if `--no_juice`). Recommended settings from 
 
 ```bash
 # This step is skipped if no reference is given 
-mashmap -r ${REFERENCE} -q ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa -t ${t} -s 10000 --perc_identity 85 -o asm_to_ref.paf 2> mashmap.ref.log
-haphic refsort ${WD}/${SAMPLE}/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > alignment.agp 2> refsort.log
+mashmap -r $REFERENCE -q $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa -t $t -s 10000 --perc_identity 85 -o asm_to_ref.paf
+haphic refsort $WD/$SAMPLE/03_haphic/haphic/04.build/scaffolds.raw.agp asm_to_ref.paf > alignment.agp
 # If no reference, start here 
 juicer pre \
   -a -q 1 \
   -o haphic_JBAT \
-  ${WD}/${SAMPLE}/03_haphic/filtered.bam \
+  $WD/$SAMPLE/03_haphic/filtered.bam \
   alignment.agp \
-  ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
+  $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa.fai > haphic_JBAT.log 2>&1
 grep PRE_C_SIZE haphic_JBAT.log | \
-  awk '{print $2" "$3}' > chrom.sizes
-${RUN_JUICERTOOLS} pre \
+  awk 'print $2" "$3' > chrom.sizes
+$RUN_JUICERTOOLS pre \
   -r 5000000,4000000,3000000,2000000,1500000,1000000,750000,500000,250000,100000,50000 \
   haphic_JBAT.txt \
   haphic_JBAT.hic \
-  chrom.sizes > juicer_pre.log 2>&1
+  chrom.sizes
 ```
 
 **5A.**: `$sample/05_postjuicebox/`
@@ -413,9 +410,9 @@ Extract post-juicer assembly. Default settings.
 ```bash
 juicer post \
   -o haphic-post_JBAT \
-  ${WD}/juicer_files/${SAMPLE}_JBAT.review.assembly \
-  ${WD}/${SAMPLE}/04_juicer/haphic_JBAT.liftover.agp \
-  ${WD}/${SAMPLE}/02_purge_dups/p_ctg.purged.fa 2> ${SAMPLE}.juicer.post.log
+  $WD/juicer_files/$SAMPLE_JBAT.review.assembly \
+  $WD/$SAMPLE/04_juicer/haphic_JBAT.liftover.agp \
+  $WD/$SAMPLE/02_purge_dups/p_ctg.purged.fa
 ```
 
 **5B.**: `$sample/05_postjuicebox/`
@@ -423,99 +420,100 @@ juicer post \
 Rename scaffolds according to syntenic chromosomes in reference, extract final assembly.
 
 ```bash
-mashmap -r ${REFERENCE} -q post_juicer_asm.fa -t ${t} -s 10000 --perc_identity 85 -o asmpost_to_paf.paf 2> mashmap.postjuicer.log
+mashmap -r $REFERENCE -q post_juicer_asm.fa -t $t -s 10000 --perc_identity 85 -o asmpost_to_paf.paf 2> mashmap.postjuicer.log
 samtools faidx post_juicer_asm.fa
-samtools faidx ${REFERENCE}
-map_chromosomes --paf asmpost_to_paf.paf --fai post_juicer_asm.fa.fai --out map.txt --min_size 0.1 &> mapping_renaming.log
+samtools faidx $REFERENCE
+map_chromosomes --paf asmpost_to_paf.paf --fai post_juicer_asm.fa.fai --out map.txt --min_size 0.1
 ... 
 [lots of bash logic ensuring the scaffolds are renamed, rename unlocalized scaffolds (e.g. secondary hits to chr1 as chr1_unloc1)]
 ...
-seqkit replace --line-width 0 -p "(.*)" -r "{kv}" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa 2> seqkit_renaming.log
+seqkit replace --line-width 0 -p "(.*)" -r "kv" -k chromosome_naming_map.txt orient.fa > haphic_renamed_unord.fa
 samtools faidx haphic_renamed_unord.fa
 xargs samtools faidx haphic_renamed_unord.fa < sorted_chr.txt > final_asm.fa
 ```
 
-**6.**: `$sample/06_realign_hic_hifi/`
+**6.**: `$sample/06_fcs/`
+
+Contaminant screening using NCBI's fcs. First must download or check for large ~500 gb database! Optional, if db path & taxon ID are given in `samples.tsv`. 
+
+```bash
+# check db / download db to $FCS_DB
+sync_files.py --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "$FCS_DB"
+
+# screen
+run_gx.py screen genome --fasta $WD/primary_asm/$SAMPLE.fa \
+    --out-dir $WD/$SAMPLE/06_fcs \
+    --gx-db $FCS_DB \
+    --tax-id $FCS_TAXID
+
+# clean genome
+cat $WD/primary_asm/$SAMPLE.fa | \
+    gx clean-genome \
+        --action-report $WD/$SAMPLE/06_fcs/$SAMPLE.$FCS_TAXID.fcs_gx_report.txt \
+        --output $WD/$SAMPLE/06_fcs/$SAMPLE.no_contams.fa \
+        --contam-fasta-out $WD/$SAMPLE/06_fcs/contaminants.fasta
+
+# move previous genome and replace with cleaned version 
+mkdir -p $WD/primary_asm/pre_fcs_screening
+mv $WD/primary_asm/$SAMPLE.fa $WD/primary_asm/pre_fcs_screening/$SAMPLE.fa
+cp $WD/$SAMPLE/06_fcs/$SAMPLE.no_contams.fa $WD/primary_asm/$SAMPLE.fa
+mv $WD/primary_asm/stats/$SAMPLE* $WD/primary_asm/pre_fcs_screening/
+```
+
+**7.**: `$sample/07_realign_hic/`
 
 Re-align HiC to final assembly and create contact plot. Same settings used for filtering as above. 
 
-```
-bwa-mem2 index final_asm.fa > alignment.indexing.final_hic.log 2>&1
+```bash
+bwa-mem2 index final_asm.fa
 samtools faidx final_asm.fa
 
-bwa-mem2 mem -5SP -t ${t} final_asm.fa ${HIC_R1} ${HIC_R2} | \
+bwa-mem2 mem -5SP -t $t final_asm.fa $HIC_R1 $HIC_R2 | \
 samblaster | \
-  samtools view - -@ ${t} -S -h -b -F 3340 | \
-  ${FILTER_BAM} - 1 --nm 3 --threads ${t} --remove-dup | \
-  samtools view - -b -@ ${t} -o final_asm.filtered.bam; > alignment.final_hic.log 2>&1
+  samtools view - -@ $t -S -h -b -F 3340 | \
+  $FILTER_BAM - 1 --nm 3 --threads $t --remove-dup | \
+  samtools view - -b -@ $t -o final_asm.filtered.bam
 mock_agp_file.py final_asm.fa > final_asm.agp
-haphic plot --threads ${t} final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 1 2> haphic_plot.log
+haphic plot --threads $t final_asm.agp final_asm.filtered.bam --bin_size 1000 --min_len 1
 ```
 
-**7.**: `$sample/07_busco_yak_blob/`
+**8.**: `$sample/08_merqury/`
 
-Final QC. Run YAK, Merqury, and then optionally run BUSCO and BlobTools if db paths are given in `samples.tsv`. 
-
-Developer tutorial settings for [YAK](https://github.com/lh3/yak) and [BlobTools](https://blobtoolkit.genomehubs.org/blobtools2/blobtools2-tutorials/getting-started-with-blobtools2/), BUSCO default settings.
+Kmer completeness and QV checks with Merqury.
 
 ```bash
-# YAK
-yak count -b37 -t ${t} -o ccs.yak ${HIFI} > yak.count.log 2>&1
-yak qv -t ${t} -p -K3.2g -l100k ccs.yak ${WD}/primary_asm/${SAMPLE}.fa > sr.qv.txt 2> yak.qv.log
-
 # Merqury with kmer=21
-meryl k=21 threads=${t} memory=${MEM} count output reads.meryl ${HIFI} > meryl.kmer.log 2>&1
-merqury.sh reads.meryl ${WD}/primary_asm/${SAMPLE}.fa merq > merq.log 2>&1
-
-# BUSCO
-busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} > ${BUSCO_DB}/${BUSCO_LINEAGE}_busco_download.log 2>&1
-busco -i ${WD}/primary_asm/${SAMPLE}.fa \
-  -l ${BUSCO_DB}/lineages/${BUSCO_LINEAGE} \
-  -m genome \
-  -c ${t} \
-  -o ${SAMPLE} \
-  -f \
-  --offline > busco.log 2>&1
-
-# Align HiFi reads for Blobtools
-minimap2 -t ${t} -ax map-hifi \
-  ${WD}/primary_asm/${SAMPLE}.fa ${HIFI} 2> ${SAMPLE}.hifi.minimap.log | \
-  samtools sort --threads ${t} -o asm.hifi.bam; > hifi.alignment.log 2>&1
-samtools index -c --threads ${t} asm.hifi.bam
-
-# Prepare BlobTools DB
-cd ${BLOB_DB}/nt
-NT_LOCK_FILE="${BLOB_DB}/download_nt.lock"
-update_blastdb.pl --force_ftp --num_threads ${t} --decompress nt > nt_check_database.log 2>&1
-rm "$NT_LOCK_FILE"
-
-# Run BlobTools
-blastn -task megablast \
-  -db ${BLOB_DB}/nt/nt \
-  -query ${WD}/primary_asm/${SAMPLE}.fa \
-  -outfmt "6 qseqid staxids bitscore std" \
-  -max_target_seqs 10 \
-  -max_hsps 1 \
-  -evalue 1e-25 \
-  -num_threads ${t} \
-  -out blast.out > blast.log 2>&1
-blobtools create -i ${WD}/primary_asm/${SAMPLE}.fa -b ${WD}/${SAMPLE}/06_realign_hic_hifi/asm.hifi.bam -t blast.out \
-  --db ${BLOB_DB}/data/nodesDB.txt -o ${SAMPLE}
-blobtools view -i ${SAMPLE}.blobDB.json
-blobtools plot -i ${SAMPLE}.blobDB.json --format pdf 
+meryl k=21 threads=$t memory=$MEM count output reads.meryl $HIFI
+merqury.sh reads.meryl $WD/primary_asm/$SAMPLE.fa merq
 ```
 
-**8.**: `primary_asm/stats`
+**9.**: `$sample/09_busco/`
+
+BUSCO checks, if db path and lineage are given in `samples.tsv`. 
+
+```bash
+# BUSCO
+busco --download $BUSCO_LINEAGE --download_path $BUSCO_DB
+busco -i $WD/primary_asm/$SAMPLE.fa \
+  -l $BUSCO_DB/lineages/$BUSCO_LINEAGE \
+  -m genome \
+  -c $t \
+  -o $SAMPLE \
+  -f \
+  --offline > busco.log 2>&1
+```
+
+**10.**: `primary_asm/stats`
 
 Summarize final assembly. 
 
 ```bash
-assembly_stats ${WD}/primary_asm/${SAMPLE}.fa
+bbstats.sh in=$WD/primary_asm/$SAMPLE.fa
 ...
 [bash logic to compile all optional QC information, if run]
 ...
-echo -e "\e[46m~~~ $(elapsed) Your final assembly for ${SAMPLE} is: ${WD}/primary_asm/${SAMPLE}.fa ~~~\e[0m"
-echo -e "\e[46m~~~ $(elapsed) Your final assembly stats for ${SAMPLE} are in: ${WD}/primary_asm/stats/${SAMPLE}.summary.txt ~~~\e[0m"
+echo -e "\e[46m~~~ $(elapsed) Your final assembly for $SAMPLE is: $WD/primary_asm/$SAMPLE.fa ~~~\e[0m"
+echo -e "\e[46m~~~ $(elapsed) Your final assembly stats for $SAMPLE are in: $WD/primary_asm/stats/$SAMPLE.summary.txt ~~~\e[0m"
 ```
 
 
@@ -549,47 +547,35 @@ apptainer exe $SIF hifiasm
 
 ___
 
-> I receive an error for downloading busco / taxdump / nt databases!
+> I receive an error for downloading busco / fcs databases!
 
-Puzzler will create a `.lock` file when downloading the respective databases for busco and blobtools so that it will not overwrite or interupt on-going downloads. If you submitted Puzzler in parallel, other jobs will exit if they encounter this lock file. This is so that the resources will be freed up, otherwise they might hang for many hours while the `nt` database downloads. Once the databases are finished downloading, simply resubmit those jobs and Puzzler will take back up where needed. 
+Puzzler will create a `.lock` file when downloading the respective databases for busco and fcs so that it will not overwrite or interupt on-going downloads. If you submitted Puzzler in parallel, other jobs will exit if they encounter this lock file. This is so that the resources will be freed up, otherwise they might hang for many hours while the 500gb `fcs` database downloads. Once the databases are finished downloading, simply resubmit those jobs and Puzzler will take back up where needed. I always recommend running 1 sample first start-to-finish before submitting assembly arrays. 
 
 ```bash
-~~~ [+0m] Another instance already dl-ing taxdump db. Resubmit puzzler when finished, or rm /project/90daydata/coffea_pangenome/puzzler_trials/blob_downloads/download_taxdump.lock! Exiting ~~~
+~~~ [+0m] Another instance already dl-ing db. Resubmit puzzler when finished, or rm $FCS_LOCK_FILE! Exiting ~~~
 ```
 
 Depending on your HPC environment, you might run into issues about the compute nodes timing out, or the busco server's being unreachable. This will require manual inspection on your part, either for busco:
 
 ```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.4.sif"
+PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v2.0.0.sif"
 # for conda, busco is already on $PATH! 
 BUSCO_DB=/90daydata/coffea_pangenome/puzzler_trials/busco_downloads
 BUSCO_LINEAGE=fungi_odb10
-cd ${BUSCO_DB}/../
-${PUZZLER} busco --download ${BUSCO_LINEAGE} --download_path ${BUSCO_DB} 
+cd $BUSCO_DB/../
+$PUZZLER busco --download $BUSCO_LINEAGE --download_path $BUSCO_DB 
 ```
 
-Refseq taxdump (blobtools requirement):
+FCS [gx database](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart):
 
 ```bash
-BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
-cd ${BLOB_DB}
-mkdir -p data
-wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -P data/
-tar zxf data/taxdump.tar.gz -C data/ nodes.dmp names.dmp
-```
-
-Or Refseq nt (blobtools requirement): 
-
-```bash
-PUZZLER="apptainer exec /home/justin.merondun/apptainer/puzzler_v1.9.4.sif"
-BLOB_DB=/90daydata/coffea_pangenome/puzzler_trials/blob_downloads
-cd ${BLOB_DB}/nt
-${PUZZLER} update_blastdb.pl --force_ftp --decompress nt
+FCS_DB=/90daydata/coffea_pangenome/puzzler_trials/fcs_db
+$PUZZLER sync_files.py --mft=https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/FCS/database/latest/all.manifest --dir "$FCS_DB" get
 ```
 
 ___
 
-> I encountered the warning: Multiple scaffolds corresponding to a single Chr for ${SAMPLE} INSPECT!
+> I encountered the warning: Multiple scaffolds corresponding to a single Chr for $SAMPLE INSPECT!
 
 This means that there are multiple scaffolds/chromosomes in your draft which correspond to a single chromosome in the reference genome. The script will automatically rename the duplicates into e.g. `chr1` `chr1_unloc1` `chr1_unloc2` according to length. 
 
@@ -600,7 +586,7 @@ You can also manually modify any of these by changing the value in the second co
 For example, in this file:
 
 ```
-head ${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt
+head $WD/$SAMPLE/05_postjuicebox/chromosome_naming_map.txt
 scaffold_1      chr1    +       42.46%  35386063
 scaffold_2      chr1  +       41.33%  9847223
 scaffold_3      chr11   +       47.76%  28452307
@@ -612,7 +598,7 @@ There are two scaffolds with a high similarity (~42%) and a large amount of alig
 The script will automatically rename these chr1 and chr1_unloc1, but you could also modify this manually and resubmit:
 
 ```
-head ${WD}/${SAMPLE}/05_postjuicebox/chromosome_naming_map.txt
+head $WD/$SAMPLE/05_postjuicebox/chromosome_naming_map.txt
 scaffold_1      chr1    +       42.46%  35386063
 scaffold_2      chr1_unloc1  +       41.33%  9847223
 scaffold_3      chr11   +       47.76%  28452307
@@ -651,8 +637,10 @@ A successful run should look like this within `$WD/$SAMPLE/` (excluding BlobTool
 03_haphic/
 04_juicer/
 05_postjuicebox/
-06_realign_hic_hifi/
-07_busco_yak_blob/
+06_fcs/
+07_realign_hic/
+08_merqury/
+09_busco/
 hifiasm.complete
 purge_dups.complete
 align_hic.complete
@@ -660,7 +648,7 @@ scaffolding.complete
 juicer.complete
 qc_align_hic.complete
 merqury.complete
-yak.complete
+fcs.complete
 busco.complete
 ```
 
@@ -694,12 +682,9 @@ If using chromosome-renaming:
 
 If assessing assembly quality / contaminants:
 * [busco v5.8.3](https://busco.ezlab.org/): https://doi.org/10.1093/bioinformatics/btv351
-* [yak v0.1-r69-dirty](https://github.com/lh3/yak): https://doi.org/10.1038/s41592-020-01056-5 (same as hifiasm)
+* [fcs gx v0.5.5](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart): https://doi.org/10.1186/s13059-024-03198-7
 * [merqury v1.3](https://github.com/marbl/merqury): https://doi.org/10.1186/s13059-020-02134-9
-* [blobtools v1.1.1](https://blobtools.readme.io/docs/what-is-blobtools): https://doi.org/10.12688/f1000research.12232.1
-* [blastn v2.16.0+](https://sequenceserver.com/blog/citing-ncbi-blast/): https://doi.org/10.1186/1471-2105-10-421
-* [NCBI RefSeq nt database](https://www.ncbi.nlm.nih.gov/refseq/publications/): https://doi.org/10.1093/nar/gkae1038
-* [assembly_stats v0.1.2](https://github.com/MikeTrizna/assembly_stats): https://zenodo.org/record/3968774
+* [BBTools v39.26](https://github.com/bbushnell/BBTools): https://bbmap.org
 
 If using optional software:
 * [genomescope2 v2.0](https://github.com/tbenavi1/genomescope2.0): https://doi.org/10.1038/s41467-020-14998-3
@@ -708,6 +693,9 @@ ___
 
 <!-- TOC --><a name="changelog"></a>
 ## Changelog
+
+**v2.0.0**: 
+- Major changes: drop YAK, drop blobtools, implement NCBI's [fcs](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart) which seems better and faster. 
 
 **v1.9.4**: 
 - Add small fix to puzzler binary for conda install: HapHic's custom allhic binary didn't copy correctly, puzzler will now fetch and place in appropriate directory.

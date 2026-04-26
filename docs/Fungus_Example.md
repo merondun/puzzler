@@ -2,10 +2,10 @@
 
 [Needlecast fungus](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_964106605.1/) has a small genome (25 Mb) and 14 chromosomes, so it's good for a quick tutorial. 
 
-First install puzzler (this tutorial currently follows v1.9.2 from conda). Install is large and with mamba this took around 20 minutes:
+First install puzzler (this tutorial currently followed v1.9.2 from conda). Install is large and with mamba this took around 10 minutes. The only difference from the current version is Merqury has replaced YAK, and FCS has replaced blobtools. 
 
 ```
-mamba create -n puzzler192 -c conda-forge -c bioconda -c hcc -c heritabilities puzzler -y
+mamba create -n puzzler -c conda-forge -c bioconda -c hcc -c heritabilities puzzler -y
 ```
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
@@ -43,7 +43,7 @@ wget https://zenodo.org/records/17756307/files/Fungus.HiC.R2.fastq.gz
 
 ### Simplify Reference Chr Names
 
-I will name the chromosomes according to the published reference assembly. I will clean the chromosomen names so that they are e.g. ">chr1" intead of ">OZ066564.1":
+I will name the chromosomes according to the published reference assembly. I will clean the chromosome names so that they are e.g. ">chr1" intead of ">OZ066564.1":
 
 ```bash
 wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/964/106/605/GCA_964106605.1_gdRhiKalk1.hap1.1/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna.gz
@@ -80,14 +80,15 @@ REF=$(realpath GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna)
 
 # --- Optional inputs (defaults set to your example, can be overridden) ---
 HOM_COV=NA
-BLOB_DB=NA
+FCS_DB=NA
+FCS_TAXID=NA
 BUSCO_LINEAGE=fungi_odb10
 BUSCO_DB=${WD}/busco_downloads
 
 # --- Write header + one row to TSV ---
-printf "sample\truntime\tcontainer\twd\thifi\thic_r1\thic_r2\tnum_chrs\treference\thom_cov\tblob_database\tbusco_lineage\tbusco_database\n" > ${WD}/samples.tsv
+printf "sample\truntime\tcontainer\twd\thifi\thic_r1\thic_r2\tnum_chrs\treference\thom_cov\tfcs_database\tfcs_taxid\tbusco_lineage\tbusco_database\n" > ${WD}/samples.tsv
 printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-  "$SAMPLE" "$RUNTIME" "$CONTAINER" "$WD" "$HIFI" "$HIC_R1" "$HIC_R2" "$NUM_CHRS" "$REF" "$HOM_COV" "$BLOB_DB" "$BUSCO_LINEAGE" "$BUSCO_DB" >> ${WD}/samples.tsv
+  "$SAMPLE" "$RUNTIME" "$CONTAINER" "$WD" "$HIFI" "$HIC_R1" "$HIC_R2" "$NUM_CHRS" "$REF" "$HOM_COV" "$FCS_DB" "$FCS_TAXID" "$BUSCO_LINEAGE" "$BUSCO_DB" >> ${WD}/samples.tsv
 
 ```
 
@@ -108,8 +109,9 @@ Details:
 
 * **reference:** Path to related species genome for chromosome naming. Scaffolds will be renamed to the closest syntenic chromosome **using their scaffold naming convention**.
 * **hom_cov:** Homozygous peak coverage.
-* **blob_database:** Directory to save all blobtools databases.
-* **busco_lineage:** Busco odb10 version lineage.
+* **fcs_database:** Directory to save the ~500gb fcs database.
+* **fcs_taxonid:** NCBI taxon ID from [here](https://www.ncbi.nlm.nih.gov/taxonomy/). 
+* **busco_lineage:** Busco odb10/odb12 version lineage.
 * **busco_database:** Directory to save busco dbs.
 
 ## OPTIONAL Determine homozygous coverage
@@ -136,7 +138,7 @@ Will output this plot:
 
 ![genomescope2](/examples/figs/Fungus_linear_plot.png)
 
-The left-peak corresponds to around 18, so we would set `--hom_cov` to 32 if it was diploid. 
+The left-peak corresponds to around 18, so we could set `--hom_cov` to 32 if it was diploid, although honestly hifiasm is quite good if your coverage is sufficient. 
 
 **Instead of specifying `--hom_cov` directly, I will just let use `hifiasm` determine appropriate levels**, and check the `.log`.
 
@@ -164,14 +166,14 @@ Navigate to `$WD` and ensure `puzzler` is on path:
 ```bash
 WD=/project/coffea_pangenome/Artocarpus/puzzler_trials
 cd ${WD}
-puzzler -h
-Usage (v1.9.2): puzzler -s sample -m samples.tsv [OPTIONS]
+puzzler -h 
+Usage (v2.0.0): puzzler -s sample -m samples.tsv [OPTIONS]
 
 Options:
   -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)
   -m, --map FILE        Path to .tsv/.csv map file (required)
-  --threads t           Number of threads (optional; default 16)
-  --mem MEM             Memory allocation (optional; default 128)
+  --threads t           Number of threads (optional; default 48)
+  --mem MEM             Memory allocation (optional; default 512)
   --no_purge            Skip purge duplicates step entirely (optional)
   --no_juice            Skip juicer file creation entirely (optional; not recommended!)
   --yahs                Run scaffolding with YAHS directly instead of HapHiC (optional)
@@ -180,7 +182,7 @@ Options:
 
   Required --map Structure:
   The provided map file (e.g., samples.tsv) must contain the following columns in this order:
-  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV BLOB_DB BUSCO_LINEAGE BUSCO_DB
+  SAMPLE RUNTIME CONTAINER WD HIFI HIC_R1 HIC_R2 NUM_CHRS REFERENCE HOM_COV FCS_DB FCS_TAXID BUSCO_LINEAGE BUSCO_DB
   For optional columns (REFERENCE - BUSCO_DB), write NA if undesired.
 ```
 
@@ -190,12 +192,12 @@ Good to go.
 
 For this example with 4 forks, I will add 3 more rows where the only difference is `$SAMPLE` (where files are stored) and `$REFERENCE`. 
 
-| sample              | runtime | container | wd                                                  | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | blob_database | busco_lineage | busco_database                                               |
-| ------------------- | ------- | --------- | --------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | ------------- | ------------- | ------------------------------------------------------------ |
-| Fungus              | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | /project/coffea_pangenome/Artocarpus/puzzler_trials/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
-| Fungus_NoRef        | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
-| Fungus_NoJuice      | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | /project/coffea_pangenome/Artocarpus/puzzler_trials/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA            | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
-| Fungus_NoRefNoJuice | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA            | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
+| sample              | runtime | container | wd                                                  | hifi                                                         | hic_r1                                                       | hic_r2                                                       | num_chrs | reference                                                    | hom_cov | fcs_database | fcs_taxid | busco_lineage | busco_database                                               |
+| ------------------- | ------- | --------- | --------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------- | ------------ | --------- | ------------- | ------------------------------------------------------------ |
+| Fungus              | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | /project/coffea_pangenome/Artocarpus/puzzler_trials/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA           | NA        | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
+| Fungus_NoRef        | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA           | NA        | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
+| Fungus_NoJuice      | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | /project/coffea_pangenome/Artocarpus/puzzler_trials/GCA_964106605.1_gdRhiKalk1.hap1.1_genomic.fna | NA      | NA           | NA        | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
+| Fungus_NoRefNoJuice | conda   | NA        | /project/coffea_pangenome/Artocarpus/puzzler_trials | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiFi.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R1.fastq.gz | /project/coffea_pangenome/Artocarpus/puzzler_trials/Fungus.HiC.R2.fastq.gz | 14       | NA                                                           | NA      | NA           | NA        | fungi_odb10   | /project/coffea_pangenome/Artocarpus/puzzler_trials/busco_downloads |
 
 ## Recommended Workflow Juicer and Reference
 
