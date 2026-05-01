@@ -39,6 +39,7 @@ function show_help {
 }
 
 ########## start checks #############
+ORIG_ARGC=$#
 
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -56,6 +57,11 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+
+# if no args given
+if [[ $ORIG_ARGC -eq 0 ]]; then
+    show_help
+fi
 
 # Validate required arguments
 if [ -z "$SAMPLE" ]; then
