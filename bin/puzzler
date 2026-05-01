@@ -693,7 +693,7 @@ else
         mkdir -p ${WD}/primary_asm/pre_fcs_screening
         mv ${WD}/primary_asm/${SAMPLE}.fa ${WD}/primary_asm/pre_fcs_screening/${SAMPLE}.fa
         cp ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.no_contams.fa ${WD}/primary_asm/${SAMPLE}.fa
-        mv ${WD}/primary_asm/stats/${SAMPLE}* ${WD}/primary_asm/pre_fcs_screening/
+        mv ${WD}/primary_asm/stats/${SAMPLE}* ${WD}/primary_asm/pre_fcs_screening/ 2>/dev/null
     fi 
 
     cp ${WD}/${SAMPLE}/06_fcs/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt ${WD}/primary_asm/stats/${SAMPLE}.${FCS_TAXID}.fcs_gx_report.txt
