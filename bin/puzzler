@@ -772,7 +772,7 @@ else
     cd ${WD}/${SAMPLE}/08_merqury
 
     ${PUZZLER} meryl k=21 threads=${t} memory=${MEM} count output reads.meryl ${HIFI} > meryl.kmer.log 2>&1
-    ${PUZZLER} merqury.sh reads.meryl ${WD}/primary_asm/${SAMPLE}.fa merq > merq.log 2>&1
+    ${PUZZLER} merqury.sh reads.meryl "${WD}/primary_asm/${SAMPLE}.fa" merq > merq.log 2>&1
     touch ${WD}/${SAMPLE}/merq.complete
 fi
 
