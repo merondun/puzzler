@@ -6,7 +6,7 @@ Check-point aware containerized shell pipeline for high-throughput genome assemb
 
 Scalable genome assembly, especially for pangenomics. Only requires conda install or apptainer `.sif` and a tsv with file paths. 
 
-Puzzler v2.0.0 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
+Puzzler v2.0.1 [![DOI](https://zenodo.org/badge/891638219.svg)](https://doi.org/10.5281/zenodo.15733730) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/version.svg)](https://anaconda.org/heritabilities/puzzler) [![Anaconda-Server Badge](https://anaconda.org/heritabilities/puzzler/badges/downloads.svg)](https://anaconda.org/heritabilities/puzzler)
 
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
@@ -84,7 +84,7 @@ Afterwards:
 Test: 
 
 ```bash
-Usage (v2.0.0): puzzler -s sample -m samples.tsv [OPTIONS]
+Usage (v2.0.1): puzzler -s sample -m samples.tsv [OPTIONS]
 
 Options:
   -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)
@@ -694,8 +694,11 @@ ___
 <!-- TOC --><a name="changelog"></a>
 ## Changelog
 
+**v2.0.1**: 
+- Minor change, fix case when multiple lines are printed to merqury output, messing up the final `stats` text file. 
+
 **v2.0.0**: 
-- Major changes: drop YAK, drop blobtools, implement NCBI's [fcs](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart) which seems better and faster. 
+- Major changes: drop YAK, drop blobtools, implement NCBI's [fcs](https://github.com/ncbi/fcs/wiki/FCS-GX-quickstart) which seems better and faster. Switch `assembly_stats` to `stats.sh` from bbtools. Minor: fixed "GC" header was missing from the `summary.txt` assembly stats output file, the value was written instead. Added `-Xmx${MEM}g` to `stats.sh` as could fail with reading in large lines.  
 
 **v1.9.4**: 
 - Add small fix to puzzler binary for conda install: HapHic's custom allhic binary didn't copy correctly, puzzler will now fetch and place in appropriate directory.

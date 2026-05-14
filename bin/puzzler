@@ -9,14 +9,14 @@ t=48
 MEM=512
 SAMPLE=""
 MAP_FILE=""
-VERSION="v2.0.0"
+VERSION="v2.0.1"
 NO_JUICE="FALSE"
 NO_PURGE="FALSE"
 YAHS="FALSE"
 
 # Display help message
 function show_help {
-    echo "Usage (v2.0.0): puzzler -s sample -m samples.tsv [OPTIONS]"
+    echo "Usage (v2.0.1): puzzler -s sample -m samples.tsv [OPTIONS]"
     echo ""
     echo "Options:"
     echo "  -s, --sample SAMPLE   Sample name, corresponding to the first column in the map file (required)"
@@ -195,7 +195,7 @@ __________ ____ _______________________.____     _____________________
  |____|   |______/ /_______ \/_______ \|_______ \/_______  / |____|_  /
                            \/        \/        \/        \/         \/ 
 =======================================================================
-                         ~~~ v2.0.0 ~~~
+                         ~~~ v2.0.1 ~~~
 
 EOF
 
@@ -830,7 +830,7 @@ else
 
     echo -e "\033[43m~~~ $(elapsed) Summarizing Assembly for ${SAMPLE} ~~~\033[0m"
     # Get metrics for final assembly
-    BBSTATS=$(${PUZZLER} stats.sh in="${WD}/primary_asm/${SAMPLE}.fa" format=3)
+    BBSTATS=$(${PUZZLER} stats.sh -Xmx${MEM}g in="${WD}/primary_asm/${SAMPLE}.fa" format=3)
 
     SEQS=$(awk 'NR==2{print $1}' <<< "$BBSTATS")  
     CTGS=$(awk 'NR==2{print $2}' <<< "$BBSTATS")       
@@ -840,10 +840,10 @@ else
     GC=$(awk 'NR==2{print $18}' <<< "$BBSTATS")      
     GAPS=$((CTGS - SEQS))
 
-    MERQ_COMP=$(cut -f5 ${WD}/${SAMPLE}/08_merqury/merq.completeness.stats)
-    MERQ_QV=$(cut -f4 ${WD}/${SAMPLE}/08_merqury/merq.qv)
+    MERQ_COMP=$(cut -f5 ${WD}/${SAMPLE}/08_merqury/merq.completeness.stats | head -n 1)
+    MERQ_QV=$(cut -f4 ${WD}/${SAMPLE}/08_merqury/merq.qv | head -n 1)
 
-    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\t${GC}\tMerqury_Complete\tMerqury_QV"
+    HEADER="Sample\tSizeBP\tSequences\tContigs\tGaps\tContigN50\tScafN50\tGC\tMerqury_Complete\tMerqury_QV"
     VALUES="${SAMPLE}\t$SIZE\t$SEQS\t$CTGS\t$GAPS\t$CONT_N50\t$SCAF_N50\t${GC}\t$MERQ_COMP\t$MERQ_QV"
 
     # Add chromosome-specific stats for reference-assigned assemblies. This will only include scaffolds > 1mb!
@@ -852,7 +852,7 @@ else
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa
         grep -E 'chr|Chr' ${WD}/primary_asm/${SAMPLE}.fa.fai | awk '$2 > 1e6' | cut -f1 > ${SAMPLE}.chrs
         ${PUZZLER} samtools faidx ${WD}/primary_asm/${SAMPLE}.fa -r ${SAMPLE}.chrs > ${SAMPLE}.chr.fa
-        CHR_STATS=$(${PUZZLER} stats.sh in="${SAMPLE}.chr.fa" format=3)
+        CHR_STATS=$(${PUZZLER} stats.sh -Xmx${MEM}g in="${SAMPLE}.chr.fa" format=3)
         CHR_SEQS=$(awk 'NR==2{print $1}' <<< "$CHR_STATS")  
         CHR_CTGS=$(awk 'NR==2{print $2}' <<< "$CHR_STATS")  
         CHR_SIZE=$(awk 'NR==2{print $3}' <<< "$CHR_STATS") 
